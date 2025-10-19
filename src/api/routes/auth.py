@@ -8,17 +8,16 @@ Author: Chukwuebuka Tobiloba Nwaizugbe
 Date: 2024
 """
 
-import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Optional
 
-import jwt
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -35,7 +34,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Pydantic models
 class UserRegistration(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50, regex="^[a-zA-Z0-9_-]+$")
+    username: str = Field(..., min_length=3, max_length=50, pattern="^[a-zA-Z0-9_-]+$")
     email: EmailStr
     password: str = Field(..., min_length=8)
     full_name: str = Field(..., min_length=2, max_length=100)
@@ -88,9 +87,14 @@ class MFAVerification(BaseModel):
 
 
 # Rate limiting storage (in production, use Redis)
-login_attempts = {}
+login_attempts: dict[str, tuple[int, datetime]] = {}
 MAX_LOGIN_ATTEMPTS = 5
 LOCKOUT_DURATION = timedelta(minutes=15)
+
+
+def get_client_ip(request: Request) -> str:
+    """Safely get client IP address from request."""
+    return request.client.host if request.client else "unknown"
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -182,13 +186,13 @@ async def get_current_user(
 
         return user
 
-    except jwt.PyJWTError:
+    except JWTError:
         raise credentials_exception
 
 
 def check_rate_limit(request: Request, username: str) -> bool:
     """Check if user is rate limited for login attempts."""
-    client_ip = request.client.host
+    client_ip = get_client_ip(request)
     key = f"{client_ip}:{username}"
 
     now = datetime.now(timezone.utc)
@@ -210,7 +214,7 @@ def check_rate_limit(request: Request, username: str) -> bool:
 
 def record_login_attempt(request: Request, username: str, success: bool):
     """Record login attempt for rate limiting."""
-    client_ip = request.client.host
+    client_ip = get_client_ip(request)
     key = f"{client_ip}:{username}"
     now = datetime.now(timezone.utc)
 
@@ -299,7 +303,7 @@ async def register_user(
             f"New user registered: {user_data.username}",
             severity="info",
             user_id=new_user.id,
-            client_ip=request.client.host,
+            client_ip=get_client_ip(request),
         )
 
         logger.info(f"User registered successfully: {user_data.username}")
@@ -339,7 +343,7 @@ async def login_user(
             log_security_event(
                 f"Rate limit exceeded for user: {user_credentials.username}",
                 severity="warning",
-                client_ip=request.client.host,
+                client_ip=get_client_ip(request),
             )
             raise HTTPException(
                 status_code=429,
@@ -360,7 +364,7 @@ async def login_user(
             log_security_event(
                 f"Failed login attempt for user: {user_credentials.username}",
                 severity="warning",
-                client_ip=request.client.host,
+                client_ip=get_client_ip(request),
             )
 
             raise HTTPException(
@@ -375,7 +379,7 @@ async def login_user(
                 f"Login attempt for disabled user: {user_credentials.username}",
                 severity="warning",
                 user_id=user.id,
-                client_ip=request.client.host,
+                client_ip=get_client_ip(request),
             )
 
             raise HTTPException(status_code=401, detail="User account is disabled")
@@ -402,7 +406,7 @@ async def login_user(
             f"User logged in successfully: {user.username}",
             severity="info",
             user_id=user.id,
-            client_ip=request.client.host,
+            client_ip=get_client_ip(request),
         )
 
         logger.info(f"User logged in: {user.username}")
@@ -472,7 +476,7 @@ async def refresh_access_token(
             is_admin=user.is_admin,
         )
 
-    except jwt.PyJWTError:
+    except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
     except HTTPException:
         raise
@@ -499,7 +503,7 @@ async def logout_user(request: Request, current_user: User = Depends(get_current
             f"User logged out: {current_user.username}",
             severity="info",
             user_id=current_user.id,
-            client_ip=request.client.host,
+            client_ip=get_client_ip(request),
         )
 
         logger.info(f"User logged out: {current_user.username}")

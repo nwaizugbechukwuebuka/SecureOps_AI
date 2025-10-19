@@ -5,7 +5,7 @@ pydantic==2.5.0
 pydantic-settings==2.1.0
 
 # Database & ORM
-sqlalchemy>=2.0.35
+sqlalchemy==2.0.23
 alembic==1.13.1
 asyncpg==0.29.0
 psycopg2-binary==2.9.11
@@ -36,11 +36,11 @@ azure-devops==7.1.0b3
 safety==2.3.5
 bandit==1.7.5
 semgrep==1.45.0
-trivy-python==0.1.0
+
 
 # Docker & Container Security
 docker==6.1.3
-python-docker==0.0.1
+
 
 # Configuration & Environment
 python-dotenv==1.0.0

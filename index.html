@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Essential Meta Tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Primary Meta Tags -->
+    <title>SecureOps Dashboard</title>
+    <meta name="title" content="SecureOps Dashboard">
+    <meta name="description" content="Enterprise DevSecOps platform for CI/CD pipeline security monitoring, vulnerability assessment, and compliance management.">
+    <meta name="keywords" content="DevSecOps, Security, CI/CD, Pipeline Monitoring, Vulnerability Assessment, Compliance">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="author" content="SecureOps Team">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://secureops.io/">
+    <meta property="og:title" content="SecureOps Dashboard">
+    <meta property="og:description" content="Enterprise DevSecOps platform for CI/CD pipeline security monitoring, vulnerability assessment, and compliance management.">
+    <meta property="og:image" content="./src/frontend/public/assets/images/dashboard-preview.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://secureops.io/">
+    <meta property="twitter:title" content="SecureOps Dashboard">
+    <meta property="twitter:description" content="Enterprise DevSecOps platform for CI/CD pipeline security monitoring, vulnerability assessment, and compliance management.">
+    <meta property="twitter:image" content="./src/frontend/public/assets/images/dashboard-preview.png">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" type="image/x-icon" href="./src/frontend/public/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="./src/frontend/public/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./src/frontend/public/assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./src/frontend/public/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="./src/frontend/public/manifest.json">
+    
+    <!-- Theme and App Configuration -->
+    <meta name="theme-color" content="#1e293b">
+    <meta name="msapplication-TileColor" content="#1e293b">
+    <meta name="msapplication-config" content="./src/frontend/public/browserconfig.xml">
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss:;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    
+    <!-- Chart.js for Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preload" href="./src/frontend/public/assets/fonts/OpenSans-Regular.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="./src/frontend/public/assets/fonts/OpenSans-Bold.ttf" as="font" type="font/ttf" crossorigin>
+    
+    
+    <!-- Critical CSS for Dashboard -->
+    <style>
+        /* ===== RESET AND BASE STYLES ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        
+        /* ===== DASHBOARD LAYOUT ===== */
+        .dashboard-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        
+        /* ===== NAVIGATION BAR ===== */
+        .navbar {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #334155;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        
+        .navbar-nav {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+        
+        .navbar-nav a {
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .navbar-nav a:hover,
+        .navbar-nav a.active {
+            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .notification-btn {
+            position: relative;
+            background: none;
+            border: none;
+            color: #cbd5e1;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .notification-btn:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #ef4444;
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+        }
+        
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        /* ===== DASHBOARD GRID ===== */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        /* ===== CARDS ===== */
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            border-color: #3b82f6;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .card-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .card-body {
+            color: #cbd5e1;
+        }
+        
+        /* ===== STATS CARDS ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #06b6d4);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .stat-change {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            display: inline-block;
+        }
+        
+        .stat-change.positive {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+        
+        .stat-change.negative {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+        
+        /* ===== TABLES ===== */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(30, 41, 59, 0.5);
+        }
+        
+        .table th {
+            background: rgba(51, 65, 85, 0.8);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #f1f5f9;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #334155;
+            color: #cbd5e1;
+        }
+        
+        .table tbody tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+        
+        /* ===== STATUS BADGES ===== */
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .status-critical {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .status-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        
+        .status-success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        
+        .status-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        /* ===== PROGRESS BARS ===== */
+        .progress-container {
+            background: #334155;
+            border-radius: 6px;
+            height: 8px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-primary {
+            background: linear-gradient(90deg, #3b82f6, #06b6d4);
+        }
+        
+        .progress-success {
+            background: linear-gradient(90deg, #22c55e, #10b981);
+        }
+        
+        .progress-warning {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+        
+        .progress-danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+        
+        /* ===== CHARTS ===== */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 1rem 0;
+        }
+        
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(100, 116, 139, 0.1);
+            color: #cbd5e1;
+            border: 1px solid #475569;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(100, 116, 139, 0.2);
+            border-color: #64748b;
+        }
+        
+        /* ===== ALERTS ===== */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .alert-critical {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: #ef4444;
+            color: #fef2f2;
+        }
+        
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: #f59e0b;
+            color: #fffbeb;
+        }
+        
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+            color: #eff6ff;
+        }
+        
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: #22c55e;
+            color: #f0fdf4;
+        }
+        
+        .alert-icon {
+            font-size: 1.2rem;
+            margin-top: 0.1rem;
+        }
+        
+        .alert-content h4 {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .alert-content p {
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+        
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem;
+            }
+            
+            .navbar-nav {
+                display: none;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+            
+            .table-container {
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        /* ===== LOADING STATES ===== */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #334155;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* ===== SCROLLBAR STYLING ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+    
+    <!-- External CSS (will be injected by build process) -->
+    <!-- <link rel="stylesheet" href="./src/frontend/dist/assets/app.css"> -->
+</head>
+<body>
+    <!-- Dashboard Container -->
+    <div class="dashboard-container">
+        
+        <!-- ===== NAVIGATION BAR ===== -->
+        <nav class="navbar">
+            <div class="navbar-content">
+                <!-- Brand Logo -->
+                <a href="#" class="navbar-brand">
+                    <div class="brand-icon">🛡️</div>
+                    <span>SecureOps</span>
+                </a>
+                
+                <!-- Navigation Menu -->
+                <ul class="navbar-nav">
+                    <li><a href="#overview" class="nav-link active">Overview</a></li>
+                    <li><a href="#alerts" class="nav-link">Alerts</a></li>
+                    <li><a href="#logs" class="nav-link">System Logs</a></li>
+                    <li><a href="#reports" class="nav-link">Reports</a></li>
+                    <li><a href="#pipelines" class="nav-link">Pipelines</a></li>
+                    <li><a href="#compliance" class="nav-link">Compliance</a></li>
+                </ul>
+                
+                <!-- User Menu -->
+                <div class="user-menu">
+                    <button class="notification-btn" onclick="toggleNotifications()">
+                        🔔
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="showUserMenu()">
+                        👤 Admin
+                    </button>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="main-content">
+            
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">SecureOps Dashboard</h1>
+                <p class="page-subtitle">Enterprise DevSecOps Platform - Real-time Security Monitoring & Compliance</p>
+            </div>
+            
+            <!-- ===== OVERVIEW SECTION ===== -->
+            <section id="overview" class="section fade-in">
+                
+                <!-- Statistics Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalPipelines">127</div>
+                        <div class="stat-label">Active Pipelines</div>
+                        <div class="stat-change positive">↗ +12% this week</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="criticalAlerts">8</div>
+                        <div class="stat-label">Critical Alerts</div>
+                        <div class="stat-change negative">↗ +3 since yesterday</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="vulnerabilities">42</div>
+                        <div class="stat-label">Vulnerabilities</div>
+                        <div class="stat-change positive">↘ -15% this month</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="complianceScore">94%</div>
+                        <div class="stat-label">Compliance Score</div>
+                        <div class="stat-change positive">↗ +2% improvement</div>
+                    </div>
+                </div>
+                
+                <!-- Dashboard Grid -->
+                <div class="dashboard-grid">
+                    
+                    <!-- Security Overview Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">📊</span>
+                                Security Metrics Overview
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="securityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pipeline Status -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">⚙️</span>
+                                Pipeline Status
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="pipeline-status">
+                                <div class="status-item">
+                                    <span>Production Deployments</span>
+                                    <div class="progress-container">
+                                        <div class="progress-bar progress-success" style="width: 89%"></div>
+                                    </div>
+                                    <span class="status-text">89% Success Rate</span>
+                                </div>
+                                <div class="status-item">
+                                    <span>Security Scans</span>
+                                    <div class="progress-container">
+                                        <div class="progress-bar progress-primary" style="width: 76%"></div>
+                                    </div>
+                                    <span class="status-text">76% Passed</span>
+                                </div>
+                                <div class="status-item">
+                                    <span>Code Quality</span>
+                                    <div class="progress-container">
+                                        <div class="progress-bar progress-warning" style="width: 82%"></div>
+                                    </div>
+                                    <span class="status-text">82% Grade A</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">📈</span>
+                                Recent Activity
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-feed" id="activityFeed">
+                                <!-- Activity items will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- System Health -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">💚</span>
+                                System Health
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="health-metrics">
+                                <div class="health-item">
+                                    <span>API Response Time</span>
+                                    <span class="health-value good">145ms</span>
+                                </div>
+                                <div class="health-item">
+                                    <span>Database Load</span>
+                                    <span class="health-value warning">78%</span>
+                                </div>
+                                <div class="health-item">
+                                    <span>Memory Usage</span>
+                                    <span class="health-value good">62%</span>
+                                </div>
+                                <div class="health-item">
+                                    <span>Disk Space</span>
+                                    <span class="health-value critical">91%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </section>
+            
+            <!-- ===== ACTIVE ALERTS SECTION ===== -->
+            <section id="alerts" class="section fade-in">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <span class="card-icon">🚨</span>
+                            Active Security Alerts
+                        </h2>
+                        <button class="btn btn-primary" onclick="refreshAlerts()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="alertsContainer">
+                            <!-- Alerts will be populated by JavaScript -->
+                        </div>
+                        
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Alert ID</th>
+                                        <th>Severity</th>
+                                        <th>Type</th>
+                                        <th>Pipeline</th>
+                                        <th>Timestamp</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="alertsTable">
+                                    <!-- Table rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- ===== SYSTEM LOGS SECTION ===== -->
+            <section id="logs" class="section fade-in">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <span class="card-icon">📝</span>
+                            System Logs
+                        </h2>
+                        <div class="log-controls">
+                            <select id="logLevel" class="btn btn-secondary">
+                                <option value="all">All Levels</option>
+                                <option value="error">Error</option>
+                                <option value="warning">Warning</option>
+                                <option value="info">Info</option>
+                                <option value="debug">Debug</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="exportLogs()">
+                                📥 Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="log-container" id="logContainer">
+                            <!-- Logs will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- ===== REPORTS SECTION ===== -->
+            <section id="reports" class="section fade-in">
+                <div class="dashboard-grid">
+                    
+                    <!-- Vulnerability Report -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">🔍</span>
+                                Vulnerability Report
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="vulnerabilityChart"></canvas>
+                            </div>
+                            <div class="report-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">Critical</span>
+                                    <span class="summary-value critical">8</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">High</span>
+                                    <span class="summary-value warning">23</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Medium</span>
+                                    <span class="summary-value info">45</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Low</span>
+                                    <span class="summary-value good">12</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Compliance Report -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">✅</span>
+                                Compliance Report
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="complianceChart"></canvas>
+                            </div>
+                            <div class="compliance-details">
+                                <div class="compliance-item">
+                                    <span>SOX Compliance</span>
+                                    <span class="status-badge status-success">Passed</span>
+                                </div>
+                                <div class="compliance-item">
+                                    <span>GDPR Compliance</span>
+                                    <span class="status-badge status-success">Passed</span>
+                                </div>
+                                <div class="compliance-item">
+                                    <span>PCI DSS</span>
+                                    <span class="status-badge status-warning">Review Required</span>
+                                </div>
+                                <div class="compliance-item">
+                                    <span>ISO 27001</span>
+                                    <span class="status-badge status-success">Certified</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Performance Report -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">⚡</span>
+                                Performance Report
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="performanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Generate Reports -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">📋</span>
+                                Generate Reports
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="report-options">
+                                <button class="btn btn-primary" onclick="generateReport('security')">
+                                    🛡️ Security Report
+                                </button>
+                                <button class="btn btn-primary" onclick="generateReport('compliance')">
+                                    ✅ Compliance Report
+                                </button>
+                                <button class="btn btn-primary" onclick="generateReport('performance')">
+                                    ⚡ Performance Report
+                                </button>
+                                <button class="btn btn-primary" onclick="generateReport('executive')">
+                                    👔 Executive Summary
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </section>
+            
+        </main>
+    </div>
+    
+    <!-- No Script Fallback -->
+    <noscript>
+        <div style="text-align: center; padding: 50px; background: #1e293b; color: white; min-height: 100vh;">
+            <h1>🛡️ SecureOps Dashboard</h1>
+            <p style="margin: 20px 0; color: #94a3b8;">
+                JavaScript is required to run this application.<br>
+                Please enable JavaScript in your browser and refresh the page.
+            </p>
+            <p style="color: #64748b; font-size: 14px;">
+                For security reasons, ensure you're accessing SecureOps from a trusted network.
+            </p>
+        </div>
+    </noscript>
+    
+    
+    <!-- Core JavaScript (will be injected by build process) -->
+    <!-- <script type="module" src="./src/frontend/dist/assets/app.js"></script> -->
+    
+    <!-- Dashboard JavaScript -->
+    <script>
+        // ===== DASHBOARD DATA AND INITIALIZATION =====
+        (function() {
+            'use strict';
+            
+            // Sample data for demonstration - replace with real API calls
+            const dashboardData = {
+                // Security alerts data
+                alerts: [
+                    {
+                        id: 'ALT-2024-001',
+                        severity: 'critical',
+                        type: 'SQL Injection',
+                        pipeline: 'payment-service',
+                        timestamp: '2024-10-19 14:32:15',
+                        status: 'active',
+                        description: 'Potential SQL injection attempt detected in payment processing endpoint'
+                    },
+                    {
+                        id: 'ALT-2024-002',
+                        severity: 'warning',
+                        type: 'Dependency Vulnerability',
+                        pipeline: 'user-auth',
+                        timestamp: '2024-10-19 13:45:22',
+                        status: 'investigating',
+                        description: 'Outdated NPM package with known security vulnerability'
+                    },
+                    {
+                        id: 'ALT-2024-003',
+                        severity: 'critical',
+                        type: 'Container Escape',
+                        pipeline: 'api-gateway',
+                        timestamp: '2024-10-19 12:18:45',
+                        status: 'mitigated',
+                        description: 'Attempted container escape detected and blocked'
+                    },
+                    {
+                        id: 'ALT-2024-004',
+                        severity: 'info',
+                        type: 'Rate Limit Exceeded',
+                        pipeline: 'web-frontend',
+                        timestamp: '2024-10-19 11:55:33',
+                        status: 'resolved',
+                        description: 'API rate limits exceeded from suspicious IP address'
+                    }
+                ],
+                
+                // System logs data
+                logs: [
+                    {
+                        timestamp: '2024-10-19 14:35:12',
+                        level: 'error',
+                        service: 'payment-service',
+                        message: 'Database connection timeout after 30 seconds',
+                        details: 'Connection pool exhausted, scaling up database instances'
+                    },
+                    {
+                        timestamp: '2024-10-19 14:33:45',
+                        level: 'warning',
+                        service: 'auth-service',
+                        message: 'High number of failed login attempts detected',
+                        details: 'IP: 192.168.1.100, Attempts: 15 in last 5 minutes'
+                    },
+                    {
+                        timestamp: '2024-10-19 14:31:28',
+                        level: 'info',
+                        service: 'api-gateway',
+                        message: 'Successfully deployed version 2.4.1',
+                        details: 'All health checks passed, traffic routing updated'
+                    },
+                    {
+                        timestamp: '2024-10-19 14:29:15',
+                        level: 'debug',
+                        service: 'monitoring',
+                        message: 'Metrics collection completed',
+                        details: 'Processed 1,247 data points from 23 services'
+                    },
+                    {
+                        timestamp: '2024-10-19 14:27:33',
+                        level: 'info',
+                        service: 'backup-service',
+                        message: 'Daily backup completed successfully',
+                        details: 'Backup size: 2.3GB, Duration: 14 minutes'
+                    }
+                ],
+                
+                // Activity feed data
+                activities: [
+                    {
+                        type: 'deployment',
+                        icon: '🚀',
+                        message: 'payment-service v2.1.3 deployed to production',
+                        timestamp: '5 minutes ago',
+                        status: 'success'
+                    },
+                    {
+                        type: 'security',
+                        icon: '🛡️',
+                        message: 'Security scan completed for user-auth pipeline',
+                        timestamp: '12 minutes ago',
+                        status: 'warning'
+                    },
+                    {
+                        type: 'alert',
+                        icon: '🚨',
+                        message: 'Critical vulnerability detected in dependencies',
+                        timestamp: '23 minutes ago',
+                        status: 'critical'
+                    },
+                    {
+                        type: 'compliance',
+                        icon: '✅',
+                        message: 'SOX compliance check passed',
+                        timestamp: '1 hour ago',
+                        status: 'success'
+                    },
+                    {
+                        type: 'backup',
+                        icon: '💾',
+                        message: 'Database backup completed successfully',
+                        timestamp: '2 hours ago',
+                        status: 'success'
+                    }
+                ]
+            };
+            
+            // ===== CHART INITIALIZATION =====
+            let charts = {};
+            
+            function initializeCharts() {
+                // Security Overview Chart
+                const securityCtx = document.getElementById('securityChart');
+                if (securityCtx) {
+                    charts.security = new Chart(securityCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                            datasets: [{
+                                label: 'Security Incidents',
+                                data: [12, 19, 8, 15, 6, 10],
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                tension: 0.4
+                            }, {
+                                label: 'Vulnerabilities Fixed',
+                                data: [15, 25, 20, 28, 22, 30],
+                                borderColor: '#22c55e',
+                                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: '#cbd5e1'
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        color: '#94a3b8'
+                                    },
+                                    grid: {
+                                        color: '#334155'
+                                    }
+                                },
+                                x: {
+                                    ticks: {
+                                        color: '#94a3b8'
+                                    },
+                                    grid: {
+                                        color: '#334155'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Vulnerability Chart
+                const vulnerabilityCtx = document.getElementById('vulnerabilityChart');
+                if (vulnerabilityCtx) {
+                    charts.vulnerability = new Chart(vulnerabilityCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Critical', 'High', 'Medium', 'Low'],
+                            datasets: [{
+                                data: [8, 23, 45, 12],
+                                backgroundColor: [
+                                    '#ef4444',
+                                    '#f59e0b',
+                                    '#3b82f6',
+                                    '#22c55e'
+                                ],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: '#cbd5e1',
+                                        padding: 20
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Compliance Chart
+                const complianceCtx = document.getElementById('complianceChart');
+                if (complianceCtx) {
+                    charts.compliance = new Chart(complianceCtx, {
+                        type: 'radar',
+                        data: {
+                            labels: ['SOX', 'GDPR', 'PCI DSS', 'ISO 27001', 'HIPAA', 'SOC 2'],
+                            datasets: [{
+                                label: 'Compliance Score',
+                                data: [95, 88, 92, 98, 85, 90],
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                pointBackgroundColor: '#3b82f6'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: '#cbd5e1'
+                                    }
+                                }
+                            },
+                            scales: {
+                                r: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    ticks: {
+                                        color: '#94a3b8'
+                                    },
+                                    grid: {
+                                        color: '#334155'
+                                    },
+                                    angleLines: {
+                                        color: '#334155'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Performance Chart
+                const performanceCtx = document.getElementById('performanceChart');
+                if (performanceCtx) {
+                    charts.performance = new Chart(performanceCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['API Response', 'Database Query', 'Page Load', 'Build Time', 'Deploy Time'],
+                            datasets: [{
+                                label: 'Performance (ms)',
+                                data: [145, 23, 1200, 180, 45],
+                                backgroundColor: [
+                                    '#22c55e',
+                                    '#22c55e',
+                                    '#f59e0b',
+                                    '#3b82f6',
+                                    '#22c55e'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: '#cbd5e1'
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        color: '#94a3b8'
+                                    },
+                                    grid: {
+                                        color: '#334155'
+                                    }
+                                },
+                                x: {
+                                    ticks: {
+                                        color: '#94a3b8'
+                                    },
+                                    grid: {
+                                        color: '#334155'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // ===== POPULATE DASHBOARD DATA =====
+            function populateAlerts() {
+                const alertsContainer = document.getElementById('alertsContainer');
+                const alertsTable = document.getElementById('alertsTable');
+                
+                if (alertsContainer) {
+                    // Create alert cards
+                    const alertCards = dashboardData.alerts
+                        .filter(alert => alert.status === 'active')
+                        .slice(0, 3)
+                        .map(alert => `
+                            <div class="alert alert-${alert.severity}">
+                                <div class="alert-icon">
+                                    ${alert.severity === 'critical' ? '🚨' : 
+                                      alert.severity === 'warning' ? '⚠️' : 'ℹ️'}
+                                </div>
+                                <div class="alert-content">
+                                    <h4>${alert.type} - ${alert.pipeline}</h4>
+                                    <p>${alert.description}</p>
+                                    <small>Alert ID: ${alert.id} | ${alert.timestamp}</small>
+                                </div>
+                            </div>
+                        `).join('');
+                    alertsContainer.innerHTML = alertCards;
+                }
+                
+                if (alertsTable) {
+                    // Populate alerts table
+                    const tableRows = dashboardData.alerts.map(alert => `
+                        <tr>
+                            <td>${alert.id}</td>
+                            <td><span class="status-badge status-${alert.severity}">${alert.severity}</span></td>
+                            <td>${alert.type}</td>
+                            <td>${alert.pipeline}</td>
+                            <td>${alert.timestamp}</td>
+                            <td><span class="status-badge ${getStatusClass(alert.status)}">${alert.status}</span></td>
+                            <td>
+                                <button class="btn btn-secondary" onclick="viewAlert('${alert.id}')">View</button>
+                                <button class="btn btn-primary" onclick="resolveAlert('${alert.id}')">Resolve</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    alertsTable.innerHTML = tableRows;
+                }
+            }
+            
+            function populateSystemLogs() {
+                const logContainer = document.getElementById('logContainer');
+                if (logContainer) {
+                    const logEntries = dashboardData.logs.map(log => `
+                        <div class="log-entry log-${log.level}">
+                            <div class="log-header">
+                                <span class="log-timestamp">${log.timestamp}</span>
+                                <span class="log-level log-level-${log.level}">${log.level.toUpperCase()}</span>
+                                <span class="log-service">${log.service}</span>
+                            </div>
+                            <div class="log-message">${log.message}</div>
+                            <div class="log-details">${log.details}</div>
+                        </div>
+                    `).join('');
+                    logContainer.innerHTML = logEntries;
+                }
+            }
+            
+            function populateActivityFeed() {
+                const activityFeed = document.getElementById('activityFeed');
+                if (activityFeed) {
+                    const activities = dashboardData.activities.map(activity => `
+                        <div class="activity-item activity-${activity.status}">
+                            <div class="activity-icon">${activity.icon}</div>
+                            <div class="activity-content">
+                                <div class="activity-message">${activity.message}</div>
+                                <div class="activity-time">${activity.timestamp}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    activityFeed.innerHTML = activities;
+                }
+            }
+            
+            // ===== UTILITY FUNCTIONS =====
+            function getStatusClass(status) {
+                const statusMap = {
+                    'active': 'status-critical',
+                    'investigating': 'status-warning',
+                    'mitigated': 'status-info',
+                    'resolved': 'status-success'
+                };
+                return statusMap[status] || 'status-info';
+            }
+            
+            function updateStatistics() {
+                // Animate counters
+                const counters = [
+                    { id: 'totalPipelines', target: 127 },
+                    { id: 'criticalAlerts', target: 8 },
+                    { id: 'vulnerabilities', target: 42 },
+                    { id: 'complianceScore', target: 94, suffix: '%' }
+                ];
+                
+                counters.forEach(counter => {
+                    const element = document.getElementById(counter.id);
+                    if (element) {
+                        animateCounter(element, counter.target, counter.suffix || '');
+                    }
+                });
+            }
+            
+            function animateCounter(element, target, suffix) {
+                let current = 0;
+                const increment = target / 50;
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    element.textContent = Math.floor(current) + suffix;
+                }, 20);
+            }
+            
+            // ===== NAVIGATION =====
+            function setupNavigation() {
+                const navLinks = document.querySelectorAll('.nav-link');
+                const sections = document.querySelectorAll('.section');
+                
+                navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const targetId = link.getAttribute('href').substring(1);
+                        
+                        // Update active nav
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        link.classList.add('active');
+                        
+                        // Show target section
+                        sections.forEach(section => {
+                            if (section.id === targetId) {
+                                section.style.display = 'block';
+                                section.scrollIntoView({ behavior: 'smooth' });
+                            } else {
+                                section.style.display = 'none';
+                            }
+                        });
+                    });
+                });
+            }
+            
+            // ===== INTERACTIVE FUNCTIONS =====
+            window.toggleNotifications = function() {
+                alert('Notifications panel would open here');
+            };
+            
+            window.showUserMenu = function() {
+                alert('User menu would open here');
+            };
+            
+            window.refreshAlerts = function() {
+                const btn = event.target;
+                btn.innerHTML = '<div class="loading"></div> Refreshing...';
+                btn.disabled = true;
+                
+                setTimeout(() => {
+                    populateAlerts();
+                    btn.innerHTML = '🔄 Refresh';
+                    btn.disabled = false;
+                }, 2000);
+            };
+            
+            window.viewAlert = function(alertId) {
+                alert(`Viewing alert details for: ${alertId}`);
+            };
+            
+            window.resolveAlert = function(alertId) {
+                if (confirm(`Are you sure you want to resolve alert ${alertId}?`)) {
+                    alert(`Alert ${alertId} has been resolved`);
+                    // In real app, this would update the alert status
+                }
+            };
+            
+            window.exportLogs = function() {
+                alert('Log export functionality would be implemented here');
+            };
+            
+            window.generateReport = function(type) {
+                alert(`Generating ${type} report... This would trigger a download in a real application.`);
+            };
+            
+            // ===== REAL-TIME UPDATES =====
+            function startRealTimeUpdates() {
+                // Simulate real-time updates every 30 seconds
+                setInterval(() => {
+                    // Update timestamps, metrics, etc.
+                    console.log('Updating real-time data...');
+                    
+                    // Add new log entry
+                    const newLog = {
+                        timestamp: new Date().toISOString().replace('T', ' ').substr(0, 19),
+                        level: ['info', 'warning', 'error'][Math.floor(Math.random() * 3)],
+                        service: ['api-gateway', 'auth-service', 'payment-service'][Math.floor(Math.random() * 3)],
+                        message: 'Real-time log entry generated',
+                        details: 'This demonstrates live updating functionality'
+                    };
+                    
+                    dashboardData.logs.unshift(newLog);
+                    dashboardData.logs = dashboardData.logs.slice(0, 10); // Keep only latest 10
+                    populateSystemLogs();
+                    
+                }, 30000);
+            }
+            
+            // ===== INITIALIZATION =====
+            function initializeDashboard() {
+                console.log('Initializing SecureOps Dashboard...');
+                
+                // Setup navigation
+                setupNavigation();
+                
+                // Populate data
+                populateAlerts();
+                populateSystemLogs();
+                populateActivityFeed();
+                updateStatistics();
+                
+                // Initialize charts after a short delay to ensure DOM is ready
+                setTimeout(() => {
+                    initializeCharts();
+                }, 100);
+                
+                // Start real-time updates
+                startRealTimeUpdates();
+                
+                // Add fade-in animations
+                document.querySelectorAll('.fade-in').forEach((element, index) => {
+                    element.style.animationDelay = `${index * 0.1}s`;
+                });
+                
+                console.log('SecureOps Dashboard initialized successfully!');
+            }
+            
+            // Additional styles for log entries and health metrics
+            const additionalStyles = `
+                <style>
+                    .log-entry {
+                        background: rgba(51, 65, 85, 0.3);
+                        border-left: 3px solid;
+                        padding: 1rem;
+                        margin-bottom: 0.5rem;
+                        border-radius: 0 6px 6px 0;
+                    }
+                    
+                    .log-error { border-color: #ef4444; }
+                    .log-warning { border-color: #f59e0b; }
+                    .log-info { border-color: #3b82f6; }
+                    .log-debug { border-color: #64748b; }
+                    
+                    .log-header {
+                        display: flex;
+                        gap: 1rem;
+                        margin-bottom: 0.5rem;
+                        font-size: 0.9rem;
+                    }
+                    
+                    .log-timestamp {
+                        color: #94a3b8;
+                        font-family: monospace;
+                    }
+                    
+                    .log-level {
+                        padding: 0.2rem 0.5rem;
+                        border-radius: 4px;
+                        font-size: 0.8rem;
+                        font-weight: 600;
+                    }
+                    
+                    .log-level-error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+                    .log-level-warning { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+                    .log-level-info { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+                    .log-level-debug { background: rgba(100, 116, 139, 0.2); color: #64748b; }
+                    
+                    .log-service {
+                        color: #06b6d4;
+                        font-weight: 500;
+                    }
+                    
+                    .log-message {
+                        color: #e2e8f0;
+                        margin-bottom: 0.5rem;
+                    }
+                    
+                    .log-details {
+                        color: #94a3b8;
+                        font-size: 0.9rem;
+                        font-style: italic;
+                    }
+                    
+                    .health-metrics {
+                        display: grid;
+                        gap: 1rem;
+                    }
+                    
+                    .health-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 0.75rem;
+                        background: rgba(51, 65, 85, 0.3);
+                        border-radius: 6px;
+                    }
+                    
+                    .health-value {
+                        font-weight: 600;
+                        padding: 0.25rem 0.5rem;
+                        border-radius: 4px;
+                    }
+                    
+                    .health-value.good { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+                    .health-value.warning { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+                    .health-value.critical { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+                    
+                    .status-item {
+                        margin-bottom: 1.5rem;
+                    }
+                    
+                    .status-item span:first-child {
+                        display: block;
+                        margin-bottom: 0.5rem;
+                        color: #cbd5e1;
+                    }
+                    
+                    .status-text {
+                        display: block;
+                        margin-top: 0.5rem;
+                        font-size: 0.9rem;
+                        color: #94a3b8;
+                    }
+                    
+                    .activity-item {
+                        display: flex;
+                        gap: 1rem;
+                        padding: 1rem;
+                        margin-bottom: 0.5rem;
+                        background: rgba(51, 65, 85, 0.3);
+                        border-radius: 6px;
+                        border-left: 3px solid;
+                    }
+                    
+                    .activity-success { border-color: #22c55e; }
+                    .activity-warning { border-color: #f59e0b; }
+                    .activity-critical { border-color: #ef4444; }
+                    .activity-info { border-color: #3b82f6; }
+                    
+                    .activity-icon {
+                        font-size: 1.2rem;
+                    }
+                    
+                    .activity-content {
+                        flex: 1;
+                    }
+                    
+                    .activity-message {
+                        color: #e2e8f0;
+                        margin-bottom: 0.25rem;
+                    }
+                    
+                    .activity-time {
+                        color: #94a3b8;
+                        font-size: 0.9rem;
+                    }
+                    
+                    .report-summary {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                        gap: 1rem;
+                        margin-top: 1rem;
+                    }
+                    
+                    .summary-item {
+                        text-align: center;
+                        padding: 1rem;
+                        background: rgba(51, 65, 85, 0.3);
+                        border-radius: 6px;
+                    }
+                    
+                    .summary-label {
+                        display: block;
+                        color: #94a3b8;
+                        font-size: 0.9rem;
+                        margin-bottom: 0.5rem;
+                    }
+                    
+                    .summary-value {
+                        display: block;
+                        font-size: 1.5rem;
+                        font-weight: 700;
+                    }
+                    
+                    .summary-value.critical { color: #ef4444; }
+                    .summary-value.warning { color: #f59e0b; }
+                    .summary-value.info { color: #3b82f6; }
+                    .summary-value.good { color: #22c55e; }
+                    
+                    .compliance-details {
+                        margin-top: 1rem;
+                    }
+                    
+                    .compliance-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 0.75rem;
+                        margin-bottom: 0.5rem;
+                        background: rgba(51, 65, 85, 0.3);
+                        border-radius: 6px;
+                    }
+                    
+                    .report-options {
+                        display: grid;
+                        gap: 1rem;
+                    }
+                    
+                    .log-controls {
+                        display: flex;
+                        gap: 1rem;
+                        align-items: center;
+                    }
+                    
+                    #logLevel {
+                        background: rgba(51, 65, 85, 0.8);
+                        color: #cbd5e1;
+                        padding: 0.5rem 1rem;
+                        border-radius: 6px;
+                        border: 1px solid #475569;
+                    }
+                </style>
+            `;
+            
+            // Inject additional styles
+            document.head.insertAdjacentHTML('beforeend', additionalStyles);
+            
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeDashboard);
+            } else {
+                initializeDashboard();
+            }
+            
+        })();
+    </script>
+</body>
+</html>
