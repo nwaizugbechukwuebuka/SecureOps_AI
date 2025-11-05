@@ -1,0 +1,519 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secureops-backend
+  namespace: secureops
+  labels:
+    app: secureops
+    component: backend
+    version: v1.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: secureops
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: secureops
+        component: backend
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: secureops-backend
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: backend
+        image: secureops/backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: secureops-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: "redis://secureops-redis:6379/0"
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: secureops-secrets
+              key: secret-key
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: TRIVY_ENABLED
+          value: "true"
+        - name: SAFETY_ENABLED
+          value: "true"
+        - name: BANDIT_ENABLED
+          value: "true"
+        envFrom:
+        - configMapRef:
+            name: secureops-config
+        - secretRef:
+            name: secureops-secrets
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: scan-results
+          mountPath: /app/scan_results
+        - name: logs
+          mountPath: /app/logs
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+      volumes:
+      - name: scan-results
+        persistentVolumeClaim:
+          claimName: secureops-scan-results
+      - name: logs
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: secureops-config
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secureops-frontend
+  namespace: secureops
+  labels:
+    app: secureops
+    component: frontend
+    version: v1.0.0
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: secureops
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: secureops
+        component: frontend
+        version: v1.0.0
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        fsGroup: 101
+      containers:
+      - name: frontend
+        image: secureops/frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        env:
+        - name: REACT_APP_API_URL
+          value: "https://api.secureops.local"
+        - name: REACT_APP_ENVIRONMENT
+          value: "production"
+        - name: REACT_APP_VERSION
+          value: "1.0.0"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      nodeSelector:
+        kubernetes.io/os: linux
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secureops-celery-worker
+  namespace: secureops
+  labels:
+    app: secureops
+    component: celery-worker
+    version: v1.0.0
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: secureops
+      component: celery-worker
+  template:
+    metadata:
+      labels:
+        app: secureops
+        component: celery-worker
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9540"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: secureops-worker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: celery-worker
+        image: secureops/backend:latest
+        imagePullPolicy: Always
+        command: ["celery"]
+        args: ["-A", "src.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: secureops-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: "redis://secureops-redis:6379/0"
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: secureops-secrets
+              key: secret-key
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        envFrom:
+        - configMapRef:
+            name: secureops-config
+        - secretRef:
+            name: secureops-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: scan-results
+          mountPath: /app/scan_results
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+          readOnly: true
+      volumes:
+      - name: scan-results
+        persistentVolumeClaim:
+          claimName: secureops-scan-results
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+      nodeSelector:
+        kubernetes.io/os: linux
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secureops-celery-beat
+  namespace: secureops
+  labels:
+    app: secureops
+    component: celery-beat
+    version: v1.0.0
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: secureops
+      component: celery-beat
+  template:
+    metadata:
+      labels:
+        app: secureops
+        component: celery-beat
+        version: v1.0.0
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: celery-beat
+        image: secureops/backend:latest
+        imagePullPolicy: Always
+        command: ["celery"]
+        args: ["-A", "src.tasks.celery_app", "beat", "--loglevel=info"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: secureops-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: "redis://secureops-redis:6379/0"
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: secureops-secrets
+              key: secret-key
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        envFrom:
+        - configMapRef:
+            name: secureops-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: celery-beat-data
+          mountPath: /app/celerybeat-schedule
+      volumes:
+      - name: celery-beat-data
+        persistentVolumeClaim:
+          claimName: secureops-celery-beat
+      nodeSelector:
+        kubernetes.io/os: linux
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: secureops-postgres
+  namespace: secureops
+  labels:
+    app: secureops
+    component: postgres
+spec:
+  serviceName: secureops-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secureops
+      component: postgres
+  template:
+    metadata:
+      labels:
+        app: secureops
+        component: postgres
+    spec:
+      securityContext:
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: "secureops"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: secureops-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: secureops-secrets
+              key: postgres-password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-init
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: postgres-init
+        configMap:
+          name: secureops-postgres-init
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 20Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secureops-redis
+  namespace: secureops
+  labels:
+    app: secureops
+    component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secureops
+      component: redis
+  template:
+    metadata:
+      labels:
+        app: secureops
+        component: redis
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: secureops-redis-data
+      nodeSelector:
+        kubernetes.io/os: linux

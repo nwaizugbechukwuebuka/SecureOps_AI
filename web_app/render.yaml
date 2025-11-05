@@ -1,0 +1,40 @@
+# SecureOps AI Backend - Render Deployment Configuration
+
+# Build settings
+build:
+  commands:
+    - cd backend
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+
+# Runtime settings
+runtime: python
+python_version: 3.11
+
+# Environment variables (set these in Render dashboard)
+environment:
+  - ENVIRONMENT=production
+  - DEBUG=false
+  - DATABASE_URL=$DATABASE_URL  # Render will provide this for PostgreSQL
+  - SECRET_KEY=$SECRET_KEY      # Generate strong secret in dashboard
+  - CORS_ORIGINS=https://nwaizugbechukwuebuka.github.io,https://*.github.io
+  - HOST=0.0.0.0
+  - PORT=$PORT                  # Render automatically sets this
+
+# Start command
+start_command: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+
+# Health check endpoint
+health_check:
+  path: /health
+  
+# Auto-deploy from GitHub
+auto_deploy: true
+branch: main
+
+# Service configuration
+service_type: web
+region: oregon  # or your preferred region
+
+# Database (if using Render PostgreSQL)
+# Create a PostgreSQL database service separately and connect via DATABASE_URL

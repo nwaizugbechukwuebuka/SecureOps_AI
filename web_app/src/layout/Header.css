@@ -1,0 +1,46 @@
+.main-header {
+  height: 64px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem 0 240px;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a2233;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.header-user {
+  font-size: 1rem;
+  color: #1a2233;
+}
+.header-notifications {
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.logout-button {
+  background: #e53e3e;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.logout-button:hover {
+  background: #c53030;
+}

@@ -1,0 +1,179 @@
+version: '3.8'
+
+services:
+  # Backend Service - FastAPI on port 8001
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-development
+    container_name: secureops_backend_dev
+    ports:
+      - "8001:8001"  # Updated to port 8001
+    environment:
+      - DATABASE_URL=sqlite:///./data/secureops.db
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - HOST=0.0.0.0
+      - PORT=8001  # Backend runs on 8001
+      - FRONTEND_URL=http://frontend:3010
+      - CORS_ORIGINS=http://localhost:3010,http://frontend:3010,http://127.0.0.1:3010
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+      - ./backend/data:/app/data
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - secureops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Service - React/Vite on port 3010
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend-development
+    container_name: secureops_frontend_dev
+    ports:
+      - "3010:3010"
+    environment:
+      - VITE_API_BASE_URL=http://backend:8001  # Points to backend container
+      - VITE_WS_BASE_URL=ws://backend:8001
+      - VITE_APP_PORT=3010
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_HOST=0.0.0.0
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/backend  # Exclude backend directory
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - secureops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3010"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - secureops-dev
+
+  # Redis for Development
+  redis:
+    image: redis:7-alpine
+    container_name: secureops_redis_dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    restart: unless-stopped
+    networks:
+      - secureops-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Celery Worker for Development
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-development
+    container_name: secureops_celery_dev
+    command: celery -A main.celery worker --loglevel=debug --reload
+    environment:
+      - DATABASE_URL=sqlite:///./data/secureops.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/2
+      - CELERY_RESULT_BACKEND=redis://redis:6379/3
+      - DEBUG=true
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+      - ./backend/data:/app/data
+    depends_on:
+      - redis
+      - backend
+    restart: unless-stopped
+    networks:
+      - secureops-dev
+
+  # Database Management (Optional PostgreSQL for testing)
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: secureops_postgres_dev
+    environment:
+      - POSTGRES_DB=secureops_dev
+      - POSTGRES_USER=secureops
+      - POSTGRES_PASSWORD=devpassword
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    networks:
+      - secureops-dev
+
+  # Development Tools - Mailhog (Email testing)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: secureops_mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    restart: unless-stopped
+    networks:
+      - secureops-dev
+
+  # Development Tools - Redis Commander
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: secureops_redis_commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - secureops-dev
+
+  # Development Tools - Adminer (Database management)
+  adminer:
+    image: adminer:latest
+    container_name: secureops_adminer
+    ports:
+      - "8082:8080"
+    depends_on:
+      - postgres-dev
+    restart: unless-stopped
+    networks:
+      - secureops-dev
+
+volumes:
+  redis_dev_data:
+    driver: local
+  postgres_dev_data:
+    driver: local
+
+networks:
+  secureops-dev:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

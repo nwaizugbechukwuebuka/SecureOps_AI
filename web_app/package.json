@@ -1,0 +1,40 @@
+{
+  "name": "secureops-ai-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --port 3010 --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --port 3010 --host 0.0.0.0",
+    "start": "vite preview --port 3010 --host 0.0.0.0",
+    "backend": "cd backend && python start.py",
+    "full-start": "concurrently \"npm run backend\" \"npm run dev\"",
+    "deploy:ghpages": "echo 'Frontend deployed via GitHub Pages from /docs folder. Backend deploy: npm run deploy:backend'",
+    "deploy:backend": "echo 'Deploy backend to Render/Railway/Vercel. See README deployment section.'",
+    "deploy:check": "node test-deployment.js",
+    "deploy:test": "node test-deployment.js",
+    "docker:build": "docker-compose build --no-cache",
+    "docker:up": "docker-compose up --build -d",
+    "docker:up-logs": "docker-compose up --build",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:restart": "docker-compose down && docker-compose up --build -d",
+    "docker:clean": "docker-compose down -v --rmi all",
+    "docker:backend-logs": "docker-compose logs -f backend",
+    "docker:frontend-logs": "docker-compose logs -f frontend"
+  },
+  "homepage": "https://nwaizugbechukwuebuka.github.io/SecureOps",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.30.1",
+    "recharts": "^3.3.0",
+    "axios": "^1.6.2",
+    "js-cookie": "^3.0.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.0",
+    "concurrently": "^8.2.2",
+    "vite": "^5.2.0"
+  }
+}

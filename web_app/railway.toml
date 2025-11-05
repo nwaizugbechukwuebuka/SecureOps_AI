@@ -1,0 +1,20 @@
+# SecureOps AI Backend - Railway Deployment
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd backend && pip install -r requirements.txt"
+startCommand = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+
+# Environment variables to set in Railway dashboard:
+# ENVIRONMENT=production
+# DEBUG=false
+# SECRET_KEY=<your-strong-secret-key>
+# DATABASE_URL=<railway-postgres-url>
+# CORS_ORIGINS=https://nwaizugbechukwuebuka.github.io,https://*.github.io
+# HOST=0.0.0.0
+# PORT=$PORT (Railway sets this automatically)

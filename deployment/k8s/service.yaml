@@ -1,0 +1,205 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: secureops-backend
+  namespace: secureops
+  labels:
+    app: secureops
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: secureops
+    component: backend
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secureops-frontend
+  namespace: secureops
+  labels:
+    app: secureops
+    component: frontend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: secureops
+    component: frontend
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secureops-postgres
+  namespace: secureops
+  labels:
+    app: secureops
+    component: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: secureops
+    component: postgres
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secureops-redis
+  namespace: secureops
+  labels:
+    app: secureops
+    component: redis
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: secureops
+    component: redis
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secureops-api
+  namespace: secureops
+  labels:
+    app: secureops
+    component: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:region:account:certificate/cert-id
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  - port: 443
+    targetPort: 8000
+    protocol: TCP
+    name: https
+  selector:
+    app: secureops
+    component: backend
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secureops-web
+  namespace: secureops
+  labels:
+    app: secureops
+    component: web
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  - port: 443
+    targetPort: 3000
+    protocol: TCP
+    name: https
+  selector:
+    app: secureops
+    component: frontend
+
+---
+# Headless service for StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: secureops-postgres-headless
+  namespace: secureops
+  labels:
+    app: secureops
+    component: postgres
+spec:
+  clusterIP: None
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: secureops
+    component: postgres
+
+---
+# Internal API service for backend communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: secureops-backend-internal
+  namespace: secureops
+  labels:
+    app: secureops
+    component: backend-internal
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: secureops
+    component: backend
+
+---
+# Monitoring services
+apiVersion: v1
+kind: Service
+metadata:
+  name: secureops-metrics
+  namespace: secureops
+  labels:
+    app: secureops
+    component: metrics
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: metrics
+  selector:
+    app: secureops
+    component: backend

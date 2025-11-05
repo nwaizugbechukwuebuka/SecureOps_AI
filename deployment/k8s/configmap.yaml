@@ -1,0 +1,278 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secureops-config
+  namespace: secureops
+  labels:
+    app: secureops
+    component: config
+data:
+  # Application Configuration
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+  
+  # API Configuration
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  API_WORKERS: "4"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  REFRESH_TOKEN_EXPIRE_DAYS: "7"
+  
+  # Database Configuration
+  DB_POOL_SIZE: "20"
+  DB_MAX_OVERFLOW: "10"
+  DB_POOL_TIMEOUT: "30"
+  DB_POOL_RECYCLE: "3600"
+  
+  # Redis Configuration
+  REDIS_DB: "0"
+  REDIS_MAX_CONNECTIONS: "20"
+  
+  # Celery Configuration
+  CELERY_BROKER_URL: "redis://secureops-redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://secureops-redis:6379/0"
+  CELERY_TASK_SERIALIZER: "json"
+  CELERY_RESULT_SERIALIZER: "json"
+  CELERY_ACCEPT_CONTENT: '["json"]'
+  CELERY_TIMEZONE: "UTC"
+  CELERY_ENABLE_UTC: "true"
+  CELERY_TASK_TRACK_STARTED: "true"
+  CELERY_TASK_TIME_LIMIT: "1800"
+  CELERY_TASK_SOFT_TIME_LIMIT: "1200"
+  CELERY_WORKER_MAX_TASKS_PER_CHILD: "1000"
+  
+  # Security Scanner Configuration
+  TRIVY_ENABLED: "true"
+  TRIVY_CACHE_DIR: "/tmp/trivy-cache"
+  TRIVY_TIMEOUT: "600"
+  TRIVY_SEVERITY: "HIGH,CRITICAL"
+  
+  SAFETY_ENABLED: "true"
+  SAFETY_TIMEOUT: "300"
+  
+  BANDIT_ENABLED: "true"
+  BANDIT_TIMEOUT: "300"
+  BANDIT_CONFIDENCE: "MEDIUM"
+  
+  # Notification Configuration
+  SMTP_PORT: "587"
+  SMTP_USE_TLS: "true"
+  SMTP_USE_SSL: "false"
+  EMAIL_TIMEOUT: "30"
+  
+  # Rate Limiting
+  RATE_LIMIT_PER_MINUTE: "60"
+  RATE_LIMIT_BURST: "10"
+  
+  # File Upload Configuration
+  MAX_UPLOAD_SIZE: "104857600"  # 100MB
+  ALLOWED_EXTENSIONS: "json,yaml,yml,txt,log"
+  
+  # Monitoring Configuration
+  ENABLE_METRICS: "true"
+  METRICS_PORT: "8000"
+  METRICS_PATH: "/metrics"
+  
+  # Performance Configuration
+  ASYNC_POOL_SIZE: "100"
+  HTTP_TIMEOUT: "30"
+  HTTP_RETRIES: "3"
+  
+  # Cache Configuration
+  CACHE_TTL: "300"
+  CACHE_MAX_SIZE: "1000"
+  
+  # Compliance Frameworks
+  SUPPORTED_FRAMEWORKS: "owasp_top_10,nist_csf,soc2,gdpr,pci_dss,iso_27001,hipaa,sox"
+  DEFAULT_COMPLIANCE_THRESHOLD: "75"
+  
+  # Vulnerability Management
+  VULNERABILITY_RETENTION_DAYS: "365"
+  SCAN_RESULT_RETENTION_DAYS: "90"
+  ALERT_RETENTION_DAYS: "180"
+  
+  # Backup Configuration
+  BACKUP_ENABLED: "true"
+  BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+  BACKUP_RETENTION_DAYS: "30"
+  
+  # Feature Flags
+  ENABLE_WEBSOCKETS: "true"
+  ENABLE_REAL_TIME_UPDATES: "true"
+  ENABLE_AUDIT_LOGGING: "true"
+  ENABLE_COMPLIANCE_TRACKING: "true"
+  ENABLE_VULNERABILITY_DEDUPLICATION: "true"
+  
+  # CI/CD Integration
+  WEBHOOK_TIMEOUT: "30"
+  WEBHOOK_RETRIES: "3"
+  MAX_CONCURRENT_SCANS: "10"
+  
+  # Health Check Configuration
+  HEALTH_CHECK_TIMEOUT: "10"
+  HEALTH_CHECK_INTERVAL: "30"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secureops-postgres-init
+  namespace: secureops
+  labels:
+    app: secureops
+    component: postgres-init
+data:
+  init.sql: |
+    -- SecureOps Database Initialization
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+    CREATE EXTENSION IF NOT EXISTS "btree_gin";
+    
+    -- Create custom types
+    DO $$ BEGIN
+        CREATE TYPE vulnerability_severity AS ENUM ('critical', 'high', 'medium', 'low', 'info');
+    EXCEPTION
+        WHEN duplicate_object THEN null;
+    END $$;
+    
+    DO $$ BEGIN
+        CREATE TYPE vulnerability_status AS ENUM ('open', 'acknowledged', 'resolved', 'false_positive', 'wont_fix');
+    EXCEPTION
+        WHEN duplicate_object THEN null;
+    END $$;
+    
+    DO $$ BEGIN
+        CREATE TYPE scanner_type AS ENUM ('dependency', 'secret', 'container', 'sast', 'dast', 'policy');
+    EXCEPTION
+        WHEN duplicate_object THEN null;
+    END $$;
+    
+    -- Create application schemas
+    CREATE SCHEMA IF NOT EXISTS security;
+    CREATE SCHEMA IF NOT EXISTS monitoring;
+    CREATE SCHEMA IF NOT EXISTS compliance;
+    
+    -- Grant permissions
+    GRANT USAGE ON SCHEMA public TO secureops;
+    GRANT USAGE ON SCHEMA security TO secureops;
+    GRANT USAGE ON SCHEMA monitoring TO secureops;
+    GRANT USAGE ON SCHEMA compliance TO secureops;
+    
+    GRANT CREATE ON SCHEMA public TO secureops;
+    GRANT CREATE ON SCHEMA security TO secureops;
+    GRANT CREATE ON SCHEMA monitoring TO secureops;
+    GRANT CREATE ON SCHEMA compliance TO secureops;
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secureops-nginx-config
+  namespace: secureops
+  labels:
+    app: secureops
+    component: nginx
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+    
+    events {
+        worker_connections 1024;
+        use epoll;
+        multi_accept on;
+    }
+    
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+        
+        access_log /var/log/nginx/access.log main;
+        
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_comp_level 6;
+        gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+        
+        upstream backend {
+            server secureops-backend:8000;
+        }
+        
+        upstream frontend {
+            server secureops-frontend:3000;
+        }
+        
+        server {
+            listen 80;
+            server_name _;
+            
+            location /api/ {
+                proxy_pass http://backend;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+            
+            location / {
+                proxy_pass http://frontend;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+        }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secureops-scanner-config
+  namespace: secureops
+  labels:
+    app: secureops
+    component: scanner
+data:
+  trivy.yaml: |
+    cache:
+      dir: /tmp/trivy-cache
+    db:
+      no-progress: true
+    vulnerability:
+      type: os,library
+    format: json
+    severity: HIGH,CRITICAL
+    
+  bandit.yaml: |
+    tests: []
+    skips: []
+    exclude_dirs:
+      - /tests
+      - /test
+      - /.git
+      - /node_modules
+    confidence: MEDIUM
+    format: json
+    
+  safety.json: |
+    {
+      "ignore": [],
+      "output": "json",
+      "full-report": true
+    }

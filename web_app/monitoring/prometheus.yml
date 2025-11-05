@@ -1,0 +1,118 @@
+# Prometheus Configuration for SecureOps AI
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # SecureOps Backend API
+  - job_name: 'secureops-backend'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+  # Node Exporter (System metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Redis Exporter
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis:6379']
+
+  # PostgreSQL Exporter (if using PostgreSQL)
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Nginx metrics (if available)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:9113']
+
+  # Celery metrics
+  - job_name: 'celery'
+    static_configs:
+      - targets: ['celery-worker:9540']
+
+  # Custom application metrics
+  - job_name: 'secureops-alerts'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/metrics/alerts'
+    scrape_interval: 10s
+
+  - job_name: 'secureops-security'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/metrics/security'
+    scrape_interval: 30s
+
+# Recording rules for common queries
+recording_rules:
+  - name: secureops.rules
+    rules:
+      # Alert volume metrics
+      - record: secureops:alert_rate_5m
+        expr: rate(secureops_alerts_total[5m])
+      
+      - record: secureops:critical_alert_rate_5m
+        expr: rate(secureops_alerts_total{severity="critical"}[5m])
+      
+      # Response time percentiles
+      - record: secureops:api_request_duration_95p
+        expr: histogram_quantile(0.95, rate(secureops_http_request_duration_seconds_bucket[5m]))
+      
+      - record: secureops:api_request_duration_99p
+        expr: histogram_quantile(0.99, rate(secureops_http_request_duration_seconds_bucket[5m]))
+      
+      # Error rates
+      - record: secureops:error_rate_5m
+        expr: rate(secureops_http_requests_total{status=~"5.."}[5m]) / rate(secureops_http_requests_total[5m])
+      
+      # Security metrics
+      - record: secureops:failed_login_rate_5m
+        expr: rate(secureops_auth_failures_total[5m])
+      
+      - record: secureops:threat_detection_rate_5m
+        expr: rate(secureops_threats_detected_total[5m])
+
+# Remote storage configuration (optional)
+# remote_write:
+#   - url: "https://your-remote-storage.com/api/v1/write"
+#     basic_auth:
+#       username: "your-username"
+#       password: "your-password"
+
+# Service discovery for dynamic environments (Kubernetes, Docker, etc.)
+# kubernetes_sd_configs:
+#   - role: pod
+#     namespaces:
+#       names:
+#         - secureops
+
+# Storage configuration
+storage:
+  tsdb:
+    retention.time: 30d
+    retention.size: 10GB
+    wal-compression: true
