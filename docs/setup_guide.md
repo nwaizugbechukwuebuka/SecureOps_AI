@@ -1894,6 +1894,7 @@ docker-compose exec api alembic current
 echo "Database migration completed"
 ```
 
+<<<<<<< HEAD
 ## SIEM & External Log Forwarding
 
 SecureOps supports forwarding logs to external SIEM and monitoring platforms (ELK/Elasticsearch, Datadog, syslog) for enterprise security and compliance.
@@ -1958,3 +1959,6 @@ See also:
 - AI Threats dashboard in the frontend for live threat intelligence
 
 ---
+=======
+This comprehensive setup guide provides everything needed to deploy, configure, and maintain SecureOps in any environment, from development to enterprise production deployments.
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3

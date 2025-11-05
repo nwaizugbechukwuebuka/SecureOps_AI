@@ -8,11 +8,17 @@ Author: Chukwuebuka Tobiloba Nwaizugbe
 Date: 2024
 """
 
+<<<<<<< HEAD
 
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import redis.asyncio as aioredis
+=======
+import secrets
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -25,8 +31,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
 from ..models.user import User
 from ..utils.config import settings
+<<<<<<< HEAD
 from ..utils.rbac import require_role, require_superuser
 from ..utils.logger import get_logger
+=======
+from ..utils.logger import get_logger, log_api_request, log_security_event
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 from ..utils.validators import validate_email, validate_password
 
 router = APIRouter()
@@ -34,12 +44,15 @@ logger = get_logger(__name__)
 security = HTTPBearer()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+<<<<<<< HEAD
 # Placeholder logging functions 
 def log_api_request(method: str, path: str, user_id: int):
     logger.info(f"API Request: {method} {path} by user {user_id}")
 
 def log_security_event(event_type: str, description: str, user_id: int, additional_data=None):
     logger.warning(f"Security Event: {event_type} - {description} by user {user_id}")
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 # Pydantic models
 class UserRegistration(BaseModel):
@@ -95,6 +108,7 @@ class MFAVerification(BaseModel):
     code: str
 
 
+<<<<<<< HEAD
 
 # Redis-based login rate limiting
 MAX_LOGIN_ATTEMPTS = 5
@@ -103,6 +117,13 @@ LOCKOUT_DURATION = timedelta(minutes=15)
 async def get_redis():
     return aioredis.from_url(settings.redis_url, encoding="utf-8", decode_responses=True)
 
+=======
+# Rate limiting storage (in production, use Redis)
+login_attempts: dict[str, tuple[int, datetime]] = {}
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_DURATION = timedelta(minutes=15)
+
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 def get_client_ip(request: Request) -> str:
     """Safely get client IP address from request."""
@@ -202,6 +223,7 @@ async def get_current_user(
         raise credentials_exception
 
 
+<<<<<<< HEAD
 
 async def check_rate_limit(request: Request, username: str) -> bool:
     """Check if user is rate limited for login attempts using Redis."""
@@ -226,6 +248,47 @@ async def record_login_attempt(request: Request, username: str, success: bool):
         attempts = await redis_conn.incr(key)
         if attempts == 1:
             await redis_conn.expire(key, int(LOCKOUT_DURATION.total_seconds()))
+=======
+def check_rate_limit(request: Request, username: str) -> bool:
+    """Check if user is rate limited for login attempts."""
+    client_ip = get_client_ip(request)
+    key = f"{client_ip}:{username}"
+
+    now = datetime.now(timezone.utc)
+
+    if key in login_attempts:
+        attempts, last_attempt = login_attempts[key]
+
+        # Reset attempts if lockout period has passed
+        if now - last_attempt > LOCKOUT_DURATION:
+            del login_attempts[key]
+            return True
+
+        # Check if max attempts reached
+        if attempts >= MAX_LOGIN_ATTEMPTS:
+            return False
+
+    return True
+
+
+def record_login_attempt(request: Request, username: str, success: bool):
+    """Record login attempt for rate limiting."""
+    client_ip = get_client_ip(request)
+    key = f"{client_ip}:{username}"
+    now = datetime.now(timezone.utc)
+
+    if success:
+        # Clear attempts on successful login
+        if key in login_attempts:
+            del login_attempts[key]
+    else:
+        # Increment failed attempts
+        if key in login_attempts:
+            attempts, _ = login_attempts[key]
+            login_attempts[key] = (attempts + 1, now)
+        else:
+            login_attempts[key] = (1, now)
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 
 @router.post("/register", response_model=TokenResponse)
@@ -336,7 +399,11 @@ async def login_user(
 
     try:
         # Check rate limiting
+<<<<<<< HEAD
         if not await check_rate_limit(request, user_credentials.username):
+=======
+        if not check_rate_limit(request, user_credentials.username):
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             log_security_event(
                 f"Rate limit exceeded for user: {user_credentials.username}",
                 severity="warning",
@@ -356,29 +423,51 @@ async def login_user(
         if not user or not verify_password(
             user_credentials.password, user.hashed_password
         ):
+<<<<<<< HEAD
             await record_login_attempt(request, user_credentials.username, False)
+=======
+            record_login_attempt(request, user_credentials.username, False)
+
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             log_security_event(
                 f"Failed login attempt for user: {user_credentials.username}",
                 severity="warning",
                 client_ip=get_client_ip(request),
             )
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             raise HTTPException(
                 status_code=401, detail="Incorrect username or password"
             )
 
         # Check if user is active
         if not user.is_active:
+<<<<<<< HEAD
             await record_login_attempt(request, user_credentials.username, False)
+=======
+            record_login_attempt(request, user_credentials.username, False)
+
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             log_security_event(
                 f"Login attempt for disabled user: {user_credentials.username}",
                 severity="warning",
                 user_id=user.id,
                 client_ip=get_client_ip(request),
             )
+<<<<<<< HEAD
             raise HTTPException(status_code=401, detail="User account is disabled")
 
         # Successful authentication
         await record_login_attempt(request, user_credentials.username, True)
+=======
+
+            raise HTTPException(status_code=401, detail="User account is disabled")
+
+        # Successful authentication
+        record_login_attempt(request, user_credentials.username, True)
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
         # Update user last login
         user.last_login = datetime.now(timezone.utc)
@@ -413,6 +502,10 @@ async def login_user(
             email=user.email,
             is_admin=user.is_admin,
         )
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     except HTTPException:
         raise
     except Exception as e:

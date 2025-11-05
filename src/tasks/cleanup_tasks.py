@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+<<<<<<< HEAD
 from celery.utils.log import get_task_logger
 
 from src.api.database import AsyncSessionLocal
@@ -27,6 +28,20 @@ from src.api.utils.logger import get_logger
 
 # Use the centralized Celery app
 from src.tasks.celery_app import app as celery_app
+=======
+from celery import Celery
+from celery.utils.log import get_task_logger
+
+from ..api.database import async_session
+from ..api.models.alert import Alert
+from ..api.models.pipeline import Pipeline, ScanJob
+from ..api.models.vulnerability import Vulnerability
+from ..utils.config import settings
+from ..utils.logger import get_logger
+
+# Use the same Celery app from scan_tasks
+from .scan_tasks import celery_app
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 logger = get_task_logger(__name__)
 
@@ -228,7 +243,11 @@ async def _cleanup_old_scan_jobs_async(retention_days: int) -> Dict[str, Any]:
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
 
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             from sqlalchemy import and_, delete, select
 
             # First, get the scan jobs to be deleted
@@ -339,7 +358,11 @@ async def _archive_old_vulnerabilities_async(retention_days: int) -> Dict[str, A
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
 
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             from sqlalchemy import and_, select, update
 
             # Find vulnerabilities to archive
@@ -439,7 +462,11 @@ async def _cleanup_log_files_async(retention_days: int) -> Dict[str, Any]:
 async def _database_maintenance_async() -> Dict[str, Any]:
     """Perform database maintenance operations."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             from sqlalchemy import text
 
             operations_performed = []

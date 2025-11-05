@@ -695,6 +695,7 @@ class ReportService:
         }
 
     async def _calculate_soc2_compliance(self, user_id: int) -> Dict[str, Any]:
+<<<<<<< HEAD
         """Calculate SOC 2 compliance score based on controls evidence."""
         # Example controls: audit logging, access control, encryption at rest, incident response
         evidence = {}
@@ -786,6 +787,18 @@ class ReportService:
             "status": "compliant" if percent >= 80 else "non_compliant",
             "evidence": evidence
         }
+=======
+        """Calculate SOC 2 compliance score."""
+        return {"score": 80.0, "status": "compliant"}  # Simplified score
+
+    async def _calculate_gdpr_compliance(self, user_id: int) -> Dict[str, Any]:
+        """Calculate GDPR compliance score."""
+        return {"score": 85.0, "status": "compliant"}  # Simplified score
+
+    async def _calculate_pci_compliance(self, user_id: int) -> Dict[str, Any]:
+        """Calculate PCI DSS compliance score."""
+        return {"score": 78.0, "status": "compliant"}  # Simplified score
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
     async def _is_pipeline_compliant(self, pipeline_id: int) -> bool:
         """Check if pipeline meets basic compliance requirements."""

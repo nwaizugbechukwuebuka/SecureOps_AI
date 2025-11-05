@@ -7,6 +7,7 @@ import secrets
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
+<<<<<<< HEAD
 from pydantic_settings import BaseSettings
 from pydantic import EmailStr, Field, HttpUrl, validator
 
@@ -21,6 +22,12 @@ class Settings(BaseSettings):
     log_forward_syslog_enabled: bool = Field(default=False, env="LOG_FORWARD_SYSLOG_ENABLED")
     log_forward_syslog_host: Optional[str] = Field(default=None, env="LOG_FORWARD_SYSLOG_HOST")
     log_forward_syslog_port: Optional[int] = Field(default=514, env="LOG_FORWARD_SYSLOG_PORT")
+=======
+from pydantic import BaseSettings, EmailStr, Field, HttpUrl, validator
+
+
+class Settings(BaseSettings):
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     """Application settings and configuration."""
 
     # Application
@@ -215,6 +222,7 @@ class Settings(BaseSettings):
     )
     enable_ml_risk_scoring: bool = Field(default=False, env="ENABLE_ML_RISK_SCORING")
 
+<<<<<<< HEAD
     @validator("slack_webhook_url", pre=True)
     def empty_str_to_none(cls, v):
         """Convert empty strings to None for optional URL fields."""
@@ -222,6 +230,8 @@ class Settings(BaseSettings):
             return None
         return v
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     @validator("cors_origins", pre=True)
     def parse_cors_origins(cls, v):
         """Parse CORS origins from string or list."""
@@ -358,12 +368,21 @@ class Settings(BaseSettings):
             },
         }
 
+<<<<<<< HEAD
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8", 
         "case_sensitive": False,
         "extra": "ignore"  # Ignore extra fields instead of raising validation errors
     }
+=======
+    class Config:
+        """Pydantic configuration."""
+
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 
 # Development settings override
@@ -439,9 +458,14 @@ def validate_environment():
     """Validate that required environment variables are set for the current environment."""
     settings = get_settings()
     errors = []
+<<<<<<< HEAD
     warnings = []
 
     # Production-specific validations (strict)
+=======
+
+    # Production-specific validations
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     if settings.is_production():
         required_vars = [
             ("SECRET_KEY", settings.secret_key),
@@ -453,6 +477,7 @@ def validate_environment():
             if not var_value or var_value == getattr(Settings(), var_name, None):
                 errors.append(f"{var_name} must be set in production")
 
+<<<<<<< HEAD
         # Validate that SECRET_KEY is set via environment variable in production
         import os
         if not os.getenv("SECRET_KEY"):
@@ -528,6 +553,39 @@ def validate_environment():
         print("", file=sys.stderr)
 
     # Only raise errors for critical issues (production) or fundamental problems
+=======
+        # Validate that default passwords/secrets are changed
+        if settings.secret_key == Settings().secret_key:
+            errors.append("SECRET_KEY must be changed from default value")
+
+    # CI/CD integration validations
+    ci_cd_platforms = []
+    if settings.github_app_id:
+        ci_cd_platforms.append("GitHub")
+        if not settings.github_private_key or not settings.github_webhook_secret:
+            errors.append(
+                "GitHub integration requires APP_ID, PRIVATE_KEY, and WEBHOOK_SECRET"
+            )
+
+    if settings.gitlab_token:
+        ci_cd_platforms.append("GitLab")
+
+    if settings.jenkins_url:
+        ci_cd_platforms.append("Jenkins")
+        if not settings.jenkins_username or not settings.jenkins_token:
+            errors.append("Jenkins integration requires URL, USERNAME, and TOKEN")
+
+    if settings.azure_organization:
+        ci_cd_platforms.append("Azure DevOps")
+        if not settings.azure_personal_access_token:
+            errors.append(
+                "Azure DevOps integration requires ORGANIZATION and PERSONAL_ACCESS_TOKEN"
+            )
+
+    if not ci_cd_platforms:
+        errors.append("At least one CI/CD platform integration should be configured")
+
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     if errors:
         raise ValueError(
             f"Configuration errors:\n" + "\n".join(f"- {error}" for error in errors)

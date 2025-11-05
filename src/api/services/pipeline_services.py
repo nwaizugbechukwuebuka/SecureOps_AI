@@ -295,12 +295,15 @@ class PipelineService:
             if scan_schedule is not None:
                 update_data["scan_schedule"] = scan_schedule
 
+<<<<<<< HEAD
             # Audit log: configuration change
             logger.info(
                 f"Pipeline config update: pipeline_id={pipeline_id}, changes={list(update_data.keys())}",
                 extra={"event_type": "audit.configuration_changed", "pipeline_id": pipeline_id, "fields_changed": list(update_data.keys())}
             )
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             # Update pipeline
             query = (
                 update(Pipeline).where(Pipeline.id == pipeline_id).values(update_data)
@@ -346,11 +349,14 @@ class PipelineService:
 
             await self.db.commit()
             logger.info(f"Deleted pipeline {pipeline_id} and associated data")
+<<<<<<< HEAD
             # Audit log: pipeline deletion
             logger.info(
                 f"Pipeline deleted: pipeline_id={pipeline_id}",
                 extra={"event_type": "audit.pipeline_deleted", "pipeline_id": pipeline_id}
             )
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
         except Exception as e:
             await self.db.rollback()
@@ -447,6 +453,7 @@ class PipelineService:
                 # Get vulnerability counts for this scan
                 vuln_counts = await self._get_scan_vulnerability_counts(job.id)
 
+<<<<<<< HEAD
                 # Summarize AI-detected threats from results_summary if present
                 results_summary = job.results_summary or {}
                 ai_threats = []
@@ -469,6 +476,8 @@ class PipelineService:
                         elif level == "low":
                             ai_low_count += 1
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                 scan_data.append(
                     {
                         "id": job.id,
@@ -486,6 +495,7 @@ class PipelineService:
                         "low_count": vuln_counts["low"],
                         "scan_config": job.configuration or {},
                         "error_message": job.error_message,
+<<<<<<< HEAD
                         "results_summary": {
                             **results_summary,
                             "ai_threat_summary": {
@@ -496,6 +506,9 @@ class PipelineService:
                                 "low": ai_low_count,
                             } if ai_threat_count > 0 else {},
                         },
+=======
+                        "results_summary": job.results_summary or {},
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                     }
                 )
 

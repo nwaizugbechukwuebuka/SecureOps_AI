@@ -9,7 +9,11 @@ echo "Starting SecureOps Backend..."
 # Wait for PostgreSQL to be ready
 if [ -n "$DATABASE_URL" ]; then
     echo "Waiting for PostgreSQL..."
+<<<<<<< HEAD
     while ! pg_isready -h db -p 5432 -U ${POSTGRES_USER:-postgres}; do
+=======
+    while ! pg_isready -h postgres -p 5432 -U ${POSTGRES_USER:-secureops}; do
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         echo "PostgreSQL is unavailable - sleeping"
         sleep 2
     done
@@ -19,7 +23,11 @@ fi
 # Wait for Redis to be ready
 if [ -n "$REDIS_URL" ]; then
     echo "Waiting for Redis..."
+<<<<<<< HEAD
     while ! timeout 1 bash -c "echo > /dev/tcp/redis/6379" 2>/dev/null; do
+=======
+    while ! redis-cli -h redis -p 6379 ping > /dev/null 2>&1; do
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         echo "Redis is unavailable - sleeping"
         sleep 2
     done
@@ -30,10 +38,22 @@ fi
 echo "Running database migrations..."
 cd /app
 python -c "
+<<<<<<< HEAD
 from src.api.database import init_database
 
 if __name__ == '__main__':
     init_database()
+=======
+import asyncio
+from src.api.database import init_db
+
+async def main():
+    await init_db()
+    print('Database initialized successfully')
+
+if __name__ == '__main__':
+    asyncio.run(main())
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 "
 
 # Create initial admin user if environment variables are provided

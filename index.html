@@ -663,15 +663,156 @@
                 <h1 class="page-title">SecureOps Dashboard</h1>
                 <p class="page-subtitle">Enterprise DevSecOps Platform - Real-time Security Monitoring & Compliance</p>
             </div>
+<<<<<<< HEAD
                                 <li>🧠 Predictive analytics for proactive security posture management</li>
                             </ul>
                             <pre style="background:#1e293b;color:#cbd5e1;padding:1rem;border-radius:8px;overflow-x:auto;font-size:0.95em;"><code>class PipelineRiskEngine:
+=======
+            
+            <!-- ===== OVERVIEW SECTION ===== -->
+            <section id="overview" class="section fade-in">
+                
+                <!-- Statistics Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalPipelines">127</div>
+                        <div class="stat-label">Active Pipelines</div>
+                        <div class="stat-change positive">↗ +12% this week</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="criticalAlerts">8</div>
+                        <div class="stat-label">Critical Alerts</div>
+                        <div class="stat-change negative">↗ +3 since yesterday</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="vulnerabilities">42</div>
+                        <div class="stat-label">Vulnerabilities</div>
+                        <div class="stat-change positive">↘ -15% this month</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="complianceScore">94%</div>
+                        <div class="stat-label">Compliance Score</div>
+                        <div class="stat-change positive">↗ +2% improvement</div>
+                    </div>
+                </div>
+                
+                <!-- Dashboard Grid -->
+                <div class="dashboard-grid">
+                    
+                    <!-- Security Overview Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">📊</span>
+                                Security Metrics Overview
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="securityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pipeline Status -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">⚙️</span>
+                                Pipeline Status
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="pipeline-status">
+                                <div class="status-item">
+                                    <span>Production Deployments</span>
+                                    <div class="progress-container">
+                                        <div class="progress-bar progress-success" style="width: 89%"></div>
+                                    </div>
+                                    <span class="status-text">89% Success Rate</span>
+                                </div>
+                                <div class="status-item">
+                                    <span>Security Scans</span>
+                                    <div class="progress-container">
+                                        <div class="progress-bar progress-primary" style="width: 76%"></div>
+                                    </div>
+                                    <span class="status-text">76% Passed</span>
+                                </div>
+                                <div class="status-item">
+                                    <span>Code Quality</span>
+                                    <div class="progress-container">
+                                        <div class="progress-bar progress-warning" style="width: 82%"></div>
+                                    </div>
+                                    <span class="status-text">82% Grade A</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">📈</span>
+                                Recent Activity
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-feed" id="activityFeed">
+                                <!-- Activity items will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- System Health -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">💚</span>
+                                System Health
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="health-metrics">
+                                <div class="health-item">
+                                    <span>API Response Time</span>
+                                    <span class="health-value good">145ms</span>
+                                </div>
+                                <div class="health-item">
+                                    <span>Database Load</span>
+                                    <span class="health-value warning">78%</span>
+                                </div>
+                                <div class="health-item">
+                                    <span>Memory Usage</span>
+                                    <span class="health-value good">62%</span>
+                                </div>
+                                <div class="health-item">
+                                    <span>Disk Space</span>
+                                    <span class="health-value critical">91%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </section>
+            
+            <!-- ===== ACTIVE ALERTS SECTION ===== -->
+            <section id="alerts" class="section fade-in">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <span class="card-icon">🚨</span>
+                            Active Security Alerts
+                        </h2>
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                         <button class="btn btn-primary" onclick="refreshAlerts()">
                             🔄 Refresh
                         </button>
                     </div>
                     <div class="card-body">
                         <div id="alertsContainer">
+<<<<<<< HEAD
                                 <li>⚙️ Automated remediation and alerting workflows</li>
                             </ul>
                             <pre style="background:#1e293b;color:#cbd5e1;padding:1rem;border-radius:8px;overflow-x:auto;font-size:0.95em;"><code># Example: Automated security scan API
@@ -683,11 +824,25 @@
                                         <th>Pipeline</th>
                             <b>Local Development:</b>
                             <pre style="background:#1e293b;color:#cbd5e1;padding:1rem;border-radius:8px;overflow-x:auto;font-size:0.95em;"><code># Backend
+=======
+                            <!-- Alerts will be populated by JavaScript -->
+                        </div>
+                        
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Alert ID</th>
+                                        <th>Severity</th>
+                                        <th>Type</th>
+                                        <th>Pipeline</th>
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                                         <th>Timestamp</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
+<<<<<<< HEAD
                                 </tbody>
                             <b>Configuration:</b>
                             <pre style="background:#1e293b;color:#cbd5e1;padding:1rem;border-radius:8px;overflow-x:auto;font-size:0.95em;"><code>cp .env.example .env
@@ -855,6 +1010,12 @@
                             <div class="card-body">
                                 <div class="activity-feed" id="activityFeed"></div>
                             </div>
+=======
+                                <tbody id="alertsTable">
+                                    <!-- Table rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                         </div>
                     </div>
                 </div>

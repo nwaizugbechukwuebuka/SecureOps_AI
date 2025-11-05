@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # === STUBS FOR UNDEFINED HELPERS (placed before usage) ===
 import warnings
@@ -21,6 +22,8 @@ async def _generate_escalation_content(*args, **kwargs):
 def _is_within_notification_hours(*args, **kwargs):
     warnings.warn("_is_within_notification_hours is a stub and must be implemented.")
     return True
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 """
 Alert Processing Background Tasks
 
@@ -34,8 +37,13 @@ Date: 2024
 import json
 import smtplib
 from datetime import datetime, timedelta, timezone
+<<<<<<< HEAD
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+=======
+from email.mime.multipart import MimeMultipart
+from email.mime.text import MimeText
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -44,6 +52,7 @@ from celery import Celery
 from celery.utils.log import get_task_logger
 from jinja2 import Template
 
+<<<<<<< HEAD
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertRule, NotificationChannel
 from src.api.models.pipeline import Pipeline
@@ -53,6 +62,17 @@ from src.api.utils.logger import get_logger
 
 # Import the main Celery app
 from src.tasks.celery_app import app as celery_app
+=======
+from ..api.database import async_session
+from ..api.models.alert import Alert, AlertRule, NotificationChannel
+from ..api.models.pipeline import Pipeline
+from ..api.models.user import User
+from ..utils.config import settings
+from ..utils.logger import get_logger
+
+# Use the same Celery app from scan_tasks
+from .scan_tasks import celery_app
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 logger = get_task_logger(__name__)
 
@@ -89,7 +109,11 @@ def send_notification(
     recipient: str,
     subject: str,
     message: str,
+<<<<<<< HEAD
     meta_data: Dict[str, Any] = None,
+=======
+    metadata: Dict[str, Any] = None,
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 ):
     """
     Send a notification through specified channel.
@@ -100,7 +124,11 @@ def send_notification(
         recipient: Recipient address or endpoint
         subject: Notification subject
         message: Notification message/content
+<<<<<<< HEAD
     meta_data: Additional meta data for the notification
+=======
+        metadata: Additional metadata for the notification
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     """
     logger.info(f"Sending {channel_type} notification {notification_id} to {recipient}")
 
@@ -114,7 +142,11 @@ def send_notification(
                 recipient=recipient,
                 subject=subject,
                 message=message,
+<<<<<<< HEAD
                 meta_data=meta_data or {},
+=======
+                metadata=metadata or {},
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             )
         )
 
@@ -203,7 +235,11 @@ def cleanup_old_alerts(self, retention_days: int = 90):
 async def _process_alert_async(alert_id: int) -> Dict[str, Any]:
     """Process alert and determine notification actions."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             # Get alert with related data
             from sqlalchemy import select
             from sqlalchemy.orm import selectinload
@@ -282,7 +318,11 @@ async def _process_alert_async(alert_id: int) -> Dict[str, Any]:
 
     except Exception as e:
         # Update alert status to failed
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             alert = await db.get(Alert, alert_id)
             if alert:
                 alert.status = "failed"
@@ -324,7 +364,11 @@ async def _send_notification_async(
 async def _escalate_alert_async(alert_id: int, escalation_level: int) -> Dict[str, Any]:
     """Escalate alert to higher level."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             alert = await db.get(Alert, alert_id)
             if not alert:
                 raise ValueError(f"Alert {alert_id} not found")
@@ -390,7 +434,11 @@ async def _create_alert_digest_async(
         time_delta = _parse_time_range(time_range)
         start_time = datetime.now(timezone.utc) - time_delta
 
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             from sqlalchemy import and_, select
 
             # Build query for alerts in time range
@@ -459,7 +507,11 @@ async def _cleanup_old_alerts_async(retention_days: int) -> Dict[str, Any]:
     try:
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
 
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             from sqlalchemy import and_, delete, select
 
             # Count alerts to be deleted
@@ -506,7 +558,11 @@ async def _send_email_notification(
     """Send email notification."""
     try:
         # Create email message
+<<<<<<< HEAD
         msg = MIMEMultipart("alternative")
+=======
+        msg = MimeMultipart("alternative")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         msg["Subject"] = subject
         msg["From"] = settings.EMAIL_FROM
         msg["To"] = recipient
@@ -515,8 +571,13 @@ async def _send_email_notification(
         html_content = await _render_email_template(message, metadata)
         text_content = _html_to_text(html_content)
 
+<<<<<<< HEAD
         msg.attach(MIMEText(text_content, "plain"))
         msg.attach(MIMEText(html_content, "html"))
+=======
+        msg.attach(MimeText(text_content, "plain"))
+        msg.attach(MimeText(html_content, "html"))
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
         # Send email
         with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT) as server:
@@ -663,7 +724,11 @@ async def _determine_notifications(alert: Alert) -> List[Dict[str, Any]]:
     notifications = []
 
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             # Get notification channels for the alert's pipeline
             from sqlalchemy import select
 

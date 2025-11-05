@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+<<<<<<< HEAD
 from celery.utils.log import get_task_logger
 
 from src.api.database import AsyncSessionLocal, get_db
@@ -27,6 +28,45 @@ from src.api.utils.logger import get_logger
 
 # Import the main Celery app
 from src.tasks.celery_app import app as celery_app
+=======
+from celery import Celery
+from celery.utils.log import get_task_logger
+
+from ..api.database import async_session, get_db
+from ..api.models.pipeline import Pipeline, ScanJob
+from ..api.models.vulnerability import Vulnerability
+from ..api.services.alert_service import AlertService
+from ..scanners.common import ScannerType, SeverityLevel, orchestrator
+from ..utils.config import settings
+from ..utils.logger import get_logger
+
+# Initialize Celery app
+celery_app = Celery(
+    "secureops",
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
+)
+
+# Configure Celery
+celery_app.conf.update(
+    task_serializer="json",
+    accept_content=["json"],
+    result_serializer="json",
+    timezone="UTC",
+    enable_utc=True,
+    task_track_started=True,
+    task_time_limit=3600,  # 1 hour max
+    task_soft_time_limit=3000,  # 50 minutes soft limit
+    worker_prefetch_multiplier=1,
+    task_acks_late=True,
+    worker_disable_rate_limits=True,
+    task_routes={
+        "secureops.tasks.scan_tasks.*": {"queue": "scan_queue"},
+        "secureops.tasks.alert_tasks.*": {"queue": "alert_queue"},
+        "secureops.tasks.cleanup_tasks.*": {"queue": "cleanup_queue"},
+    },
+)
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 logger = get_task_logger(__name__)
 
@@ -200,7 +240,10 @@ async def _execute_security_scan(
     """Execute comprehensive security scan with multiple scanners."""
     all_results = []
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     try:
         # Convert scanner type strings to ScannerType enums
         scanner_type_enums = []
@@ -234,11 +277,16 @@ async def _execute_security_scan(
                     "cvss_score": result.cvss_score,
                     "remediation": result.remediation,
                     "references": result.references,
+<<<<<<< HEAD
                     "meta_data": result.meta_data,
+=======
+                    "metadata": result.metadata,
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                     "created_at": datetime.now(timezone.utc).isoformat(),
                 }
                 all_results.append(result_dict)
 
+<<<<<<< HEAD
         # --- AI Threat Detection Integration ---
         ai_engine = ThreatDetectionEngine()
         ai_threats = await ai_engine.analyze_events(all_results)
@@ -265,6 +313,8 @@ async def _execute_security_scan(
             }
             all_results.append(threat_result)
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         # Store vulnerabilities in database
         await _store_scan_results(pipeline_id, scan_job_id, all_results)
 
@@ -309,7 +359,11 @@ async def _execute_targeted_scan(
                 "cvss_score": result.cvss_score,
                 "remediation": result.remediation,
                 "references": result.references,
+<<<<<<< HEAD
                 "meta_data": result.meta_data,
+=======
+                "metadata": result.metadata,
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
             processed_results.append(result_dict)
@@ -361,7 +415,11 @@ async def _execute_monitoring_scan(
                         "confidence": result.confidence,
                         "file_path": result.file_path,
                         "line_number": result.line_number,
+<<<<<<< HEAD
                         "meta_data": result.meta_data,
+=======
+                        "metadata": result.metadata,
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                         "created_at": datetime.now(timezone.utc).isoformat(),
                     }
                     processed_results.append(result_dict)
@@ -378,7 +436,11 @@ async def _store_scan_results(
 ):
     """Store scan results as vulnerabilities in database."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             for result in results:
                 vulnerability = Vulnerability(
                     pipeline_id=pipeline_id,
@@ -398,7 +460,11 @@ async def _store_scan_results(
                     cvss_score=result.get("cvss_score"),
                     remediation=result.get("remediation"),
                     references=result.get("references", []),
+<<<<<<< HEAD
                     meta_data=result.get("meta_data", {}),
+=======
+                    metadata=result.get("metadata", {}),
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                     status="open",
                     created_at=datetime.fromisoformat(
                         result["created_at"].replace("Z", "+00:00")
@@ -421,7 +487,11 @@ async def _update_scan_job_status(
 ):
     """Update scan job status in database."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             scan_job = await db.get(ScanJob, scan_job_id)
             if scan_job:
                 scan_job.status = status
@@ -443,7 +513,11 @@ async def _finalize_scan_job(
 ):
     """Finalize scan job with results summary."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             scan_job = await db.get(ScanJob, scan_job_id)
             if scan_job:
                 scan_job.status = status
@@ -458,6 +532,7 @@ async def _finalize_scan_job(
                 medium_findings = len([r for r in results if r["severity"] == "medium"])
                 low_findings = len([r for r in results if r["severity"] == "low"])
 
+<<<<<<< HEAD
                 # Extract AI-detected threats for summary
                 ai_threats = [r for r in results if r["scanner_type"] == "ai_threat_detection"]
                 ai_threat_count = len(ai_threats)
@@ -466,6 +541,8 @@ async def _finalize_scan_job(
                 ai_medium_count = len([t for t in ai_threats if t["severity"] == "medium"])
                 ai_low_count = len([t for t in ai_threats if t["severity"] == "low"])
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                 scan_job.results_summary = {
                     "total_findings": total_findings,
                     "critical_findings": critical_findings,
@@ -473,6 +550,7 @@ async def _finalize_scan_job(
                     "medium_findings": medium_findings,
                     "low_findings": low_findings,
                     "scanners_used": list(set(r["scanner_type"] for r in results)),
+<<<<<<< HEAD
                     "ai_threats": ai_threats,
                     "ai_threat_summary": {
                         "count": ai_threat_count,
@@ -481,6 +559,8 @@ async def _finalize_scan_job(
                         "medium": ai_medium_count,
                         "low": ai_low_count,
                     } if ai_threat_count > 0 else {},
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
                 }
 
                 await db.commit()
@@ -584,7 +664,11 @@ async def _process_monitoring_results(
 async def _get_pipeline_info(pipeline_id: int) -> Optional[Dict[str, Any]]:
     """Get pipeline information from database."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             pipeline = await db.get(Pipeline, pipeline_id)
             if pipeline:
                 return {
@@ -610,7 +694,11 @@ async def _create_monitoring_scan_job(
 ) -> int:
     """Create a scan job for monitoring."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             scan_job = ScanJob(
                 pipeline_id=pipeline_id,
                 job_type="monitoring",
@@ -657,7 +745,11 @@ def _has_docker_files(target_path: str) -> bool:
 async def _is_new_vulnerability(pipeline_id: int, scan_result) -> bool:
     """Check if a vulnerability is new (not seen in previous scans)."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             # Create a hash of the vulnerability for comparison
             vuln_hash = f"{scan_result.rule_id}:{scan_result.file_path}:{scan_result.line_number}"
 

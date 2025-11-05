@@ -8,6 +8,10 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 from pydantic import Field, validator
+<<<<<<< HEAD
+=======
+from pydantic.validators import str_validator
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 
 class ValidationError(ValueError):

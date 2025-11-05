@@ -23,6 +23,7 @@ from ..models.user import User
 from ..models.vulnerability import Vulnerability
 from ..services.pipeline_services import PipelineService
 from ..utils.config import settings
+<<<<<<< HEAD
 from ..utils.logger import get_logger
 
 # Placeholder logging function
@@ -37,6 +38,11 @@ def validate_pipeline_config(config):
 from ..utils.validators import validate_url
 from .auth import get_current_user
 from ..utils.rbac import require_role, require_superuser
+=======
+from ..utils.logger import get_logger, log_api_request
+from ..utils.validators import validate_pipeline_config, validate_url
+from .auth import get_current_user
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -68,7 +74,11 @@ class CreatePipelineRequest(BaseModel):
     repository_url: str = Field(..., min_length=1)
     branch: str = Field(default="main", min_length=1, max_length=100)
     ci_cd_platform: str = Field(
+<<<<<<< HEAD
     ..., pattern="^(github|gitlab|azure_devops|jenkins|bitbucket)$"
+=======
+        ..., regex="^(github|gitlab|azure_devops|jenkins|bitbucket)$"
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     )
     configuration: Dict[str, Any] = {}
     webhook_secret: Optional[str] = None
@@ -91,7 +101,11 @@ class ScanRequest(BaseModel):
     )
     target_branch: Optional[str] = None
     scan_config: Dict[str, Any] = {}
+<<<<<<< HEAD
     priority: str = Field(default="normal", pattern="^(low|normal|high|urgent)$")
+=======
+    priority: str = Field(default="normal", regex="^(low|normal|high|urgent)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 
 class ScanJobResponse(BaseModel):
@@ -126,12 +140,21 @@ class WebhookPayload(BaseModel):
 async def get_pipelines(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+<<<<<<< HEAD
     status: Optional[str] = Query(None, pattern="^(active|inactive|error|scanning)$"),
     ci_cd_platform: Optional[str] = Query(
     None, pattern="^(github|gitlab|azure_devops|jenkins|bitbucket)$"
     ),
     search: Optional[str] = Query(None, min_length=1),
     current_user: User = Depends(require_role("admin", "devops")),
+=======
+    status: Optional[str] = Query(None, regex="^(active|inactive|error|scanning)$"),
+    ci_cd_platform: Optional[str] = Query(
+        None, regex="^(github|gitlab|azure_devops|jenkins|bitbucket)$"
+    ),
+    search: Optional[str] = Query(None, min_length=1),
+    current_user: User = Depends(get_current_user),
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -165,7 +188,11 @@ async def get_pipelines(
 @router.get("/{pipeline_id}", response_model=PipelineResponse)
 async def get_pipeline(
     pipeline_id: int,
+<<<<<<< HEAD
     current_user: User = Depends(require_role("admin", "devops")),
+=======
+    current_user: User = Depends(get_current_user),
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -200,7 +227,11 @@ async def get_pipeline(
 async def create_pipeline(
     pipeline_request: CreatePipelineRequest,
     background_tasks: BackgroundTasks,
+<<<<<<< HEAD
     current_user: User = Depends(require_role("admin", "devops")),
+=======
+    current_user: User = Depends(get_current_user),
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -211,8 +242,11 @@ async def create_pipeline(
     """
     log_api_request("POST", "/pipelines/", current_user.id)
 
+<<<<<<< HEAD
     from ..utils.logger import AuditLogger
     audit_logger = AuditLogger()
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     try:
         # Validate repository URL
         url_validation = validate_url(
@@ -246,7 +280,10 @@ async def create_pipeline(
             )
 
         # Create pipeline
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         pipeline = await pipeline_service.create_pipeline(
             name=pipeline_request.name,
             description=pipeline_request.description,
@@ -259,6 +296,7 @@ async def create_pipeline(
             owner_id=current_user.id,
         )
 
+<<<<<<< HEAD
         # Audit log pipeline creation
         audit_logger.user_action(
             user_id=current_user.id,
@@ -276,6 +314,8 @@ async def create_pipeline(
             }
         )
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         # Queue initial scan if configured
         if pipeline_request.configuration.get("auto_scan_on_create", False):
             background_tasks.add_task(
@@ -505,9 +545,15 @@ async def get_scan_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     status: Optional[str] = Query(
+<<<<<<< HEAD
         None, pattern="^(pending|running|completed|failed|cancelled)$"
     ),
     current_user: User = Depends(require_role("admin", "devops", "security")),
+=======
+        None, regex="^(pending|running|completed|failed|cancelled)$"
+    ),
+    current_user: User = Depends(get_current_user),
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -551,12 +597,21 @@ async def get_pipeline_vulnerabilities(
     pipeline_id: int,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+<<<<<<< HEAD
     severity: Optional[str] = Query(None, pattern="^(low|medium|high|critical)$"),
     status: Optional[str] = Query(
         None, pattern="^(open|acknowledged|resolved|false_positive)$"
     ),
     scanner_type: Optional[str] = Query(None),
     current_user: User = Depends(require_role("admin", "devops", "security")),
+=======
+    severity: Optional[str] = Query(None, regex="^(low|medium|high|critical)$"),
+    status: Optional[str] = Query(
+        None, regex="^(open|acknowledged|resolved|false_positive)$"
+    ),
+    scanner_type: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     db: AsyncSession = Depends(get_db),
 ):
     """

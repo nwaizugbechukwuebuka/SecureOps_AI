@@ -70,7 +70,11 @@ pre-commit==3.6.0
 # Development Tools
 watchdog==3.0.0
 rich==13.7.0
+<<<<<<< HEAD
 typer>=0.16.0
+=======
+typer==0.9.0
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 # Data Processing & Visualization
 pandas==2.1.4

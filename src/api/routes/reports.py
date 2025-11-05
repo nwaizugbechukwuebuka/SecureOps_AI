@@ -24,6 +24,7 @@ from ..models.user import User
 from ..models.vulnerability import Vulnerability
 from ..services.report_service import ReportService
 from ..utils.config import settings
+<<<<<<< HEAD
 from ..utils.logger import get_logger
 
 # Placeholder logging function
@@ -32,6 +33,10 @@ def log_api_request(method: str, path: str, user_id: int):
     logger.info(f"API Request: {method} {path} by user {user_id}")
 from .auth import get_current_user
 from ..utils.rbac import require_role, require_superuser
+=======
+from ..utils.logger import get_logger, log_api_request
+from .auth import get_current_user
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -39,7 +44,11 @@ logger = get_logger(__name__)
 
 @router.get("/dashboard/summary")
 async def get_dashboard_summary(
+<<<<<<< HEAD
     current_user: User = Depends(require_role("admin", "security", "devops")), db: AsyncSession = Depends(get_db)
+=======
+    current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 ):
     """
     Get comprehensive dashboard summary with key metrics.
@@ -69,7 +78,11 @@ async def get_vulnerability_summary(
     severity: Optional[str] = Query(None, description="Filter by severity level"),
     status: Optional[str] = Query(None, description="Filter by vulnerability status"),
     days_back: int = Query(30, description="Number of days to look back"),
+<<<<<<< HEAD
     current_user: User = Depends(require_role("admin", "security", "devops")),
+=======
+    current_user: User = Depends(get_current_user),
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     db: AsyncSession = Depends(get_db),
 ):
     """

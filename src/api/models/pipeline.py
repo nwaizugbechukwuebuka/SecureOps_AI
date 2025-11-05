@@ -149,6 +149,7 @@ class PipelineRun(Base, IDMixin, TimestampMixin):
     vulnerabilities = relationship("Vulnerability", back_populates="pipeline_run")
 
 
+<<<<<<< HEAD
 class ScanJob(Base, IDMixin, TimestampMixin):
     """Security scan job tracking - placeholder model"""
 
@@ -163,12 +164,18 @@ class ScanJob(Base, IDMixin, TimestampMixin):
     pipeline = relationship("Pipeline")
 
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 # Pydantic models for API serialization
 class PipelineBase(BaseModel):
     """Base pipeline model with common fields."""
 
     name: str = Field(..., min_length=1, max_length=255)
+<<<<<<< HEAD
     platform: str = Field(..., pattern="^(github|gitlab|jenkins|azure)$")
+=======
+    platform: str = Field(..., regex="^(github|gitlab|jenkins|azure)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     repository_url: Optional[HttpUrl] = None
     repository_name: Optional[str] = Field(None, max_length=255)
     branch: Optional[str] = Field(None, max_length=255)
@@ -290,8 +297,12 @@ class PipelineWebhookEvent(BaseModel):
     """Webhook event data structure."""
 
     event_type: str = Field(..., max_length=100)
+<<<<<<< HEAD
     platform: str = Field(..., pattern="^(github|gitlab|jenkins|azure)$")
     __table_args__ = {'extend_existing': True}
+=======
+    platform: str = Field(..., regex="^(github|gitlab|jenkins|azure)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     pipeline_id: str = Field(..., max_length=255)
     run_id: str = Field(..., max_length=255)
     status: str

@@ -12,12 +12,17 @@ from sqlalchemy.orm import relationship
 
 from .base import Base, BaseResponse, IDMixin, TimestampMixin
 
+<<<<<<< HEAD
 # Password hashing context - use pbkdf2 for development to avoid bcrypt issues
 pwd_context = CryptContext(
     schemes=["pbkdf2_sha256", "bcrypt"], 
     deprecated="auto",
     pbkdf2_sha256__rounds=29000,
 )
+=======
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 
 class User(Base, IDMixin, TimestampMixin):
@@ -58,10 +63,14 @@ class User(Base, IDMixin, TimestampMixin):
 
     def set_password(self, password: str) -> None:
         """Hash and set a new password."""
+<<<<<<< HEAD
         # Truncate password to 72 bytes for bcrypt compatibility
         password_bytes = password.encode('utf-8')[:72]
         password_truncated = password_bytes.decode('utf-8', errors='ignore')
         self.hashed_password = pwd_context.hash(password_truncated)
+=======
+        self.hashed_password = pwd_context.hash(password)
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         self.password_changed_at = datetime.utcnow()
 
     def is_locked(self) -> bool:

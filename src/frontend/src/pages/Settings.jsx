@@ -40,6 +40,10 @@ import {
   Badge,
   Tab,
   Tabs,
+<<<<<<< HEAD
+=======
+  TabPanel,
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
   Snackbar
 } from '@mui/material';
 import {
@@ -69,7 +73,25 @@ import {
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
 
+<<<<<<< HEAD
 
+=======
+const TabPanel = ({ children, value, index, ...other }) => (
+  <div
+    role="tabpanel"
+    hidden={value !== index}
+    id={`settings-tabpanel-${index}`}
+    aria-labelledby={`settings-tab-${index}`}
+    {...other}
+  >
+    {value === index && (
+      <Box sx={{ p: 3 }}>
+        {children}
+      </Box>
+    )}
+  </div>
+);
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 const Settings = () => {
   const theme = useTheme();

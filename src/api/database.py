@@ -13,12 +13,15 @@ from sqlalchemy.pool import NullPool
 from .models.base import Base
 from .utils.config import get_settings
 
+<<<<<<< HEAD
 # Import all models to ensure they are registered with Base.metadata
 from .models.user import User
 from .models.alert import Alert
 from .models.pipeline import Pipeline, PipelineRun, ScanJob
 from .models.vulnerability import Vulnerability
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 # Get application settings
 settings = get_settings()
 

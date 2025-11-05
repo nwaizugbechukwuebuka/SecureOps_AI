@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 services:
   app:
     build: .
@@ -60,10 +61,50 @@ services:
     ports:
       - "6380:6379"
     restart: always
+=======
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: secureops-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-secureops}
+      POSTGRES_USER: ${POSTGRES_USER:-secureops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secureops123}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deployment/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - secureops-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-secureops} -d ${POSTGRES_DB:-secureops}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    container_name: secureops-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - secureops-network
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
+<<<<<<< HEAD
       retries: 5
     networks:
       - secureops-network
@@ -75,6 +116,9 @@ services:
         reservations:
           cpus: '0.1'
           memory: 64M
+=======
+      retries: 3
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
   # FastAPI Backend
   backend:
@@ -85,7 +129,11 @@ services:
     restart: always
     environment:
       # Database Configuration
+<<<<<<< HEAD
       DATABASE_URL: postgresql://postgres:postgres@db:5432/secureops
+=======
+      DATABASE_URL: postgresql://${POSTGRES_USER:-secureops}:${POSTGRES_PASSWORD:-secureops123}@postgres:5432/${POSTGRES_DB:-secureops}
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
       REDIS_URL: redis://redis:6379/0
       
       # Application Configuration
@@ -126,13 +174,21 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
       
     ports:
+<<<<<<< HEAD
       - "8002:8000"
+=======
+      - "8000:8000"
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     volumes:
       - ./src:/app/src
       - ./deployment:/app/deployment
       - scan_results:/app/scan_results
     depends_on:
+<<<<<<< HEAD
       db:
+=======
+      postgres:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -144,6 +200,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+<<<<<<< HEAD
     deploy:
       resources:
         limits:
@@ -152,6 +209,8 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
   # Celery Worker
   celery-worker:
@@ -160,6 +219,7 @@ services:
       dockerfile: deployment/Dockerfile
     container_name: secureops-celery-worker
     restart: always
+<<<<<<< HEAD
     command: worker
     environment:
       # Database Configuration
@@ -170,6 +230,14 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       
+=======
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-secureops}:${POSTGRES_PASSWORD:-secureops123}@postgres:5432/${POSTGRES_DB:-secureops}
+      REDIS_URL: redis://redis:6379/0
+      
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
       # Application Configuration
       SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-in-production}
       ENVIRONMENT: ${ENVIRONMENT:-development}
@@ -198,12 +266,17 @@ services:
       - scan_results:/app/scan_results
       - /var/run/docker.sock:/var/run/docker.sock  # For container scanning
     depends_on:
+<<<<<<< HEAD
       db:
+=======
+      postgres:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
       - secureops-network
+<<<<<<< HEAD
     healthcheck:
       # Simple process check for Celery worker
       test: ["CMD-SHELL", "pgrep -f 'celery worker' || exit 1"]
@@ -219,6 +292,8 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
   # Celery Beat Scheduler
   celery-beat:
@@ -227,6 +302,7 @@ services:
       dockerfile: deployment/Dockerfile
     container_name: secureops-celery-beat
     restart: always
+<<<<<<< HEAD
     command: beat
     environment:
       # Database Configuration
@@ -237,6 +313,14 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       
+=======
+    command: celery -A src.tasks.celery_app beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-secureops}:${POSTGRES_PASSWORD:-secureops123}@postgres:5432/${POSTGRES_DB:-secureops}
+      REDIS_URL: redis://redis:6379/0
+      
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
       # Application Configuration
       SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-in-production}
       ENVIRONMENT: ${ENVIRONMENT:-development}
@@ -248,12 +332,17 @@ services:
       - ./src:/app/src
       - celery_beat_data:/app/celerybeat-schedule
     depends_on:
+<<<<<<< HEAD
       db:
+=======
+      postgres:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
       - secureops-network
+<<<<<<< HEAD
     healthcheck:
       # Simple process check for Celery beat
       test: ["CMD-SHELL", "pgrep -f 'celery beat' || exit 1"]
@@ -269,6 +358,8 @@ services:
         reservations:
           cpus: '0.1'
           memory: 64M
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
   # React Frontend
   frontend:
@@ -282,7 +373,12 @@ services:
       REACT_APP_ENVIRONMENT: ${ENVIRONMENT:-development}
       REACT_APP_VERSION: ${APP_VERSION:-1.0.0}
       REACT_APP_ENABLE_ANALYTICS: ${REACT_APP_ENABLE_ANALYTICS:-false}
+<<<<<<< HEAD
     # No ports mapped; run frontend locally on 3000 or serve static build separately
+=======
+    ports:
+      - "3000:3000"
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     volumes:
       - ./src/frontend:/app/src
       - frontend_node_modules:/app/node_modules
@@ -306,11 +402,18 @@ services:
       - "443:443"
     volumes:
       - ./deployment/nginx.conf:/etc/nginx/nginx.conf:ro
+<<<<<<< HEAD
       - ./deployment/secureops-locations.conf:/etc/nginx/conf.d/secureops-locations.conf:ro
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
       - ./deployment/ssl:/etc/nginx/ssl:ro
       - nginx_logs:/var/log/nginx
     depends_on:
       - backend
+<<<<<<< HEAD
+=======
+      - frontend
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     networks:
       - secureops-network
     healthcheck:
@@ -421,7 +524,11 @@ services:
       - logging
 
 volumes:
+<<<<<<< HEAD
   pgdata:
+=======
+  postgres_data:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     driver: local
   redis_data:
     driver: local
@@ -449,4 +556,8 @@ networks:
     driver: bridge
     ipam:
       config:
+<<<<<<< HEAD
         - subnet: 172.30.0.0/16
+=======
+        - subnet: 172.20.0.0/16
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3

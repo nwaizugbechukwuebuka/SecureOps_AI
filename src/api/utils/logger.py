@@ -26,6 +26,7 @@ def configure_logging():
         log_path = Path(settings.log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
+<<<<<<< HEAD
 
     # Prepare base handlers
     handlers = [logging.StreamHandler(sys.stdout)]
@@ -123,17 +124,30 @@ def configure_logging():
         except Exception as e:
             logging.getLogger().error(f"Failed to enable syslog log forwarding: {e}")
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     # Configure standard library logging
     logging.basicConfig(
         level=getattr(logging, settings.log_level),
         format="%(message)s",
+<<<<<<< HEAD
         handlers=handlers,
+=======
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            *([logging.FileHandler(settings.log_file)] if settings.log_file else []),
+        ],
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     )
 
     # Configure structlog processors
     processors = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
+<<<<<<< HEAD
+=======
+        structlog.processors.add_logger_name,
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
@@ -541,6 +555,36 @@ performance_logger = PerformanceLogger()
 logger = get_logger("secureops")
 
 
+<<<<<<< HEAD
+=======
+def setup_sentry():
+    """Setup Sentry error tracking if configured."""
+    if settings.sentry_dsn:
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.fastapi import FastApiIntegration
+            from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+            from sentry_sdk.integrations.starlette import StarletteIntegration
+
+            sentry_sdk.init(
+                dsn=settings.sentry_dsn,
+                environment=settings.sentry_environment,
+                traces_sample_rate=0.1 if settings.is_production() else 1.0,
+                integrations=[
+                    FastApiIntegration(auto_enable=True),
+                    StarletteIntegration(auto_enable=True),
+                    SqlalchemyIntegration(),
+                ],
+                before_send=filter_sensitive_data,
+            )
+            logger.info("Sentry error tracking initialized")
+        except ImportError:
+            logger.warning("Sentry SDK not available, error tracking disabled")
+        except Exception as e:
+            logger.error("Failed to initialize Sentry", error=str(e))
+
+
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 def filter_sensitive_data(event, hint):
     """Filter sensitive data from Sentry events."""
     # Remove sensitive headers
@@ -563,6 +607,7 @@ def filter_sensitive_data(event, hint):
     return event
 
 
+<<<<<<< HEAD
 def setup_sentry():
     """Setup Sentry error tracking if configured."""
     if settings.sentry_dsn:
@@ -600,6 +645,14 @@ def log_startup_info():
         "SecureOps application starting",
         app_name=settings.app_name,
         app_version=getattr(settings, "app_version", "unknown"),
+=======
+def log_startup_info():
+    """Log application startup information."""
+    logger.info(
+        "SecureOps application starting",
+        app_name=settings.app_name,
+        app_version=settings.app_version,
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         environment=settings.environment,
         debug=settings.debug,
         api_host=settings.api_host,

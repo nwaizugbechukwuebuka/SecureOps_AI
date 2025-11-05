@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # === STUBS FOR UNDEFINED HELPERS ===
 import warnings
 
@@ -62,6 +63,8 @@ async def _check_system_dependencies(*args, **kwargs):
 async def _check_single_integration_health(*args, **kwargs):
     warnings.warn("_check_single_integration_health is a stub and must be implemented.")
     return None
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 """
 System Monitoring Background Tasks
 
@@ -82,6 +85,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import psutil
 import requests
+<<<<<<< HEAD
 from celery.utils.log import get_task_logger
 
 from src.api.database import AsyncSessionLocal
@@ -93,6 +97,20 @@ from src.api.utils.logger import get_logger
 
 # Use the centralized Celery app
 from src.tasks.celery_app import app as celery_app
+=======
+from celery import Celery
+from celery.utils.log import get_task_logger
+
+from ..api.database import async_session
+from ..api.models.alert import Alert
+from ..api.models.pipeline import Pipeline, ScanJob
+from ..scanners.common import orchestrator
+from ..utils.config import settings
+from ..utils.logger import get_logger
+
+# Use the same Celery app from scan_tasks
+from .scan_tasks import celery_app
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 logger = get_task_logger(__name__)
 
@@ -350,7 +368,11 @@ async def _monitor_pipeline_health(pipeline_id: Optional[int]) -> Dict[str, Any]
     }
 
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             from sqlalchemy import select
 
             # Get pipelines to check
@@ -449,7 +471,11 @@ async def _monitor_repository_changes(pipeline_id: int) -> Dict[str, Any]:
     }
 
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             pipeline = await db.get(Pipeline, pipeline_id)
             if not pipeline or not pipeline.repository_url:
                 return changes
@@ -690,7 +716,11 @@ async def _check_system_resources() -> Dict[str, Any]:
 async def _check_database_health() -> Dict[str, Any]:
     """Check database connectivity and health."""
     try:
+<<<<<<< HEAD
         async with AsyncSessionLocal() as db:
+=======
+        async with async_session() as db:
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             # Simple query to test connectivity
             from sqlalchemy import text
 

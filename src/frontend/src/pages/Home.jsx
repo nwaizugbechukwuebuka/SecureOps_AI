@@ -19,7 +19,10 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import Dashboard from '../components/Dashboard';
+<<<<<<< HEAD
 import AIThreatDashboardEntry from '../components/AIThreatDashboardEntry';
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 import { useAuth } from '../services/auth';
 import { api } from '../services/api';
 
@@ -276,13 +279,19 @@ const Home = () => {
         )}
 
         {/* Main Dashboard */}
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         <motion.div variants={itemVariants}>
           <Fade in={!loading} timeout={600}>
             <Box>
               <Dashboard />
+<<<<<<< HEAD
               {/* AI Threats Dashboard Section */}
               <AIThreatDashboardEntry />
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             </Box>
           </Fade>
         </motion.div>

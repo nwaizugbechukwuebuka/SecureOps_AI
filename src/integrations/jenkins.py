@@ -19,12 +19,21 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
+<<<<<<< HEAD
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertType
 from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
 from src.api.models.vulnerability import SeverityLevel, Vulnerability, VulnerabilityStatus
 from src.api.utils.config import settings
 from src.api.utils.logger import get_logger
+=======
+from ..database import AsyncSessionLocal
+from ..models.alert import Alert, AlertSeverity, AlertType
+from ..models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
+from ..models.vulnerability import SeverityLevel, Vulnerability, VulnerabilityStatus
+from ..utils.config import settings
+from ..utils.logger import get_logger
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 logger = get_logger(__name__)
 
@@ -370,7 +379,11 @@ class JenkinsIntegration:
     ) -> None:
         """Trigger security analysis for completed build."""
         try:
+<<<<<<< HEAD
             from src.tasks.scan_tasks import schedule_jenkins_build_scan
+=======
+            from ..tasks.scan_tasks import schedule_jenkins_build_scan
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
             # Schedule security scans
             await schedule_jenkins_build_scan.apply_async(

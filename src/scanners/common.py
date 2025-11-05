@@ -68,7 +68,11 @@ class ScanResult:
     cvss_score: Optional[float] = None
     remediation: Optional[str] = None
     references: Optional[List[str]] = None
+<<<<<<< HEAD
     meta_data: Optional[Dict[str, Any]] = None
+=======
+    metadata: Optional[Dict[str, Any]] = None
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert scan result to dictionary."""
@@ -88,7 +92,11 @@ class ScanResult:
             "cvss_score": self.cvss_score,
             "remediation": self.remediation,
             "references": self.references or [],
+<<<<<<< HEAD
             "meta_data": self.meta_data or {},
+=======
+            "metadata": self.metadata or {},
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         }
 
 

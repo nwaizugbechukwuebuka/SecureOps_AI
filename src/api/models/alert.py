@@ -207,7 +207,11 @@ class AlertRule(Base, IDMixin, TimestampMixin):
 
     # Assignment
     auto_assign_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+<<<<<<< HEAD
     auto_assign_to = relationship("User", foreign_keys=[auto_assign_to_id], backref="alert_rules")
+=======
+    auto_assign_to = relationship("User", backref="alert_rules")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
     # Metadata
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -223,9 +227,15 @@ class AlertBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=500)
     description: Optional[str] = None
     alert_type: str = Field(..., max_length=100)
+<<<<<<< HEAD
     severity: str = Field(..., pattern="^(critical|high|medium|low|info)$")
     category: Optional[str] = Field(None, max_length=100)
     priority: str = Field(default="medium", pattern="^(critical|high|medium|low)$")
+=======
+    severity: str = Field(..., regex="^(critical|high|medium|low|info)$")
+    category: Optional[str] = Field(None, max_length=100)
+    priority: str = Field(default="medium", regex="^(critical|high|medium|low)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     source: str = Field(..., max_length=100)
 
 
@@ -249,9 +259,15 @@ class AlertUpdate(BaseModel):
     """Model for alert updates."""
 
     status: Optional[str] = Field(
+<<<<<<< HEAD
     None, pattern="^(open|in_progress|resolved|closed|suppressed)$"
     )
     priority: Optional[str] = Field(None, pattern="^(critical|high|medium|low)$")
+=======
+        None, regex="^(open|in_progress|resolved|closed|suppressed)$"
+    )
+    priority: Optional[str] = Field(None, regex="^(critical|high|medium|low)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     assigned_to_id: Optional[int] = None
     resolution_notes: Optional[str] = None
     suppressed: Optional[bool] = None
@@ -296,7 +312,11 @@ class AlertRuleBase(BaseModel):
     description: Optional[str] = None
     trigger_type: str = Field(..., max_length=100)
     trigger_conditions: Dict[str, Any] = Field(...)
+<<<<<<< HEAD
     alert_severity: str = Field(..., pattern="^(critical|high|medium|low|info)$")
+=======
+    alert_severity: str = Field(..., regex="^(critical|high|medium|low|info)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     alert_title_template: str = Field(..., min_length=1, max_length=500)
 
 
@@ -323,7 +343,11 @@ class AlertRuleUpdate(BaseModel):
     is_active: Optional[bool] = None
     trigger_conditions: Optional[Dict[str, Any]] = None
     alert_severity: Optional[str] = Field(
+<<<<<<< HEAD
     None, pattern="^(critical|high|medium|low|info)$"
+=======
+        None, regex="^(critical|high|medium|low|info)$"
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     )
     notification_enabled: Optional[bool] = None
     cooldown_minutes: Optional[int] = Field(None, ge=1, le=1440)
@@ -376,12 +400,20 @@ class AlertNotification(BaseModel):
     """Alert notification configuration."""
 
     alert_id: int
+<<<<<<< HEAD
     channel: str = Field(..., pattern="^(email|slack|webhook|sms)$")
+=======
+    channel: str = Field(..., regex="^(email|slack|webhook|sms)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     recipient: str = Field(..., max_length=255)
     template: Optional[str] = None
     sent_at: Optional[datetime] = None
     delivery_status: str = Field(
+<<<<<<< HEAD
     default="pending", pattern="^(pending|sent|failed|retry)$"
+=======
+        default="pending", regex="^(pending|sent|failed|retry)$"
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     )
     error_message: Optional[str] = None
 
@@ -398,6 +430,7 @@ class AlertNotification(BaseModel):
         }
 
 
+<<<<<<< HEAD
 class NotificationChannel(Base, IDMixin, TimestampMixin):
     """Notification channel for alert delivery (email, slack, webhook, etc.)."""
 
@@ -428,6 +461,8 @@ class NotificationChannelSchema(BaseModel):
     class Config:
         orm_mode = True
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 class AlertEscalation(BaseModel):
     """Alert escalation configuration."""
 

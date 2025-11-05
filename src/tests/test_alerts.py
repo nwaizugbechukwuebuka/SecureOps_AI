@@ -7,7 +7,11 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
+<<<<<<< HEAD
 from secureops_ai.src.api.main import app
+=======
+from src.api.main import app
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 from src.api.models.alert import Alert, AlertSeverity, AlertStatus
 from src.api.models.user import User
 
@@ -44,7 +48,11 @@ def sample_alert_data():
         "source": "test_scanner",
         "pipeline_id": 1,
         "vulnerability_id": "CVE-2023-1234",
+<<<<<<< HEAD
     "meta_data": {
+=======
+        "metadata": {
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
             "scanner": "trivy",
             "component": "test-component",
             "version": "1.0.0",
@@ -70,7 +78,11 @@ def mock_alert():
     alert.resolved_at = None
     alert.acknowledged_by = None
     alert.resolved_by = None
+<<<<<<< HEAD
     alert.meta_data = {"scanner": "trivy"}
+=======
+    alert.metadata = {"scanner": "trivy"}
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     return alert
 
 

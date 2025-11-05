@@ -23,14 +23,20 @@ from ..models.pipeline import Pipeline
 from ..models.user import User
 from ..services.alert_service import AlertService
 from ..utils.config import settings
+<<<<<<< HEAD
 from ..utils.logger import get_logger
 # from ..main import emit_dashboard_event  # Avoiding circular import
 from .auth import get_current_user
 from ..utils.rbac import require_role, require_superuser
+=======
+from ..utils.logger import get_logger, log_api_request, log_security_event
+from .auth import get_current_user
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 router = APIRouter()
 logger = get_logger(__name__)
 
+<<<<<<< HEAD
 # Placeholder logging functions until we implement proper logging
 def log_api_request(method: str, path: str, user_id: int):
     logger.info(f"API Request: {method} {path} by user {user_id}")
@@ -41,6 +47,8 @@ def log_security_event(event_type: str, description: str, user_id: int, addition
 async def emit_dashboard_event(event_type: str, data: dict):
     """Placeholder for dashboard event emission"""
     logger.info(f"Dashboard Event: {event_type} - {data}")
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 # Pydantic models for request/response
 class AlertResponse(BaseModel):
@@ -63,15 +71,24 @@ class AlertResponse(BaseModel):
 class CreateAlertRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: str = Field(..., min_length=1)
+<<<<<<< HEAD
     severity: str = Field(..., pattern="^(low|medium|high|critical)$")
     alert_type: str = Field(..., pattern="^(scan|monitoring|system|security)$")
+=======
+    severity: str = Field(..., regex="^(low|medium|high|critical)$")
+    alert_type: str = Field(..., regex="^(scan|monitoring|system|security)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     pipeline_id: Optional[int] = None
     metadata: Dict[str, Any] = {}
 
 
 class UpdateAlertRequest(BaseModel):
     status: Optional[str] = Field(
+<<<<<<< HEAD
     None, pattern="^(open|acknowledged|resolved|closed|false_positive)$"
+=======
+        None, regex="^(open|acknowledged|resolved|closed|false_positive)$"
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     )
     assigned_to: Optional[str] = None
     notes: Optional[str] = None
@@ -82,7 +99,11 @@ class AlertRuleRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: str
     conditions: Dict[str, Any]
+<<<<<<< HEAD
     severity_threshold: str = Field("medium", pattern="^(low|medium|high|critical)$")
+=======
+    severity_threshold: str = Field("medium", regex="^(low|medium|high|critical)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     pipeline_id: Optional[int] = None
     enabled: bool = True
     notification_channels: List[int] = []
@@ -90,7 +111,11 @@ class AlertRuleRequest(BaseModel):
 
 class NotificationChannelRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
+<<<<<<< HEAD
     channel_type: str = Field(..., pattern="^(email|slack|webhook|msteams|sms)$")
+=======
+    channel_type: str = Field(..., regex="^(email|slack|webhook|msteams|sms)$")
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     endpoint: str = Field(..., min_length=1)
     configuration: Dict[str, Any] = {}
     pipeline_id: Optional[int] = None
@@ -101,6 +126,7 @@ class NotificationChannelRequest(BaseModel):
 async def get_alerts(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+<<<<<<< HEAD
     severity: Optional[str] = Query(None, pattern="^(low|medium|high|critical)$"),
     status: Optional[str] = Query(
     None, pattern="^(open|acknowledged|resolved|closed|false_positive)$"
@@ -111,6 +137,18 @@ async def get_alerts(
     pipeline_id: Optional[int] = Query(None),
     days_back: Optional[int] = Query(None, ge=1, le=365),
     current_user: User = Depends(require_role("admin", "security", "devops")),
+=======
+    severity: Optional[str] = Query(None, regex="^(low|medium|high|critical)$"),
+    status: Optional[str] = Query(
+        None, regex="^(open|acknowledged|resolved|closed|false_positive)$"
+    ),
+    alert_type: Optional[str] = Query(
+        None, regex="^(scan|monitoring|system|security)$"
+    ),
+    pipeline_id: Optional[int] = Query(None),
+    days_back: Optional[int] = Query(None, ge=1, le=365),
+    current_user: User = Depends(get_current_user),
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -195,7 +233,11 @@ async def get_alerts(
 @router.get("/{alert_id}", response_model=AlertResponse)
 async def get_alert(
     alert_id: int,
+<<<<<<< HEAD
     current_user: User = Depends(require_role("admin", "security", "devops")),
+=======
+    current_user: User = Depends(get_current_user),
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -328,6 +370,7 @@ async def create_alert(
             metadata=alert.metadata or {},
         )
 
+<<<<<<< HEAD
 
         # Emit real-time event to dashboard WebSocket
         try:
@@ -349,6 +392,8 @@ async def create_alert(
         except Exception as emit_err:
             logger.warning(f"Failed to emit real-time alert event: {emit_err}")
 
+=======
+>>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         logger.info(f"Created alert {alert.id} for user {current_user.id}")
         return alert_response
 
