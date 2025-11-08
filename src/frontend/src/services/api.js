@@ -415,8 +415,6 @@ export const uploadFile = async (file, endpoint, onProgress = null) => {
   return apiClient.post(endpoint, formData, config);
 };
 
-<<<<<<< HEAD
-
 // Utility to get WebSocket URL for a given endpoint
 export function getWebSocketUrl(endpoint = "") {
   // Remove leading slash if present
@@ -424,7 +422,5 @@ export function getWebSocketUrl(endpoint = "") {
   return `${WS_BASE_URL}/${cleanEndpoint}`;
 }
 
-=======
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 // Default export
 export default api;

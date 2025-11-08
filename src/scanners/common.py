@@ -68,11 +68,7 @@ class ScanResult:
     cvss_score: Optional[float] = None
     remediation: Optional[str] = None
     references: Optional[List[str]] = None
-<<<<<<< HEAD
-    meta_data: Optional[Dict[str, Any]] = None
-=======
     metadata: Optional[Dict[str, Any]] = None
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert scan result to dictionary."""
@@ -92,11 +88,7 @@ class ScanResult:
             "cvss_score": self.cvss_score,
             "remediation": self.remediation,
             "references": self.references or [],
-<<<<<<< HEAD
-            "meta_data": self.meta_data or {},
-=======
             "metadata": self.metadata or {},
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         }
 
 
@@ -574,5 +566,563 @@ class FileTypeDetector:
         return scannable_files
 
 
-# Global orchestrator instance
-orchestrator = ScannerOrchestrator()
+class EnhancedScannerOrchestrator(ScannerOrchestrator):
+    """Enhanced scanner orchestrator with task system integration and advanced features."""
+    
+    def __init__(self):
+        super().__init__()
+        self.scan_cache = {}
+        self.scan_history = []
+        self.performance_metrics = {}
+        
+    async def register_scanner(self, scanner_type: str, scanner: BaseScanner) -> None:
+        """Register scanner with type validation and health checks."""
+        if not scanner.is_available():
+            logger.warning(f"Scanner {scanner.name} is not available, skipping registration")
+            return
+            
+        await super().register_scanner(scanner)
+        
+        # Perform health check
+        try:
+            health_status = await scanner.health_check() if hasattr(scanner, 'health_check') else {"status": "unknown"}
+            logger.info(f"Scanner {scanner.name} health status: {health_status}")
+        except Exception as e:
+            logger.warning(f"Health check failed for {scanner.name}: {e}")
+    
+    async def orchestrate_comprehensive_scan(
+        self, 
+        repository_url: str,
+        branch: str = "main", 
+        scan_types: List[str] = None,
+        user_id: int = None,
+        scan_config: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Orchestrate a comprehensive security scan with task integration.
+        This is the main entry point for scan orchestration.
+        """
+        scan_id = f"scan_{int(datetime.now(timezone.utc).timestamp())}"
+        start_time = datetime.now(timezone.utc)
+        
+        logger.info(f"[{scan_id}] Starting comprehensive scan for {repository_url}#{branch}")
+        
+        if scan_types is None:
+            scan_types = ["dependency", "docker", "secret", "threat", "compliance"]
+        
+        scan_context = {
+            "scan_id": scan_id,
+            "repository_url": repository_url,
+            "branch": branch,
+            "scan_types": scan_types,
+            "user_id": user_id,
+            "started_at": start_time,
+            "config": scan_config or {}
+        }
+        
+        try:
+            # Clone repository to temporary directory
+            temp_dir = await self._prepare_repository(repository_url, branch, scan_id)
+            scan_context["temp_dir"] = temp_dir
+            
+            # Analyze repository structure
+            repo_analysis = await self._analyze_repository(temp_dir)
+            scan_context["repository_analysis"] = repo_analysis
+            
+            # Execute scans based on repository content
+            scan_results = await self._execute_targeted_scans(
+                temp_dir, scan_types, repo_analysis, scan_context
+            )
+            
+            # Process and aggregate results
+            processed_results = await self._process_scan_results(scan_results, scan_context)
+            
+            # Generate comprehensive report
+            final_report = await self._generate_comprehensive_report(
+                processed_results, scan_context
+            )
+            
+            # Store results in database (if enabled)
+            await self._store_scan_results(final_report, scan_context)
+            
+            # Trigger alerts if critical issues found
+            await self._trigger_alerts_if_needed(final_report, scan_context)
+            
+            end_time = datetime.now(timezone.utc)
+            execution_time = (end_time - start_time).total_seconds()
+            
+            logger.info(f"[{scan_id}] Comprehensive scan completed in {execution_time:.2f}s")
+            
+            return {
+                "scan_id": scan_id,
+                "status": "completed",
+                "repository_url": repository_url,
+                "branch": branch,
+                "execution_time": execution_time,
+                "started_at": start_time.isoformat(),
+                "finished_at": end_time.isoformat(),
+                "results": final_report,
+                "summary": {
+                    "total_scanners": len(scan_results),
+                    "total_findings": sum(len(results[1]) for results in scan_results.values()),
+                    "critical_issues": processed_results.get("critical_count", 0),
+                    "high_issues": processed_results.get("high_count", 0),
+                    "risk_score": processed_results.get("overall_risk_score", 0)
+                }
+            }
+            
+        except Exception as e:
+            end_time = datetime.now(timezone.utc)
+            execution_time = (end_time - start_time).total_seconds()
+            
+            logger.error(f"[{scan_id}] Comprehensive scan failed: {str(e)}")
+            
+            return {
+                "scan_id": scan_id,
+                "status": "failed",
+                "repository_url": repository_url,
+                "branch": branch,
+                "execution_time": execution_time,
+                "started_at": start_time.isoformat(),
+                "finished_at": end_time.isoformat(),
+                "error": str(e),
+                "error_type": type(e).__name__
+            }
+            
+        finally:
+            # Clean up temporary directory
+            if 'temp_dir' in locals():
+                await self._cleanup_temp_directory(temp_dir, scan_id)
+    
+    async def _prepare_repository(self, repository_url: str, branch: str, scan_id: str) -> str:
+        """Prepare repository for scanning by cloning to temporary directory."""
+        temp_dir = tempfile.mkdtemp(prefix=f"secureops_scan_{scan_id}_")
+        
+        try:
+            # Clone repository
+            clone_cmd = [
+                "git", "clone", 
+                "--depth", "1",
+                "--branch", branch,
+                repository_url,
+                temp_dir
+            ]
+            
+            process = await asyncio.create_subprocess_exec(
+                *clone_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode != 0:
+                raise RuntimeError(f"Failed to clone repository: {stderr.decode()}")
+                
+            logger.info(f"[{scan_id}] Repository cloned to {temp_dir}")
+            return temp_dir
+            
+        except Exception as e:
+            # Clean up on failure
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+            raise e
+    
+    async def _analyze_repository(self, repo_path: str) -> Dict[str, Any]:
+        """Analyze repository structure to determine optimal scanning strategy."""
+        analysis = {
+            "languages": set(),
+            "package_managers": set(),
+            "has_dockerfile": False,
+            "has_docker_compose": False,
+            "has_kubernetes": False,
+            "ci_cd_configs": [],
+            "security_configs": [],
+            "total_files": 0,
+            "scannable_files": 0
+        }
+        
+        for root, dirs, files in os.walk(repo_path):
+            # Skip hidden directories and common non-source directories
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d not in {
+                '__pycache__', 'node_modules', 'venv', '.venv', 'build', 'dist', 'target'
+            }]
+            
+            for file in files:
+                file_path = os.path.join(root, file)
+                relative_path = os.path.relpath(file_path, repo_path)
+                filename = file.lower()
+                
+                analysis["total_files"] += 1
+                
+                # Detect programming languages
+                language = FileTypeDetector.get_file_language(file_path)
+                if language:
+                    analysis["languages"].add(language)
+                
+                # Detect package managers
+                if filename in ['package.json', 'package-lock.json', 'yarn.lock']:
+                    analysis["package_managers"].add("npm")
+                elif filename in ['requirements.txt', 'pipfile', 'pyproject.toml']:
+                    analysis["package_managers"].add("pip")
+                elif filename in ['pom.xml', 'build.gradle', 'gradle.properties']:
+                    analysis["package_managers"].add("maven/gradle")
+                elif filename in ['composer.json', 'composer.lock']:
+                    analysis["package_managers"].add("composer")
+                elif filename in ['gemfile', 'gemfile.lock']:
+                    analysis["package_managers"].add("bundler")
+                elif filename in ['go.mod', 'go.sum']:
+                    analysis["package_managers"].add("go")
+                elif filename in ['cargo.toml', 'cargo.lock']:
+                    analysis["package_managers"].add("cargo")
+                
+                # Detect containerization
+                if filename in ['dockerfile', 'containerfile']:
+                    analysis["has_dockerfile"] = True
+                elif filename in ['docker-compose.yml', 'docker-compose.yaml']:
+                    analysis["has_docker_compose"] = True
+                
+                # Detect Kubernetes
+                if any(k in filename for k in ['kubernetes', 'k8s']) and filename.endswith(('.yml', '.yaml')):
+                    analysis["has_kubernetes"] = True
+                
+                # Detect CI/CD configurations
+                if '.github/workflows' in relative_path and filename.endswith(('.yml', '.yaml')):
+                    analysis["ci_cd_configs"].append(f"GitHub Actions: {relative_path}")
+                elif filename == '.gitlab-ci.yml':
+                    analysis["ci_cd_configs"].append("GitLab CI")
+                elif filename in ['azure-pipelines.yml', 'azure-pipelines.yaml']:
+                    analysis["ci_cd_configs"].append("Azure Pipelines")
+                elif filename.lower() == 'jenkinsfile':
+                    analysis["ci_cd_configs"].append("Jenkins")
+                
+                # Detect security configurations
+                if filename in ['.securityignore', '.bandit', 'sonar-project.properties']:
+                    analysis["security_configs"].append(filename)
+                
+                # Count scannable files
+                if FileTypeDetector.should_scan_file(file_path):
+                    analysis["scannable_files"] += 1
+        
+        # Convert sets to lists for JSON serialization
+        analysis["languages"] = list(analysis["languages"])
+        analysis["package_managers"] = list(analysis["package_managers"])
+        
+        return analysis
+    
+    async def _execute_targeted_scans(
+        self, 
+        repo_path: str, 
+        requested_scan_types: List[str], 
+        repo_analysis: Dict[str, Any],
+        scan_context: Dict[str, Any]
+    ) -> Dict[str, Tuple[ScanSummary, List[ScanResult]]]:
+        """Execute scans tailored to the repository content."""
+        scan_results = {}
+        scan_id = scan_context["scan_id"]
+        
+        # Map scan type names to ScannerType enums
+        scanner_type_mapping = {
+            "dependency": ScannerType.DEPENDENCY,
+            "docker": ScannerType.CONTAINER,
+            "secret": ScannerType.SECRET,
+            "threat": ScannerType.SAST,
+            "compliance": ScannerType.POLICY
+        }
+        
+        # Execute scans based on repository analysis
+        for scan_type_name in requested_scan_types:
+            scanner_type = scanner_type_mapping.get(scan_type_name)
+            if not scanner_type:
+                logger.warning(f"[{scan_id}] Unknown scan type: {scan_type_name}")
+                continue
+                
+            # Check if scan type is applicable to this repository
+            if not self._is_scan_applicable(scanner_type, repo_analysis):
+                logger.info(f"[{scan_id}] Skipping {scan_type_name} scan - not applicable to repository")
+                continue
+            
+            try:
+                logger.info(f"[{scan_id}] Starting {scan_type_name} scan")
+                
+                # Get scanners for this type
+                scanners = self.get_scanners_by_type(scanner_type)
+                
+                if not scanners:
+                    logger.warning(f"[{scan_id}] No available scanners for {scan_type_name}")
+                    continue
+                
+                # Execute scans with the available scanners
+                for scanner in scanners:
+                    try:
+                        summary, results = await scanner.scan(repo_path)
+                        scan_results[f"{scan_type_name}_{scanner.name}"] = (summary, results)
+                        
+                        logger.info(f"[{scan_id}] {scanner.name} scan completed - {len(results)} findings")
+                        
+                    except Exception as e:
+                        logger.error(f"[{scan_id}] {scanner.name} scan failed: {str(e)}")
+                        
+                        # Create failed summary
+                        failed_summary = ScanSummary(
+                            scanner_type=scanner.scanner_type,
+                            scanner_name=scanner.name,
+                            scanner_version=getattr(scanner, 'version', 'unknown'),
+                            target=repo_path,
+                            started_at=datetime.now(timezone.utc),
+                            finished_at=datetime.now(timezone.utc),
+                            success=False,
+                            error_message=str(e)
+                        )
+                        scan_results[f"{scan_type_name}_{scanner.name}"] = (failed_summary, [])
+                        
+            except Exception as e:
+                logger.error(f"[{scan_id}] {scan_type_name} scan execution failed: {str(e)}")
+        
+        return scan_results
+    
+    def _is_scan_applicable(self, scanner_type: ScannerType, repo_analysis: Dict[str, Any]) -> bool:
+        """Determine if a scan type is applicable based on repository analysis."""
+        if scanner_type == ScannerType.DEPENDENCY:
+            return bool(repo_analysis.get("package_managers"))
+        elif scanner_type == ScannerType.CONTAINER:
+            return repo_analysis.get("has_dockerfile") or repo_analysis.get("has_docker_compose")
+        elif scanner_type == ScannerType.SECRET:
+            return repo_analysis.get("scannable_files", 0) > 0
+        elif scanner_type == ScannerType.SAST:
+            return bool(repo_analysis.get("languages"))
+        elif scanner_type == ScannerType.POLICY:
+            return True  # Policy scans are always applicable
+        
+        return True  # Default to applicable
+    
+    async def _process_scan_results(
+        self, 
+        scan_results: Dict[str, Tuple[ScanSummary, List[ScanResult]]], 
+        scan_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Process and aggregate scan results."""
+        all_results = []
+        scanner_summaries = []
+        
+        for scanner_key, (summary, results) in scan_results.items():
+            all_results.extend(results)
+            scanner_summaries.append(summary)
+        
+        # Deduplicate results
+        deduplicated_results = ResultProcessor.deduplicate_results(all_results)
+        
+        # Calculate aggregated metrics
+        severity_counts = {
+            "critical": 0,
+            "high": 0, 
+            "medium": 0,
+            "low": 0,
+            "info": 0
+        }
+        
+        for result in deduplicated_results:
+            severity_counts[result.severity.value] += 1
+        
+        # Calculate risk score
+        overall_risk_score = ResultProcessor.calculate_risk_score(deduplicated_results)
+        
+        # Group results by various criteria
+        results_by_file = ResultProcessor.group_by_file(deduplicated_results)
+        results_by_severity = ResultProcessor.group_by_severity(deduplicated_results)
+        
+        return {
+            "total_findings": len(deduplicated_results),
+            "critical_count": severity_counts["critical"],
+            "high_count": severity_counts["high"],
+            "medium_count": severity_counts["medium"],
+            "low_count": severity_counts["low"],
+            "info_count": severity_counts["info"],
+            "overall_risk_score": overall_risk_score,
+            "results_by_file": results_by_file,
+            "results_by_severity": results_by_severity,
+            "scanner_summaries": scanner_summaries,
+            "all_results": deduplicated_results
+        }
+    
+    async def _generate_comprehensive_report(
+        self, 
+        processed_results: Dict[str, Any], 
+        scan_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Generate comprehensive security scan report."""
+        return {
+            "scan_metadata": {
+                "scan_id": scan_context["scan_id"],
+                "repository_url": scan_context["repository_url"],
+                "branch": scan_context["branch"],
+                "scan_types": scan_context["scan_types"],
+                "started_at": scan_context["started_at"].isoformat(),
+                "repository_analysis": scan_context["repository_analysis"]
+            },
+            "executive_summary": {
+                "total_findings": processed_results["total_findings"],
+                "critical_issues": processed_results["critical_count"],
+                "high_issues": processed_results["high_count"],
+                "overall_risk_score": processed_results["overall_risk_score"],
+                "risk_level": self._determine_risk_level(processed_results["overall_risk_score"]),
+                "recommendation": self._generate_recommendation(processed_results)
+            },
+            "detailed_findings": {
+                "by_severity": processed_results["results_by_severity"],
+                "by_file": processed_results["results_by_file"],
+                "scanner_summaries": [summary.to_dict() for summary in processed_results["scanner_summaries"]]
+            },
+            "remediation_guidance": self._generate_remediation_guidance(processed_results),
+            "compliance_status": self._assess_compliance_status(processed_results)
+        }
+    
+    def _determine_risk_level(self, risk_score: float) -> str:
+        """Determine risk level based on score."""
+        if risk_score >= 80:
+            return "CRITICAL"
+        elif risk_score >= 60:
+            return "HIGH"
+        elif risk_score >= 40:
+            return "MEDIUM"
+        elif risk_score >= 20:
+            return "LOW"
+        else:
+            return "MINIMAL"
+    
+    def _generate_recommendation(self, processed_results: Dict[str, Any]) -> str:
+        """Generate high-level recommendations based on results."""
+        critical_count = processed_results["critical_count"]
+        high_count = processed_results["high_count"]
+        
+        if critical_count > 0:
+            return "IMMEDIATE ACTION REQUIRED: Critical security issues found that require immediate attention."
+        elif high_count > 0:
+            return "ACTION RECOMMENDED: High severity issues found that should be addressed promptly."
+        elif processed_results["total_findings"] > 0:
+            return "REVIEW RECOMMENDED: Security findings identified that should be reviewed and addressed."
+        else:
+            return "NO ISSUES FOUND: No security issues identified in this scan."
+    
+    def _generate_remediation_guidance(self, processed_results: Dict[str, Any]) -> Dict[str, List[str]]:
+        """Generate remediation guidance for different issue types."""
+        guidance = {
+            "immediate_actions": [],
+            "medium_term_actions": [],
+            "long_term_actions": []
+        }
+        
+        if processed_results["critical_count"] > 0:
+            guidance["immediate_actions"].extend([
+                "Address all critical security vulnerabilities immediately",
+                "Review and update dependency versions",
+                "Implement emergency security patches"
+            ])
+        
+        if processed_results["high_count"] > 0:
+            guidance["medium_term_actions"].extend([
+                "Create remediation plan for high severity issues",
+                "Implement additional security controls",
+                "Enhance code review processes"
+            ])
+        
+        if processed_results["total_findings"] > 0:
+            guidance["long_term_actions"].extend([
+                "Integrate security scanning into CI/CD pipeline",
+                "Implement security training for development team",
+                "Establish regular security review cycles"
+            ])
+        
+        return guidance
+    
+    def _assess_compliance_status(self, processed_results: Dict[str, Any]) -> Dict[str, str]:
+        """Assess compliance status based on scan results."""
+        compliance_status = {}
+        
+        # Basic compliance assessment
+        if processed_results["critical_count"] == 0 and processed_results["high_count"] == 0:
+            compliance_status["overall"] = "COMPLIANT"
+        elif processed_results["critical_count"] == 0:
+            compliance_status["overall"] = "PARTIALLY_COMPLIANT"
+        else:
+            compliance_status["overall"] = "NON_COMPLIANT"
+        
+        return compliance_status
+    
+    async def _store_scan_results(self, report: Dict[str, Any], scan_context: Dict[str, Any]) -> None:
+        """Store scan results in database."""
+        try:
+            # This would integrate with the database layer
+            # For now, we'll just log that we would store the results
+            logger.info(f"[{scan_context['scan_id']}] Storing scan results in database")
+            
+        except Exception as e:
+            logger.error(f"Failed to store scan results: {str(e)}")
+    
+    async def _trigger_alerts_if_needed(self, report: Dict[str, Any], scan_context: Dict[str, Any]) -> None:
+        """Trigger alerts for critical findings."""
+        try:
+            executive_summary = report.get("executive_summary", {})
+            critical_issues = executive_summary.get("critical_issues", 0)
+            high_issues = executive_summary.get("high_issues", 0)
+            
+            if critical_issues > 0 or high_issues > 5:  # Alert threshold
+                # This would integrate with the alert system
+                logger.warning(f"[{scan_context['scan_id']}] Triggering security alerts for {critical_issues} critical and {high_issues} high severity issues")
+                
+        except Exception as e:
+            logger.error(f"Failed to trigger alerts: {str(e)}")
+    
+    async def _cleanup_temp_directory(self, temp_dir: str, scan_id: str) -> None:
+        """Clean up temporary directory."""
+        try:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+                logger.info(f"[{scan_id}] Cleaned up temporary directory: {temp_dir}")
+        except Exception as e:
+            logger.warning(f"[{scan_id}] Failed to cleanup temp directory {temp_dir}: {str(e)}")
+    
+    async def get_health_status(self) -> Dict[str, Any]:
+        """Get health status of all registered scanners."""
+        health_status = {
+            "scanner_count": len(self.scanners),
+            "available_scanners": 0,
+            "unavailable_scanners": 0,
+            "scanner_details": {}
+        }
+        
+        for name, scanner in self.scanners.items():
+            try:
+                is_available = scanner.is_available()
+                scanner_health = {
+                    "available": is_available,
+                    "version": getattr(scanner, 'version', 'unknown'),
+                    "type": scanner.scanner_type.value
+                }
+                
+                if hasattr(scanner, 'health_check'):
+                    detailed_health = await scanner.health_check()
+                    scanner_health.update(detailed_health)
+                
+                health_status["scanner_details"][name] = scanner_health
+                
+                if is_available:
+                    health_status["available_scanners"] += 1
+                else:
+                    health_status["unavailable_scanners"] += 1
+                    
+            except Exception as e:
+                health_status["scanner_details"][name] = {
+                    "available": False,
+                    "error": str(e)
+                }
+                health_status["unavailable_scanners"] += 1
+        
+        return health_status
+
+
+# Global enhanced orchestrator instance
+enhanced_orchestrator = EnhancedScannerOrchestrator()
+
+# Legacy compatibility
+orchestrator = enhanced_orchestrator

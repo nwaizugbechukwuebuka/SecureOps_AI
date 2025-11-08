@@ -18,21 +18,14 @@ from urllib.parse import urlparse
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
-<<<<<<< HEAD
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertType
 from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
 from src.api.models.vulnerability import SeverityLevel, Vulnerability, VulnerabilityStatus
-from src.api.utils.config import settings
+from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
-=======
-from ..database import AsyncSessionLocal
-from ..models.alert import Alert, AlertSeverity, AlertType
-from ..models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
-from ..models.vulnerability import SeverityLevel, Vulnerability, VulnerabilityStatus
-from ..utils.config import settings
-from ..utils.logger import get_logger
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
+
+settings = get_settings()
 
 logger = get_logger(__name__)
 
@@ -335,11 +328,7 @@ class GitLabCIIntegration:
             logger.info(f"Triggering MR security scan for !{mr_iid}")
 
             # Schedule security analysis
-<<<<<<< HEAD
             from src.tasks.scan_tasks import schedule_merge_request_scan
-=======
-            from ..tasks.scan_tasks import schedule_merge_request_scan
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
             await schedule_merge_request_scan.apply_async(
                 args=[
@@ -362,11 +351,7 @@ class GitLabCIIntegration:
     ) -> None:
         """Trigger security analysis for completed pipeline."""
         try:
-<<<<<<< HEAD
             from src.tasks.scan_tasks import schedule_repository_scan
-=======
-            from ..tasks.scan_tasks import schedule_repository_scan
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
             # Schedule security scans
             await schedule_repository_scan.apply_async(
@@ -746,10 +731,7 @@ class GitLabCIIntegration:
             # - Container scanning reports
             # - Dependency scanning reports
             # - DAST reports
-<<<<<<< HEAD
             raise NotImplementedError("Artifact parsing for common formats is not yet implemented.")
-=======
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
         except Exception as e:
             logger.error(f"Failed to process security artifacts: {e}")

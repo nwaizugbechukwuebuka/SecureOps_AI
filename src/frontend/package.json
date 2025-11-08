@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "secureops-frontend",
   "version": "1.0.0",
   "description": "SecureOps DevSecOps CI/CD Pipeline Security Monitor - Frontend Dashboard",
@@ -16,159 +16,28 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
-<<<<<<< HEAD
-    "@headlessui/react": "^1.7.17",
-    "@heroicons/react": "^2.0.18",
-    "@hookform/resolvers": "^3.3.2",
-    "@mui/icons-material": "^5.15.15",
-    "@mui/material": "^5.15.15",
-    "@tailwindcss/forms": "^0.5.7",
-    "@types/js-cookie": "^3.0.6",
-    "@types/react-datepicker": "^4.19.4",
-    "@types/react-syntax-highlighter": "^15.5.11",
-    "@types/react-table": "^7.7.18",
-    "@types/react-window": "^1.8.8",
-    "autoprefixer": "^10.4.16",
-    "axios": "^1.6.2",
-    "chart.js": "^4.5.1",
-    "clsx": "^2.0.0",
-    "date-fns": "^2.30.0",
-    "framer-motion": "^10.16.16",
-    "js-cookie": "^3.0.5",
-    "lucide-react": "^0.292.0",
-    "postcss": "^8.4.32",
-    "react": "^18.2.0",
-    "react-chartjs-2": "^5.3.1",
-    "react-datepicker": "^4.24.0",
-    "react-dom": "^18.2.0",
-    "react-dropzone": "^14.2.3",
-    "react-hook-form": "^7.48.2",
-    "react-hot-toast": "^2.4.1",
-    "react-query": "^3.39.3",
-    "react-router-dom": "^6.8.1",
-    "react-select": "^5.8.0",
-    "react-syntax-highlighter": "^16.1.0",
-    "react-table": "^7.8.0",
-    "react-virtualized-auto-sizer": "^1.0.20",
-    "react-window": "^1.8.8",
-    "recharts": "^2.8.0",
-    "socket.io-client": "^4.7.4",
-    "tailwindcss": "^3.3.6",
-    "zod": "^3.22.4"
-  },
-  "devDependencies": {
-    "@testing-library/jest-dom": "^6.1.5",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^14.5.1",
-=======
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.1",
-    "react-query": "^3.39.3",
     "axios": "^1.6.2",
     "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.0.18",
-    "@tailwindcss/forms": "^0.5.7",
     "tailwindcss": "^3.3.6",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
     "clsx": "^2.0.0",
-    "date-fns": "^2.30.0",
-    "recharts": "^2.8.0",
-    "react-hot-toast": "^2.4.1",
-    "react-hook-form": "^7.48.2",
-    "@hookform/resolvers": "^3.3.2",
-    "zod": "^3.22.4",
-    "framer-motion": "^10.16.16",
-    "lucide-react": "^0.292.0",
-    "react-table": "^7.8.0",
-    "@types/react-table": "^7.7.18",
-    "react-virtualized-auto-sizer": "^1.0.20",
-    "react-window": "^1.8.8",
-    "@types/react-window": "^1.8.8",
-    "react-select": "^5.8.0",
-    "react-datepicker": "^4.24.0",
-    "@types/react-datepicker": "^4.19.4",
-    "socket.io-client": "^4.7.4",
-    "js-cookie": "^3.0.5",
-    "@types/js-cookie": "^3.0.6",
-    "react-dropzone": "^14.2.3",
-    "react-syntax-highlighter": "^15.5.0",
-    "@types/react-syntax-highlighter": "^15.5.11"
+    "lucide-react": "^0.292.0"
   },
   "devDependencies": {
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
-    "@typescript-eslint/eslint-plugin": "^6.14.0",
-    "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",
-<<<<<<< HEAD
-    "@vitest/ui": "^4.0.5",
-=======
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
     "eslint": "^8.55.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
-<<<<<<< HEAD
-    "jsdom": "^23.0.1",
-    "msw": "^2.0.11",
     "prettier": "^3.1.1",
     "typescript": "^5.2.2",
-    "vite": "^7.1.12",
-    "vitest": "^4.0.5"
-=======
-    "prettier": "^3.1.1",
-    "typescript": "^5.2.2",
-    "vite": "^5.0.8",
-    "vitest": "^1.0.4",
-    "@vitest/ui": "^1.0.4",
-    "jsdom": "^23.0.1",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/jest-dom": "^6.1.5",
-    "@testing-library/user-event": "^14.5.1",
-    "msw": "^2.0.11"
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "keywords": [
-    "devsecops",
-    "security",
-    "ci/cd",
-    "monitoring",
-    "vulnerability-scanner",
-    "compliance",
-    "react",
-    "typescript",
-    "dashboard"
-  ],
-  "author": {
-    "name": "Chukwuebuka Tobiloba Nwaizugbe",
-    "email": "chukwuebuka@secureops.dev"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/chukwuebuka-nwaizugbe/secureops.git"
-  },
-  "bugs": {
-    "url": "https://github.com/chukwuebuka-nwaizugbe/secureops/issues"
-  },
-  "homepage": "https://secureops.dev"
+    "vite": "^5.0.8"
+  }
 }

@@ -1,28 +1,16 @@
-"""
-User management models for authentication and authorization.
-"""
+﻿"""User model for authentication and authorization."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
-from passlib.context import CryptContext
-from pydantic import BaseModel, EmailStr, Field, validator
-from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, String, Integer, Text
 from sqlalchemy.orm import relationship
+from passlib.context import CryptContext
 
-from .base import Base, BaseResponse, IDMixin, TimestampMixin
+from .base import Base, IDMixin, TimestampMixin
 
-<<<<<<< HEAD
-# Password hashing context - use pbkdf2 for development to avoid bcrypt issues
-pwd_context = CryptContext(
-    schemes=["pbkdf2_sha256", "bcrypt"], 
-    deprecated="auto",
-    pbkdf2_sha256__rounds=29000,
-)
-=======
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
 
 
 class User(Base, IDMixin, TimestampMixin):
@@ -30,209 +18,164 @@ class User(Base, IDMixin, TimestampMixin):
 
     __tablename__ = "users"
 
-    username = Column(String(50), unique=True, index=True, nullable=False)
-    email = Column(String(255), unique=True, index=True, nullable=False)
+    # Basic Information
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
     full_name = Column(String(255), nullable=True)
     hashed_password = Column(String(255), nullable=False)
+    
+    # Account Status
     is_active = Column(Boolean, default=True, nullable=False)
-    is_superuser = Column(Boolean, default=False, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
-
-    # Profile information
-    company = Column(String(255), nullable=True)
-    department = Column(String(100), nullable=True)
-    role = Column(String(100), nullable=True)
+    is_superuser = Column(Boolean, default=False, nullable=False)
+    
+    # Role and Permissions
+    role = Column(String(50), default="user", nullable=False)  # user, admin, security_admin, etc.
+    
+    # Account Security
+    password_changed_at = Column(DateTime, nullable=True)
+    last_login = Column(DateTime, nullable=True)
+    failed_login_count = Column(Integer, default=0, nullable=False)
+    locked_until = Column(DateTime, nullable=True)
+    
+    # Profile Information
+    avatar_url = Column(String(500), nullable=True)
+    bio = Column(Text, nullable=True)
     timezone = Column(String(50), default="UTC", nullable=False)
-
-    # Security settings
-    last_login = Column(DateTime(timezone=True), nullable=True)
-    failed_login_attempts = Column(Integer, default=0, nullable=False)
-    locked_until = Column(DateTime(timezone=True), nullable=True)
-    password_changed_at = Column(DateTime(timezone=True), nullable=True)
-
-    # Notification preferences
-    notification_preferences = Column(JSON, nullable=True)
-
-    # API access
-    api_key = Column(String(255), unique=True, nullable=True, index=True)
-    api_key_created_at = Column(DateTime(timezone=True), nullable=True)
-
-    def verify_password(self, password: str) -> bool:
-        """Verify a password against the stored hash."""
-        return pwd_context.verify(password, self.hashed_password)
-
+    
+    # Notification Preferences
+    email_notifications = Column(Boolean, default=True, nullable=False)
+    slack_user_id = Column(String(100), nullable=True)
+    
+    # API Access
+    api_key = Column(String(255), nullable=True, index=True)
+    api_key_created_at = Column(DateTime, nullable=True)
+    
     def set_password(self, password: str) -> None:
-        """Hash and set a new password."""
-<<<<<<< HEAD
-        # Truncate password to 72 bytes for bcrypt compatibility
-        password_bytes = password.encode('utf-8')[:72]
-        password_truncated = password_bytes.decode('utf-8', errors='ignore')
-        self.hashed_password = pwd_context.hash(password_truncated)
-=======
+        """Hash and set password."""
         self.hashed_password = pwd_context.hash(password)
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
         self.password_changed_at = datetime.utcnow()
 
+    def verify_password(self, password: str) -> bool:
+        """Verify password against hash."""
+        return pwd_context.verify(password, self.hashed_password)
+
     def is_locked(self) -> bool:
-        """Check if account is currently locked."""
+        """Check if account is locked due to failed logins."""
         if self.locked_until is None:
             return False
         return datetime.utcnow() < self.locked_until
 
     def increment_failed_login(self) -> None:
-        """Increment failed login attempts and lock if threshold exceeded."""
-        self.failed_login_attempts += 1
-        if self.failed_login_attempts >= 5:  # Lock after 5 failed attempts
-            self.locked_until = datetime.utcnow().replace(
-                hour=datetime.utcnow().hour + 1
-            )
+        """Increment failed login count."""
+        self.failed_login_count += 1
+        # Lock account after 5 failed attempts for 30 minutes
+        if self.failed_login_count >= 5:
+            from datetime import timedelta
+            self.locked_until = datetime.utcnow() + timedelta(minutes=30)
 
     def reset_failed_login(self) -> None:
-        """Reset failed login attempts after successful login."""
-        self.failed_login_attempts = 0
+        """Reset failed login count and unlock account."""
+        self.failed_login_count = 0
         self.locked_until = None
         self.last_login = datetime.utcnow()
 
+    def has_role(self, role: str) -> bool:
+        """Check if user has specified role."""
+        return self.role == role or self.is_superuser
 
-# Pydantic models for API serialization
-class UserBase(BaseModel):
-    """Base user model with common fields."""
+    def can_access_resource(self, resource: str, action: str = "read") -> bool:
+        """Check if user can access a resource with specific action."""
+        if self.is_superuser:
+            return True
+            
+        # Basic role-based access control
+        role_permissions = {
+            "admin": ["read", "write", "delete", "manage"],
+            "security_admin": ["read", "write", "delete"],
+            "analyst": ["read", "write"],
+            "viewer": ["read"],
+            "user": ["read"]
+        }
+        
+        allowed_actions = role_permissions.get(self.role, ["read"])
+        return action in allowed_actions
 
-    username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
-    full_name: Optional[str] = Field(None, max_length=255)
-    company: Optional[str] = Field(None, max_length=255)
-    department: Optional[str] = Field(None, max_length=100)
-    role: Optional[str] = Field(None, max_length=100)
-    timezone: str = Field(default="UTC", max_length=50)
+    def to_dict(self, include_sensitive: bool = False) -> dict:
+        """Convert user to dictionary."""
+        data = {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "full_name": self.full_name,
+            "is_active": self.is_active,
+            "is_verified": self.is_verified,
+            "is_superuser": self.is_superuser,
+            "role": self.role,
+            "last_login": self.last_login.isoformat() if self.last_login else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "avatar_url": self.avatar_url,
+            "bio": self.bio,
+            "timezone": self.timezone,
+            "email_notifications": self.email_notifications
+        }
+        
+        if include_sensitive:
+            data.update({
+                "failed_login_count": self.failed_login_count,
+                "locked_until": self.locked_until.isoformat() if self.locked_until else None,
+                "password_changed_at": self.password_changed_at.isoformat() if self.password_changed_at else None,
+                "api_key": self.api_key,
+                "api_key_created_at": self.api_key_created_at.isoformat() if self.api_key_created_at else None
+            })
+        
+        return data
 
-    @validator("username")
-    def validate_username(cls, v):
-        if not v.isalnum() and "_" not in v and "-" not in v:
-            raise ValueError(
-                "Username must contain only alphanumeric characters, underscores, or hyphens"
-            )
-        return v.lower()
-
-
-class UserCreate(UserBase):
-    """Model for user creation."""
-
-    password: str = Field(..., min_length=8, max_length=100)
-    confirm_password: str = Field(..., min_length=8, max_length=100)
-
-    @validator("confirm_password")
-    def passwords_match(cls, v, values):
-        if "password" in values and v != values["password"]:
-            raise ValueError("Passwords do not match")
-        return v
-
-    @validator("password")
-    def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-        if not any(c.isupper() for c in v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not any(c.islower() for c in v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not any(c.isdigit() for c in v):
-            raise ValueError("Password must contain at least one digit")
-        if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in v):
-            raise ValueError("Password must contain at least one special character")
-        return v
-
-
-class UserUpdate(BaseModel):
-    """Model for user updates."""
-
-    full_name: Optional[str] = Field(None, max_length=255)
-    email: Optional[EmailStr] = None
-    company: Optional[str] = Field(None, max_length=255)
-    department: Optional[str] = Field(None, max_length=100)
-    role: Optional[str] = Field(None, max_length=100)
-    timezone: Optional[str] = Field(None, max_length=50)
-    notification_preferences: Optional[dict] = None
+    def __repr__(self) -> str:
+        return f"<User(id={self.id}, username='{self.username}', email='{self.email}')>"
 
 
-class UserResponse(UserBase, BaseResponse):
-    """Model for user API responses."""
-
-    is_active: bool
-    is_verified: bool
-    last_login: Optional[datetime] = None
-    notification_preferences: Optional[dict] = None
-
-    class Config:
-        from_attributes = True
-
-
-class UserLogin(BaseModel):
-    """Model for user login."""
-
-    username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=1, max_length=100)
-    remember_me: bool = Field(default=False)
-
-
-class UserPasswordChange(BaseModel):
-    """Model for password changes."""
-
-    current_password: str = Field(..., min_length=1, max_length=100)
-    new_password: str = Field(..., min_length=8, max_length=100)
-    confirm_password: str = Field(..., min_length=8, max_length=100)
-
-    @validator("confirm_password")
-    def passwords_match(cls, v, values):
-        if "new_password" in values and v != values["new_password"]:
-            raise ValueError("New passwords do not match")
-        return v
-
-    @validator("new_password")
-    def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-        if not any(c.isupper() for c in v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not any(c.islower() for c in v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not any(c.isdigit() for c in v):
-            raise ValueError("Password must contain at least one digit")
-        if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in v):
-            raise ValueError("Password must contain at least one special character")
-        return v
+class UserSession(Base, IDMixin, TimestampMixin):
+    """User session model for tracking active sessions."""
+    
+    __tablename__ = "user_sessions"
+    
+    user_id = Column(Integer, nullable=False, index=True)
+    session_token = Column(String(255), unique=True, nullable=False, index=True)
+    ip_address = Column(String(45), nullable=True)  # IPv6 compatible
+    user_agent = Column(Text, nullable=True)
+    expires_at = Column(DateTime, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    last_activity = Column(DateTime, nullable=True)
+    
+    def is_expired(self) -> bool:
+        """Check if session is expired."""
+        return datetime.utcnow() > self.expires_at
+    
+    def is_valid(self) -> bool:
+        """Check if session is valid and active."""
+        return self.is_active and not self.is_expired()
+    
+    def refresh(self, extend_minutes: int = 30) -> None:
+        """Refresh session expiration."""
+        from datetime import timedelta
+        self.expires_at = datetime.utcnow() + timedelta(minutes=extend_minutes)
+        self.last_activity = datetime.utcnow()
 
 
-class Token(BaseModel):
-    """JWT token response model."""
-
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int  # seconds
-
-
-class TokenData(BaseModel):
-    """Token payload data model."""
-
-    user_id: Optional[int] = None
-    username: Optional[str] = None
-    scopes: List[str] = []
-
-
-class APIKeyCreate(BaseModel):
-    """Model for API key creation."""
-
-    name: str = Field(..., min_length=1, max_length=100)
-    expires_in_days: Optional[int] = Field(default=90, ge=1, le=365)
-
-
-class APIKeyResponse(BaseModel):
-    """Model for API key response."""
-
-    key: str
-    name: str
-    created_at: datetime
-    expires_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
+class UserLoginHistory(Base, IDMixin, TimestampMixin):
+    """Track user login history for security monitoring."""
+    
+    __tablename__ = "user_login_history"
+    
+    user_id = Column(Integer, nullable=False, index=True)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    login_successful = Column(Boolean, nullable=False)
+    failure_reason = Column(String(255), nullable=True)
+    location = Column(String(255), nullable=True)  # Geolocation if available
+    
+    def __repr__(self) -> str:
+        status = "SUCCESS" if self.login_successful else "FAILED"
+        return f"<UserLoginHistory(user_id={self.user_id}, status={status}, ip={self.ip_address})>"
