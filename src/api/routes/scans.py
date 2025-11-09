@@ -27,9 +27,13 @@ from ..models.user import User
 from ..utils.logger import get_logger
 from .auth import get_current_user
 
-# Import scanner components
-from ...scanners.common import enhanced_orchestrator, ScannerType, SeverityLevel
-from ...tasks.scan_tasks import orchestrate_security_scan, get_scan_status
+# Import scanner components  
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from scanners.common import enhanced_orchestrator, ScannerType, SeverityLevel
+from tasks.scan_tasks import orchestrate_security_scan, get_scan_status
 
 router = APIRouter()
 logger = get_logger(__name__)
