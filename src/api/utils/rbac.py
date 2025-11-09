@@ -2,8 +2,10 @@
 RBAC utilities for SecureOps API.
 """
 
-from fastapi import Depends, HTTPException, status
 from typing import List, Optional
+
+from fastapi import Depends, HTTPException, status
+
 from ..models.user import User
 
 

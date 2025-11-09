@@ -18,38 +18,30 @@ Date: 2024
 """
 
 import asyncio
+import concurrent.futures
 import json
 import os
 import shutil
 import tempfile
 import time
 import traceback
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
-import concurrent.futures
-import uuid
 
+from celery import chain, chord, group
 from celery.utils.log import get_task_logger
-from celery import chain, group, chord
 
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertStatus, AlertType
-from src.api.models.pipeline import (
-    Pipeline,
-    PipelineRun,
-    ScanJob,
-    ScanJobStatus,
-    PipelineStatus,
-)
-from src.api.models.vulnerability import (
-    Vulnerability,
-    SeverityLevel,
-    VulnerabilityStatus,
-)
-from src.scanners.common import orchestrator, ScannerType
+from src.api.models.pipeline import (Pipeline, PipelineRun, PipelineStatus,
+                                     ScanJob, ScanJobStatus)
+from src.api.models.vulnerability import (SeverityLevel, Vulnerability,
+                                          VulnerabilityStatus)
 from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
+from src.scanners.common import ScannerType, orchestrator
 from src.tasks.celery_app import app as celery_app
 
 settings = get_settings()

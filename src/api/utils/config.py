@@ -6,9 +6,12 @@ from functools import lru_cache
 from typing import List, Optional
 
 try:
-    from pydantic_settings import BaseSettings
+    from pydantic_settings import BaseSettings, SettingsConfigDict
 except ImportError:
     from pydantic import BaseSettings
+    # Fallback for older pydantic versions
+    class SettingsConfigDict(dict):
+        pass
 
 from pydantic import Field, field_validator
 
@@ -16,99 +19,86 @@ from pydantic import Field, field_validator
 class Settings(BaseSettings):
     """Application settings and configuration."""
 
+    try:
+        model_config = SettingsConfigDict(
+            env_file=".env",
+            case_sensitive=False
+        )
+    except:
+        # Fallback for older pydantic versions
+        class Config:
+            env_file = ".env"
+            case_sensitive = False
+
     # Application
-    app_name: str = Field(default="SecureOps", env="APP_NAME")
-    app_version: str = Field(default="2.0.0", env="APP_VERSION")
-    environment: str = Field(default="development", env="ENVIRONMENT")
-    debug: bool = Field(default=False, env="DEBUG")
+    app_name: str = Field(default="SecureOps")
+    app_version: str = Field(default="2.0.0")
+    environment: str = Field(default="development")
+    debug: bool = Field(default=False)
 
     # Server
-    host: str = Field(default="0.0.0.0", env="HOST")
-    port: int = Field(default=8000, env="PORT")
-    api_host: str = Field(default="0.0.0.0", env="API_HOST")
-    api_port: str = Field(default="8000", env="API_PORT")
+    host: str = Field(default="0.0.0.0")
+    port: int = Field(default=8000)
+    api_host: str = Field(default="0.0.0.0")
+    api_port: str = Field(default="8000")
 
     # Security
-    secret_key: str = Field(default="dev-secret-key", env="SECRET_KEY")
-    access_token_expire_minutes: int = Field(
-        default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES"
-    )
-    algorithm: str = Field(default="HS256", env="ALGORITHM")
-    secure_ssl_redirect: str = Field(default="false", env="SECURE_SSL_REDIRECT")
-    secure_hsts_seconds: str = Field(default="31536000", env="SECURE_HSTS_SECONDS")
-    secure_content_type_nosniff: str = Field(
-        default="true", env="SECURE_CONTENT_TYPE_NOSNIFF"
-    )
-    secure_browser_xss_filter: str = Field(
-        default="true", env="SECURE_BROWSER_XSS_FILTER"
-    )
+    secret_key: str = Field(default="dev-secret-key")
+    access_token_expire_minutes: int = Field(default=30)
+    algorithm: str = Field(default="HS256")
+    secure_ssl_redirect: str = Field(default="false")
+    secure_hsts_seconds: str = Field(default="31536000")
+    secure_content_type_nosniff: str = Field(default="true")
+    secure_browser_xss_filter: str = Field(default="true")
 
     # Database
-    database_url: str = Field(default="sqlite:///./secureops.db", env="DATABASE_URL")
-    async_database_url: str = Field(
-        default="sqlite+aiosqlite:///./secureops.db", env="ASYNC_DATABASE_URL"
-    )
+    database_url: str = Field(default="sqlite:///./secureops.db")
+    async_database_url: str = Field(default="sqlite+aiosqlite:///./secureops.db")
 
     # Redis
-    redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+    redis_url: str = Field(default="redis://localhost:6379/0")
 
     # Celery
-    celery_broker_url: str = Field(
-        default="redis://redis:6379/1", env="CELERY_BROKER_URL"
-    )
-    celery_result_backend: str = Field(
-        default="redis://redis:6379/2", env="CELERY_RESULT_BACKEND"
-    )
+    celery_broker_url: str = Field(default="redis://redis:6379/1")
+    celery_result_backend: str = Field(default="redis://redis:6379/2")
 
     # CORS
-    allowed_origins: List[str] = Field(default=["*"], env="ALLOWED_ORIGINS")
-    allowed_hosts: List[str] = Field(default=["*"], env="ALLOWED_HOSTS")
+    allowed_origins: List[str] = Field(default=["*"])
+    allowed_hosts: List[str] = Field(default=["*"])
 
     # Logging
-    log_level: str = Field(default="INFO", env="LOG_LEVEL")
+    log_level: str = Field(default="INFO")
 
     # External Log Forwarding
-    log_forward_elk_enabled: bool = Field(default=False, env="LOG_FORWARD_ELK_ENABLED")
-    log_forward_elk_host: Optional[str] = Field(
-        default=None, env="LOG_FORWARD_ELK_HOST"
-    )
-    log_forward_elk_port: Optional[int] = Field(
-        default=9200, env="LOG_FORWARD_ELK_PORT"
-    )
-    log_forward_splunk_enabled: bool = Field(
-        default=False, env="LOG_FORWARD_SPLUNK_ENABLED"
-    )
+    log_forward_elk_enabled: bool = Field(default=False)
+    log_forward_elk_host: Optional[str] = Field(default=None)
+    log_forward_elk_port: Optional[int] = Field(default=9200)
+    log_forward_splunk_enabled: bool = Field(default=False)
     log_forward_splunk_host: Optional[str] = Field(
         default=None, env="LOG_FORWARD_SPLUNK_HOST"
     )
     log_forward_splunk_port: Optional[int] = Field(
         default=8088, env="LOG_FORWARD_SPLUNK_PORT"
     )
-    log_forward_splunk_token: Optional[str] = Field(
-        default=None, env="LOG_FORWARD_SPLUNK_TOKEN"
-    )
+    log_forward_splunk_token: Optional[str] = Field(default=None)
 
     # GitHub Integration
-    github_token: Optional[str] = Field(default=None, env="GITHUB_TOKEN")
-    github_webhook_secret: Optional[str] = Field(
-        default=None, env="GITHUB_WEBHOOK_SECRET"
-    )
+    github_token: Optional[str] = Field(default=None)
+    github_webhook_secret: Optional[str] = Field(default=None)
 
     # GitLab Integration
-    gitlab_token: Optional[str] = Field(default=None, env="GITLAB_TOKEN")
-    gitlab_url: str = Field(default="https://gitlab.com", env="GITLAB_URL")
+    gitlab_token: Optional[str] = Field(default=None)
+    gitlab_url: str = Field(default="https://gitlab.com")
 
     # Jenkins Integration
-    jenkins_url: Optional[str] = Field(default=None, env="JENKINS_URL")
-    jenkins_username: Optional[str] = Field(default=None, env="JENKINS_USERNAME")
-    jenkins_token: Optional[str] = Field(default=None, env="JENKINS_TOKEN")
+    jenkins_url: Optional[str] = Field(default=None)
+    jenkins_username: Optional[str] = Field(default=None)
+    jenkins_token: Optional[str] = Field(default=None)
 
     # Security Scanning
-    enable_dependency_scanning: bool = Field(
-        default=True, env="ENABLE_DEPENDENCY_SCANNING"
-    )
-    enable_secret_scanning: bool = Field(default=True, env="ENABLE_SECRET_SCANNING")
-    enable_docker_scanning: bool = Field(default=True, env="ENABLE_DOCKER_SCANNING")
+    enable_dependency_scanning: bool = Field(default=True)
+    enable_secret_scanning: bool = Field(default=True)
+    enable_docker_scanning: bool = Field(default=True)
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
@@ -131,13 +121,9 @@ class Settings(BaseSettings):
         return self.environment.lower() == "development"
 
     @property
-    def SECRET_KEY(self) -> str:
+    def jwt_secret_key(self) -> str:
         """Alias for secret_key to maintain backward compatibility."""
         return self.secret_key
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
 
 
 @lru_cache()

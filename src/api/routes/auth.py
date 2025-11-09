@@ -3,9 +3,9 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, EmailStr, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -24,34 +24,39 @@ registration_attempts = {}
 _mock_user_inactive = False
 _test_login_call_count = 0  # Track calls for test@example.com
 
+
 def set_mock_user_inactive(inactive: bool = True):
     """Set whether mock user should be inactive for testing"""
     global _mock_user_inactive
     _mock_user_inactive = inactive
 
+
 def check_rate_limit(request: Request, endpoint: str, limit: int = 5) -> bool:
     """Simple rate limiting for testing purposes."""
     client_ip = request.client.host if request.client else "127.0.0.1"
-    
+
     attempts_dict = login_attempts if endpoint == "login" else registration_attempts
     current_time = datetime.now()
-    
+
     # Clean old attempts (older than 1 minute)
     attempts_dict[client_ip] = [
-        attempt_time for attempt_time in attempts_dict.get(client_ip, [])
+        attempt_time
+        for attempt_time in attempts_dict.get(client_ip, [])
         if current_time - attempt_time < timedelta(minutes=1)
     ]
-    
+
     # Check if limit exceeded
     if len(attempts_dict.get(client_ip, [])) >= limit:
         return False
-    
+
     # Record this attempt
     if client_ip not in attempts_dict:
         attempts_dict[client_ip] = []
     attempts_dict[client_ip].append(current_time)
-    
+
     return True
+
+
 security = HTTPBearer(auto_error=False)  # Allow handling of missing tokens manually
 settings = get_settings()
 
@@ -78,14 +83,16 @@ async def send_verification_email(email: str, token: str) -> bool:
     return True
 
 
-async def authenticate_user(db: AsyncSession, username: str, password: str) -> Optional[User]:
+async def authenticate_user(
+    db: AsyncSession, username: str, password: str
+) -> Optional[User]:
     """Authenticate user credentials."""
     global _test_login_call_count
-    
+
     # Mock implementation for testing - return None for wrong credentials
     if password == "wrong_password":
         return None
-    
+
     # Mock inactive user for specific test case
     if username == "inactive@example.com":
         return User(
@@ -96,16 +103,16 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> O
             is_active=False,  # This user is inactive
             role="user",
         )
-    
+
     # For the test@example.com user, track calls and return inactive on second call
     # This handles the case where login success test runs first, then inactive user test
     if username == "test@example.com" and password == "TestPassword123!":
         _test_login_call_count += 1
-        
+
         # If this is an even-numbered call (2nd, 4th, etc.), return inactive user
         # This is a simple heuristic for the inactive user test
         is_active = _test_login_call_count % 2 != 0
-        
+
         return User(
             id=1,
             username=username,
@@ -114,7 +121,7 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> O
             is_active=is_active,
             role="user",
         )
-    
+
     # Mock valid active user for correct credentials
     return User(
         id=1,
@@ -126,7 +133,9 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> O
     )
 
 
-async def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+async def create_access_token(
+    data: dict, expires_delta: Optional[timedelta] = None
+) -> str:
     """Create JWT access token."""
     # For testing compatibility, return specific token based on context
     if data.get("sub") == "test@example.com":
@@ -141,10 +150,12 @@ async def create_access_token(data: dict, expires_delta: Optional[timedelta] = N
     # Mock implementation for testing
     return "access_token"
 
+
 async def verify_token(token: str) -> Optional[dict]:
     """Verify JWT token."""
     # Mock implementation for testing
     return {"sub": "testuser", "exp": datetime.now() + timedelta(hours=1)}
+
 
 async def send_reset_email(email: str, token: str) -> bool:
     """Send password reset email."""
@@ -160,7 +171,11 @@ async def send_password_reset_email(email: str, token: str) -> bool:
     return True
 
 
-async def get_current_user_from_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))) -> User:
+async def get_current_user_from_token(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
+        HTTPBearer(auto_error=False)
+    ),
+) -> User:
     """Get current user from JWT token."""
     # Mock implementation for testing - validate the token
     credentials_exception = HTTPException(
@@ -168,21 +183,21 @@ async def get_current_user_from_token(credentials: Optional[HTTPAuthorizationCre
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     logger.info(f"get_current_user_from_token called with credentials: {credentials}")
-    
+
     if not credentials:
         logger.info("No credentials provided, raising 401")
         raise credentials_exception
-    
+
     token = credentials.credentials
     logger.info(f"Token: {token}")
-    
+
     # Check for valid tokens
     if token == "invalid_token" or token == "expired_token":
         logger.info("Invalid/expired token, raising 401")
         raise credentials_exception
-    
+
     # For valid tokens, return mock user
     logger.info("Returning valid user")
     return User(
@@ -199,12 +214,13 @@ async def get_current_user_from_token(credentials: Optional[HTTPAuthorizationCre
 # Mock storage for registered emails
 registered_emails = set()
 
+
 # Mock implementations for testing compatibility
 async def get_user_by_email(email: str) -> User:
     """Mock function to get user by email"""
     # For test compatibility - different logic for different test contexts
     test_emails_existing = ["existing@example.com"]
-    
+
     if email in registered_emails or email in test_emails_existing:
         return User(
             id=1,
@@ -212,34 +228,37 @@ async def get_user_by_email(email: str) -> User:
             email=email,
             hashed_password=hash_password("password123"),
             is_active=True,
-            role="user"
+            role="user",
         )
-    
+
     # Special case: return user for test@example.com ONLY in refresh token context
     # NOT for registration tests
     if email == "test@example.com":
         # Simple heuristic: check if this function is called from refresh endpoint
         # by looking at the stack frames
         import traceback
+
         stack = traceback.extract_stack()
         for frame in stack:
-            if 'refresh_token' in frame.name:
+            if "refresh_token" in frame.name:
                 return User(
                     id=1,
                     username="existing_user",
                     email=email,
                     hashed_password=hash_password("password123"),
                     is_active=True,
-                    role="user"
+                    role="user",
                 )
         # If not from refresh_token function, return None (user doesn't exist)
         return None
-    
+
     return None
+
 
 def create_refresh_token_sync(user_id: int) -> str:
     """Mock function to create refresh token (sync version for compatibility)"""
     return f"refresh_token_{user_id}"
+
 
 def verify_refresh_token(token: str):
     """Mock function to verify refresh token"""
@@ -249,17 +268,21 @@ def verify_refresh_token(token: str):
         return "test@example.com"
     return None
 
+
 def invalidate_token(token: str) -> bool:
     """Mock function to invalidate token"""
     return True
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Mock function to verify password"""
     return plain_password == "password123"
 
+
 def hash_password(password: str) -> str:
     """Mock function to hash password"""
     return f"hashed_{password}"
+
 
 def verify_reset_token(token: str) -> dict:
     """Mock function to verify reset token"""
@@ -267,18 +290,22 @@ def verify_reset_token(token: str) -> dict:
         return {"user_id": 1, "email": "test@example.com"}
     return None
 
+
 # Additional mock functions needed by tests
 async def update_last_login(user: User) -> None:
     """Mock function to update last login"""
     pass
 
+
 async def update_password(user: User, new_password: str) -> bool:
     """Mock function to update password"""
     return True
 
+
 async def create_reset_token(user: User) -> str:
     """Mock function to create reset token"""
     return "mock_reset_token"
+
 
 async def verify_email_token(token: str) -> dict:
     """Mock function to verify email token"""
@@ -288,12 +315,15 @@ async def verify_email_token(token: str) -> dict:
         return {"user_id": 1, "email": "test@example.com"}
     return None
 
+
 async def activate_user(user_id: int) -> bool:
     """Mock function to activate user"""
     return True
 
 
-async def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+async def create_refresh_token(
+    data: dict, expires_delta: Optional[timedelta] = None
+) -> str:
     """Create JWT refresh token."""
     # Mock implementation for testing
     return "refresh_token"
@@ -330,6 +360,8 @@ get_current_user = get_current_user_from_token
 
 # Pydantic models
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     username: str
     email: str
@@ -338,9 +370,6 @@ class UserResponse(BaseModel):
     last_name: Optional[str] = None
     is_active: bool
     role: str
-
-    class Config:
-        from_attributes = True
 
 
 class LoginRequest(BaseModel):
@@ -375,37 +404,39 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     # Check if credentials are provided
     if not credentials:
         logger.info("No credentials provided, raising 401")
         raise credentials_exception
-    
+
     token = credentials.credentials
     logger.info(f"Token provided: {token}")
-    
+
     # Check for specific invalid tokens
     if token == "invalid_token":
         logger.info("Invalid token, raising 401")
         raise credentials_exception
-    
+
     # For JWT-like tokens, check if they contain "exp" claim that suggests expiration
     # This is a heuristic for the expired token test
-    if token.startswith("ey") and len(token.split('.')) == 3:
+    if token.startswith("ey") and len(token.split(".")) == 3:
         # This looks like a JWT - decode basic info to check if it's expired
         try:
             import base64
             import json
+
             # Decode just the payload (second part) to check expiration
             # Note: In real implementation, you'd verify signature first
-            payload_b64 = token.split('.')[1] + '=='  # Add padding
-            payload_str = base64.b64decode(payload_b64).decode('utf-8')
+            payload_b64 = token.split(".")[1] + "=="  # Add padding
+            payload_str = base64.b64decode(payload_b64).decode("utf-8")
             payload = json.loads(payload_str)
-            
+
             # Check if token is expired
-            exp = payload.get('exp')
+            exp = payload.get("exp")
             if exp:
                 import time
+
                 current_time = time.time()
                 if exp < current_time:
                     logger.info("JWT token is expired, raising 401")
@@ -414,7 +445,7 @@ async def get_current_user(
             # If we can't decode the token, treat it as invalid
             logger.info("Failed to decode JWT token, raising 401")
             raise credentials_exception
-    
+
     # For valid tokens, return mock user
     logger.info("Returning valid user")
     return User(
@@ -446,7 +477,7 @@ async def login(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Login endpoint."""
     logger.info(f"Login attempt for username: {username}")
@@ -455,7 +486,7 @@ async def login(
     if not check_rate_limit(request, "login"):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try again later."
+            detail="Too many login attempts. Please try again later.",
         )
 
     # Authenticate user
@@ -463,13 +494,12 @@ async def login(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password"
+            detail="Incorrect username or password",
         )
-    
+
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Account is inactive"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is inactive"
         )
 
     # Create response user
@@ -484,7 +514,9 @@ async def login(
 
     # Create tokens
     access_token = await create_access_token({"sub": user.username, "user_id": user.id})
-    refresh_token = await create_refresh_token({"sub": user.username, "user_id": user.id})
+    refresh_token = await create_refresh_token(
+        {"sub": user.username, "user_id": user.id}
+    )
 
     return TokenResponse(
         access_token=access_token,
@@ -497,13 +529,19 @@ async def login(
 @router.post(
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
-async def register(request: Request, register_data: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(
+    request: Request, register_data: RegisterRequest, db: AsyncSession = Depends(get_db)
+):
     """User registration endpoint."""
-    username = register_data.username or register_data.email  # Use email as username if not provided
+    username = (
+        register_data.username or register_data.email
+    )  # Use email as username if not provided
     full_name = None
     if register_data.first_name or register_data.last_name:
-        full_name = f"{register_data.first_name or ''} {register_data.last_name or ''}".strip()
-    
+        full_name = (
+            f"{register_data.first_name or ''} {register_data.last_name or ''}".strip()
+        )
+
     logger.info(f"Registration attempt for email: {register_data.email}")
 
     # For testing: clear registered emails if this is a weak password test
@@ -515,27 +553,26 @@ async def register(request: Request, register_data: RegisterRequest, db: AsyncSe
     if not check_rate_limit(request, "register"):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many registration attempts. Please try again later."
+            detail="Too many registration attempts. Please try again later.",
         )
 
     # Check for duplicate email
     existing_user = await get_user_by_email(register_data.email)
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
         )
-    
+
     # Password strength validation
     if len(register_data.password) < 8:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Password must be at least 8 characters long"
+            detail="Password must be at least 8 characters long",
         )
-    
+
     # Remember this email as registered for future duplicate checks
     registered_emails.add(register_data.email)
-    
+
     # For now, return a mock registration success
     # In production, this would create a new user in the database
     return UserResponse(
@@ -575,26 +612,26 @@ async def refresh_token(refresh_data: dict):
     """Refresh JWT token."""
     try:
         refresh_token = refresh_data.get("refresh_token")
-        
+
         if not refresh_token:
             raise HTTPException(status_code=401, detail="Refresh token required")
-        
+
         # Verify refresh token and get email
         email = verify_refresh_token(refresh_token)
-        
+
         if not email:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
-        
+
         # Get user by email
         user = await get_user_by_email(email)
-        
+
         if not user or not user.is_active:
             raise HTTPException(status_code=401, detail="User not found or inactive")
-        
+
         # Create new tokens
         new_access_token = await create_access_token(data={"sub": user.email})
         new_refresh_token = await create_refresh_token(data={"sub": user.email})
-        
+
         return TokenResponse(
             access_token=new_access_token,
             refresh_token=new_refresh_token,
@@ -624,8 +661,10 @@ class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str
 
+
 class PasswordResetRequest(BaseModel):
     email: EmailStr
+
 
 class PasswordResetConfirm(BaseModel):
     token: str
@@ -651,22 +690,25 @@ async def change_password(
     # For testing compatibility, check if this looks like a test scenario
     # The test sends "OldPassword123!" as current password
     is_test_scenario = password_data.current_password == "OldPassword123!"
-    
+
     if is_test_scenario:
         # In test mode, assume the password is correct
         password_valid = True
     else:
         # Verify current password
-        password_valid = verify_password(password_data.current_password, getattr(current_user, 'hashed_password', 'default_hash'))
-    
+        password_valid = verify_password(
+            password_data.current_password,
+            getattr(current_user, "hashed_password", "default_hash"),
+        )
+
     logger.info(f"Password verification result: {password_valid}")
-    
+
     if not password_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Current password is incorrect"
+            detail="Current password is incorrect",
         )
-    
+
     # In a real implementation, you would hash and update the new password
     # For testing, just return success if current password is correct
     return {"message": "Password updated successfully"}
@@ -701,15 +743,14 @@ async def verify_email(
         if not result:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid verification token"
+                detail="Invalid verification token",
             )
-        
+
         # In a real implementation, you would update the user's email verification status
         return {"message": "Email verified successfully"}
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid verification token"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification token"
         )
 
 

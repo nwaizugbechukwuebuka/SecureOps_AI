@@ -1,7 +1,7 @@
 ﻿"""Reports and analytics routes for SecureOps API."""
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field

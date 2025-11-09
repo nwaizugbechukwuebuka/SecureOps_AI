@@ -22,12 +22,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertType
-from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
-from src.api.models.vulnerability import (
-    SeverityLevel,
-    Vulnerability,
-    VulnerabilityStatus,
-)
+from src.api.models.pipeline import (Pipeline, PipelineRun, PipelineStatus,
+                                     PlatformType)
+from src.api.models.vulnerability import (SeverityLevel, Vulnerability,
+                                          VulnerabilityStatus)
 from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
 

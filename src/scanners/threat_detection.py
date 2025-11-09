@@ -3,8 +3,9 @@ AI-powered threat detection logic for SecureOps.
 Upgraded for enterprise: supports ML model loading, anomaly detection, contextual risk scoring, and real-time alerting integration.
 """
 
-from typing import Any, Dict, List, Optional
 import logging
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 try:

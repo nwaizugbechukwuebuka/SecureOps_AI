@@ -2,9 +2,11 @@
 Async AWS SNS client for SecureOps.
 """
 
-import aiobotocore.session
-from config.settings import settings
 from typing import Any, Dict, Optional
+
+import aiobotocore.session
+
+from config.settings import settings
 
 
 class SNSClient:

@@ -2,13 +2,14 @@
 Rate limiting and security middleware for SecureOps API
 """
 
-import time
 import json
+import time
 from typing import Dict, Optional
-from fastapi import Request, HTTPException, status
+
+import redis.asyncio as aioredis
+from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-import redis.asyncio as aioredis
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):

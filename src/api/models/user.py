@@ -3,9 +3,9 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, Column, DateTime, String, Integer, Text
-from sqlalchemy.orm import relationship
 from passlib.context import CryptContext
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from .base import Base, IDMixin, TimestampMixin
 

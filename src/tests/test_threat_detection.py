@@ -2,8 +2,10 @@
 Pytest suite for ThreatDetectionEngine.
 """
 
-import pytest
 import asyncio
+
+import pytest
+
 from scanners.threat_detection import ThreatDetectionEngine
 
 

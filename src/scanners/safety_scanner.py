@@ -1,6 +1,7 @@
-import subprocess
 import json
+import subprocess
 from typing import List, Optional
+
 from .common import ScanResult, Vulnerability
 
 

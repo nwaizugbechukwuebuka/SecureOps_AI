@@ -3,16 +3,8 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    String,
-    Integer,
-    Text,
-    JSON,
-    ForeignKey,
-)
+from sqlalchemy import (JSON, Boolean, Column, DateTime, ForeignKey, Integer,
+                        String, Text)
 from sqlalchemy.orm import relationship
 
 from .base import Base, IDMixin, TimestampMixin

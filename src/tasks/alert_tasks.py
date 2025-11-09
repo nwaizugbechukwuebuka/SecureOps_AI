@@ -9,13 +9,13 @@ Date: 2024
 """
 
 import asyncio
-import time
-import traceback
+import hashlib
 import json
-import uuid
 import logging
 import smtplib
-import hashlib
+import time
+import traceback
+import uuid
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 import requests
 from celery import signature
 from celery.utils.log import get_task_logger
-from sqlalchemy import and_, select, func
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.database import AsyncSessionLocal
@@ -44,7 +44,9 @@ logger = get_task_logger(__name__)
 ALERT_PROCESSING_BATCH_SIZE = getattr(settings, "ALERT_PROCESSING_BATCH_SIZE", 50)
 ALERT_ESCALATION_DELAY_MINUTES = getattr(settings, "ALERT_ESCALATION_DELAY_MINUTES", 30)
 NOTIFICATION_RETRY_ATTEMPTS = getattr(settings, "NOTIFICATION_RETRY_ATTEMPTS", 3)
-NOTIFICATION_RETRY_DELAY_SECONDS = getattr(settings, "NOTIFICATION_RETRY_DELAY_SECONDS", 60)
+NOTIFICATION_RETRY_DELAY_SECONDS = getattr(
+    settings, "NOTIFICATION_RETRY_DELAY_SECONDS", 60
+)
 WEBHOOK_TIMEOUT_SECONDS = getattr(settings, "WEBHOOK_TIMEOUT_SECONDS", 30)
 MAX_RETRY_ATTEMPTS = getattr(settings, "MAX_RETRY_ATTEMPTS", 3)
 RETRY_DELAY_SECONDS = getattr(settings, "RETRY_DELAY_SECONDS", 60)
@@ -59,21 +61,21 @@ RETRY_DELAY_SECONDS = getattr(settings, "RETRY_DELAY_SECONDS", 60)
 def process_new_alerts(self) -> Dict[str, Any]:
     """
     Process newly created alerts for routing, enrichment, and initial delivery.
-    
+
     Returns:
         Dict containing processing results and statistics
     """
     processing_id = str(uuid.uuid4())
     start_time = time.time()
-    
+
     logger.info(
         f"[{processing_id}] Starting alert processing",
-        extra={"processing_id": processing_id, "task": "process_new_alerts"}
+        extra={"processing_id": processing_id, "task": "process_new_alerts"},
     )
-    
+
     try:
         return asyncio.run(_process_new_alerts_async(processing_id))
-        
+
     except Exception as e:
         logger.error(
             f"[{processing_id}] Alert processing failed: {str(e)}",
@@ -81,20 +83,20 @@ def process_new_alerts(self) -> Dict[str, Any]:
                 "processing_id": processing_id,
                 "error": str(e),
                 "traceback": traceback.format_exc(),
-                "duration": time.time() - start_time
-            }
+                "duration": time.time() - start_time,
+            },
         )
-        
+
         # Retry on failure
         if self.request.retries < MAX_RETRY_ATTEMPTS:
             logger.info(f"[{processing_id}] Retrying alert processing")
             raise self.retry(countdown=RETRY_DELAY_SECONDS)
-        
+
         return {
             "success": False,
             "processing_id": processing_id,
             "error": str(e),
-            "duration": time.time() - start_time
+            "duration": time.time() - start_time,
         }
 
 
@@ -108,21 +110,24 @@ async def _process_new_alerts_async(processing_id: str) -> Dict[str, Any]:
                 "alerts_processed": 0,
                 "notifications_scheduled": 0,
                 "escalations_triggered": 0,
-                "success": True
+                "success": True,
             }
-            
+
             # Get unprocessed alerts
-            unprocessed_query = select(Alert).where(
-                Alert.status == "open"
-            ).order_by(Alert.created_at).limit(ALERT_PROCESSING_BATCH_SIZE)
-            
+            unprocessed_query = (
+                select(Alert)
+                .where(Alert.status == "open")
+                .order_by(Alert.created_at)
+                .limit(ALERT_PROCESSING_BATCH_SIZE)
+            )
+
             unprocessed_alerts = (await db.execute(unprocessed_query)).scalars().all()
             results["alerts_processed"] = len(unprocessed_alerts)
-            
+
             if not unprocessed_alerts:
                 logger.debug(f"[{processing_id}] No new alerts to process")
                 return results
-            
+
             # Process each alert
             for alert in unprocessed_alerts:
                 try:
@@ -130,58 +135,68 @@ async def _process_new_alerts_async(processing_id: str) -> Dict[str, Any]:
                     await _schedule_alert_notifications(alert, processing_id)
                     results["notifications_scheduled"] += 1
                 except Exception as e:
-                    logger.error(f"[{processing_id}] Failed to process alert {alert.id}: {str(e)}")
+                    logger.error(
+                        f"[{processing_id}] Failed to process alert {alert.id}: {str(e)}"
+                    )
                     continue
-            
+
             # Check for escalation candidates
             escalation_alerts = await _identify_escalation_candidates(db)
             for alert in escalation_alerts:
                 await _trigger_alert_escalation(alert, processing_id)
                 results["escalations_triggered"] += 1
-            
+
             await db.commit()
-            
+
             logger.info(f"[{processing_id}] Alert processing completed successfully")
             return results
-            
+
         except Exception as e:
             await db.rollback()
             raise
 
 
-async def _enrich_alert_context(db: AsyncSession, alert: Alert, processing_id: str) -> None:
+async def _enrich_alert_context(
+    db: AsyncSession, alert: Alert, processing_id: str
+) -> None:
     """Enrich alert with additional context data."""
     try:
         if not alert.metadata:
             alert.metadata = {}
-        
+
         # Add pipeline context if available
         if alert.pipeline_id:
             pipeline_query = select(Pipeline).where(Pipeline.id == alert.pipeline_id)
             pipeline = (await db.execute(pipeline_query)).scalar_one_or_none()
-            
+
             if pipeline:
-                alert.metadata.update({
-                    "pipeline_name": pipeline.name,
-                    "pipeline_repository": pipeline.repository_url,
-                    "pipeline_branch": pipeline.branch
-                })
-        
+                alert.metadata.update(
+                    {
+                        "pipeline_name": pipeline.name,
+                        "pipeline_repository": pipeline.repository_url,
+                        "pipeline_branch": pipeline.branch,
+                    }
+                )
+
         # Add vulnerability context if available
-        if hasattr(alert, 'vulnerability_id') and alert.vulnerability_id:
-            vuln_query = select(Vulnerability).where(Vulnerability.id == alert.vulnerability_id)
+        if hasattr(alert, "vulnerability_id") and alert.vulnerability_id:
+            vuln_query = select(Vulnerability).where(
+                Vulnerability.id == alert.vulnerability_id
+            )
             vulnerability = (await db.execute(vuln_query)).scalar_one_or_none()
-            
+
             if vulnerability:
-                alert.metadata.update({
-                    "vulnerability_cve": vulnerability.cve_id,
-                    "vulnerability_package": vulnerability.package_name,
-                    "vulnerability_version": vulnerability.package_version
-                })
-        
+                alert.metadata.update(
+                    {
+                        "vulnerability_cve": vulnerability.cve_id,
+                        "vulnerability_package": vulnerability.package_name,
+                        "vulnerability_version": vulnerability.package_version,
+                    }
+                )
+
         alert.metadata["enriched_at"] = datetime.now(timezone.utc).isoformat()
         logger.debug(f"[{processing_id}] Enriched alert {alert.id}")
-        
+
     except Exception as e:
         logger.warning(f"[{processing_id}] Failed to enrich alert {alert.id}: {str(e)}")
 
@@ -190,20 +205,19 @@ async def _schedule_alert_notifications(alert: Alert, processing_id: str) -> Non
     """Schedule notification delivery for an alert."""
     try:
         channels = _get_notification_channels_for_severity(alert.severity)
-        
+
         for i, channel in enumerate(channels):
             countdown = 5 + (i * 2)
-            
+
             task_signature = deliver_alert_notification.signature(
-                args=[alert.id, channel.value, processing_id],
-                queue="alerts"
+                args=[alert.id, channel.value, processing_id], queue="alerts"
             )
             task_signature.apply_async(countdown=countdown)
-            
+
             logger.debug(
                 f"[{processing_id}] Scheduled {channel.value} notification for alert {alert.id}"
             )
-            
+
     except Exception as e:
         logger.error(f"[{processing_id}] Failed to schedule notifications: {str(e)}")
 
@@ -211,9 +225,13 @@ async def _schedule_alert_notifications(alert: Alert, processing_id: str) -> Non
 def _get_notification_channels_for_severity(severity: str) -> List[NotificationChannel]:
     """Get notification channels based on alert severity."""
     severity_lower = severity.lower()
-    
+
     if severity_lower == "critical":
-        return [NotificationChannel.EMAIL, NotificationChannel.SLACK, NotificationChannel.SMS]
+        return [
+            NotificationChannel.EMAIL,
+            NotificationChannel.SLACK,
+            NotificationChannel.SMS,
+        ]
     elif severity_lower == "high":
         return [NotificationChannel.EMAIL, NotificationChannel.SLACK]
     elif severity_lower == "medium":
@@ -224,30 +242,35 @@ def _get_notification_channels_for_severity(severity: str) -> List[NotificationC
 
 async def _identify_escalation_candidates(db: AsyncSession) -> List[Alert]:
     """Identify alerts that should be escalated."""
-    escalation_threshold = datetime.now(timezone.utc) - timedelta(minutes=ALERT_ESCALATION_DELAY_MINUTES)
-    
+    escalation_threshold = datetime.now(timezone.utc) - timedelta(
+        minutes=ALERT_ESCALATION_DELAY_MINUTES
+    )
+
     escalation_query = select(Alert).where(
         and_(
             Alert.status == "open",
             Alert.acknowledged_at.is_(None),
             Alert.created_at <= escalation_threshold,
-            Alert.severity.in_(["critical", "high"])
+            Alert.severity.in_(["critical", "high"]),
         )
     )
-    
+
     return (await db.execute(escalation_query)).scalars().all()
 
 
 async def _trigger_alert_escalation(alert: Alert, processing_id: str) -> None:
     """Trigger escalation for unacknowledged alerts."""
     logger.warning(f"[{processing_id}] Escalating alert {alert.id}")
-    
-    escalation_channels = [NotificationChannel.EMAIL, NotificationChannel.SLACK, NotificationChannel.SMS]
-    
+
+    escalation_channels = [
+        NotificationChannel.EMAIL,
+        NotificationChannel.SLACK,
+        NotificationChannel.SMS,
+    ]
+
     for channel in escalation_channels:
         task_signature = deliver_escalation_notification.signature(
-            args=[alert.id, channel.value, processing_id],
-            queue="alerts"
+            args=[alert.id, channel.value, processing_id], queue="alerts"
         )
         task_signature.apply_async(countdown=10)
 
@@ -263,31 +286,35 @@ def deliver_alert_notification(
 ) -> Dict[str, Any]:
     """
     Deliver alert notification through specified channel.
-    
+
     Args:
         alert_id: ID of the alert to send notification for
         channel: Notification channel (email, slack, webhook, etc.)
         processing_id: Processing batch ID for tracking
-    
+
     Returns:
         Dict containing delivery results
     """
     delivery_id = str(uuid.uuid4())
     start_time = time.time()
-    
+
     logger.info(
         f"[{delivery_id}] Delivering {channel} notification for alert {alert_id}",
         extra={
             "delivery_id": delivery_id,
             "alert_id": alert_id,
             "channel": channel,
-            "processing_id": processing_id
-        }
+            "processing_id": processing_id,
+        },
     )
-    
+
     try:
-        return asyncio.run(_deliver_alert_notification_async(alert_id, channel, processing_id, delivery_id))
-        
+        return asyncio.run(
+            _deliver_alert_notification_async(
+                alert_id, channel, processing_id, delivery_id
+            )
+        )
+
     except Exception as e:
         logger.error(
             f"[{delivery_id}] Notification delivery failed: {str(e)}",
@@ -296,30 +323,27 @@ def deliver_alert_notification(
                 "alert_id": alert_id,
                 "channel": channel,
                 "error": str(e),
-                "duration": time.time() - start_time
-            }
+                "duration": time.time() - start_time,
+            },
         )
-        
+
         # Retry on failure
         if self.request.retries < NOTIFICATION_RETRY_ATTEMPTS:
             logger.info(f"[{delivery_id}] Retrying notification delivery")
             raise self.retry(countdown=NOTIFICATION_RETRY_DELAY_SECONDS)
-        
+
         return {
             "success": False,
             "delivery_id": delivery_id,
             "alert_id": alert_id,
             "channel": channel,
             "error": str(e),
-            "duration": time.time() - start_time
+            "duration": time.time() - start_time,
         }
 
 
 async def _deliver_alert_notification_async(
-    alert_id: int,
-    channel: str,
-    processing_id: str,
-    delivery_id: str
+    alert_id: int, channel: str, processing_id: str, delivery_id: str
 ) -> Dict[str, Any]:
     """Async implementation of alert notification delivery."""
     async with AsyncSessionLocal() as db:
@@ -327,65 +351,66 @@ async def _deliver_alert_notification_async(
             # Get alert details
             alert_query = select(Alert).where(Alert.id == alert_id)
             alert = (await db.execute(alert_query)).scalar_one_or_none()
-            
+
             if not alert:
                 raise ValueError(f"Alert {alert_id} not found")
-            
+
             result = {
                 "delivery_id": delivery_id,
                 "alert_id": alert_id,
                 "channel": channel,
                 "success": False,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-            
+
             # Deliver notification based on channel
             if channel == NotificationChannel.EMAIL.value:
                 delivery_result = await _deliver_email_notification(alert, delivery_id)
             elif channel == NotificationChannel.SLACK.value:
                 delivery_result = await _deliver_slack_notification(alert, delivery_id)
             elif channel == NotificationChannel.WEBHOOK.value:
-                delivery_result = await _deliver_webhook_notification(alert, delivery_id)
+                delivery_result = await _deliver_webhook_notification(
+                    alert, delivery_id
+                )
             elif channel == NotificationChannel.SMS.value:
                 delivery_result = await _deliver_sms_notification(alert, delivery_id)
             else:
                 raise ValueError(f"Unsupported notification channel: {channel}")
-            
+
             result.update(delivery_result)
-            
+
             # Update alert delivery tracking
             await _update_alert_delivery_tracking(db, alert, result, processing_id)
             await db.commit()
-            
+
             logger.info(f"[{delivery_id}] Notification delivery completed")
             return result
-            
+
         except Exception as e:
             await db.rollback()
             raise
 
 
 async def _update_alert_delivery_tracking(
-    db: AsyncSession,
-    alert: Alert,
-    delivery_result: Dict[str, Any],
-    processing_id: str
+    db: AsyncSession, alert: Alert, delivery_result: Dict[str, Any], processing_id: str
 ) -> None:
     """Update alert metadata with delivery tracking information."""
     if not alert.metadata:
         alert.metadata = {}
-    
+
     if "delivery_history" not in alert.metadata:
         alert.metadata["delivery_history"] = []
-    
-    alert.metadata["delivery_history"].append({
-        "delivery_id": delivery_result["delivery_id"],
-        "channel": delivery_result["channel"],
-        "timestamp": delivery_result["timestamp"],
-        "success": delivery_result["success"],
-        "processing_id": processing_id
-    })
-    
+
+    alert.metadata["delivery_history"].append(
+        {
+            "delivery_id": delivery_result["delivery_id"],
+            "channel": delivery_result["channel"],
+            "timestamp": delivery_result["timestamp"],
+            "success": delivery_result["success"],
+            "processing_id": processing_id,
+        }
+    )
+
     # Keep only the last 10 delivery records
     alert.metadata["delivery_history"] = alert.metadata["delivery_history"][-10:]
 
@@ -399,136 +424,118 @@ async def _deliver_email_notification(alert: Alert, delivery_id: str) -> Dict[st
         smtp_username = getattr(settings, "smtp_username", "")
         smtp_password = getattr(settings, "smtp_password", "")
         from_email = getattr(settings, "from_email", "alerts@secureops.ai")
-        
+
         # Get recipient emails
         recipients = _get_email_recipients_for_severity(alert.severity)
-        
+
         if not recipients:
-            return {
-                "success": False,
-                "error": "No email recipients configured"
-            }
-        
+            return {"success": False, "error": "No email recipients configured"}
+
         # Create email content
         subject = f"[SecureOps Alert] {alert.severity.upper()}: {alert.title}"
         html_content = _generate_email_html(alert)
         text_content = _generate_email_text(alert)
-        
+
         # Send email
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = from_email
-        msg['To'] = ", ".join(recipients)
-        
-        msg.attach(MIMEText(text_content, 'plain'))
-        msg.attach(MIMEText(html_content, 'html'))
-        
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = from_email
+        msg["To"] = ", ".join(recipients)
+
+        msg.attach(MIMEText(text_content, "plain"))
+        msg.attach(MIMEText(html_content, "html"))
+
         # Send via SMTP
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             if smtp_username and smtp_password:
                 server.starttls()
                 server.login(smtp_username, smtp_password)
-            
+
             server.send_message(msg)
-        
-        logger.info(f"[{delivery_id}] Email sent successfully to {len(recipients)} recipients")
-        
-        return {
-            "success": True,
-            "recipients": recipients,
-            "subject": subject
-        }
-        
+
+        logger.info(
+            f"[{delivery_id}] Email sent successfully to {len(recipients)} recipients"
+        )
+
+        return {"success": True, "recipients": recipients, "subject": subject}
+
     except Exception as e:
         logger.error(f"[{delivery_id}] Email delivery failed: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 async def _deliver_slack_notification(alert: Alert, delivery_id: str) -> Dict[str, Any]:
     """Deliver Slack notification for alert."""
     try:
         slack_webhook_url = getattr(settings, "slack_webhook_url", None)
-        
+
         if not slack_webhook_url:
-            return {
-                "success": False,
-                "error": "Slack webhook URL not configured"
-            }
-        
+            return {"success": False, "error": "Slack webhook URL not configured"}
+
         # Create Slack payload
         color_map = {
             "critical": "danger",
             "high": "warning",
             "medium": "good",
             "low": "#36a64f",
-            "info": "#439FE0"
+            "info": "#439FE0",
         }
-        
+
         payload = {
-            "attachments": [{
-                "color": color_map.get(alert.severity.lower(), "#cccccc"),
-                "title": f"SecureOps Alert: {alert.title}",
-                "text": alert.description[:300],
-                "fields": [
-                    {
-                        "title": "Severity",
-                        "value": alert.severity.upper(),
-                        "short": True
-                    },
-                    {
-                        "title": "Type",
-                        "value": alert.alert_type.replace("_", " ").title(),
-                        "short": True
-                    },
-                    {
-                        "title": "Created",
-                        "value": alert.created_at.strftime("%Y-%m-%d %H:%M:%S UTC"),
-                        "short": True
-                    }
-                ],
-                "footer": "SecureOps AI",
-                "ts": int(alert.created_at.timestamp())
-            }]
+            "attachments": [
+                {
+                    "color": color_map.get(alert.severity.lower(), "#cccccc"),
+                    "title": f"SecureOps Alert: {alert.title}",
+                    "text": alert.description[:300],
+                    "fields": [
+                        {
+                            "title": "Severity",
+                            "value": alert.severity.upper(),
+                            "short": True,
+                        },
+                        {
+                            "title": "Type",
+                            "value": alert.alert_type.replace("_", " ").title(),
+                            "short": True,
+                        },
+                        {
+                            "title": "Created",
+                            "value": alert.created_at.strftime("%Y-%m-%d %H:%M:%S UTC"),
+                            "short": True,
+                        },
+                    ],
+                    "footer": "SecureOps AI",
+                    "ts": int(alert.created_at.timestamp()),
+                }
+            ]
         }
-        
+
         # Send to Slack
         response = requests.post(
-            slack_webhook_url,
-            json=payload,
-            timeout=WEBHOOK_TIMEOUT_SECONDS
+            slack_webhook_url, json=payload, timeout=WEBHOOK_TIMEOUT_SECONDS
         )
-        
+
         response.raise_for_status()
-        
+
         logger.info(f"[{delivery_id}] Slack notification sent successfully")
-        
-        return {
-            "success": True,
-            "response_status": response.status_code
-        }
-        
+
+        return {"success": True, "response_status": response.status_code}
+
     except Exception as e:
         logger.error(f"[{delivery_id}] Slack notification failed: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
-async def _deliver_webhook_notification(alert: Alert, delivery_id: str) -> Dict[str, Any]:
+async def _deliver_webhook_notification(
+    alert: Alert, delivery_id: str
+) -> Dict[str, Any]:
     """Deliver webhook notification for alert."""
     try:
         webhook_url = getattr(settings, "alert_webhook_url", None)
-        
+
         if not webhook_url:
-            return {
-                "success": False,
-                "error": "Webhook URL not configured"
-            }
-        
+            return {"success": False, "error": "Webhook URL not configured"}
+
         # Create webhook payload
         payload = {
             "alert_id": alert.id,
@@ -540,70 +547,58 @@ async def _deliver_webhook_notification(alert: Alert, delivery_id: str) -> Dict[
             "source": alert.source,
             "created_at": alert.created_at.isoformat(),
             "metadata": alert.metadata,
-            "delivery_id": delivery_id
+            "delivery_id": delivery_id,
         }
-        
+
         # Send webhook
         response = requests.post(
             webhook_url,
             json=payload,
             timeout=WEBHOOK_TIMEOUT_SECONDS,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
-        
+
         response.raise_for_status()
-        
+
         logger.info(f"[{delivery_id}] Webhook notification sent successfully")
-        
-        return {
-            "success": True,
-            "response_status": response.status_code
-        }
-        
+
+        return {"success": True, "response_status": response.status_code}
+
     except Exception as e:
         logger.error(f"[{delivery_id}] Webhook notification failed: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 async def _deliver_sms_notification(alert: Alert, delivery_id: str) -> Dict[str, Any]:
     """Deliver SMS notification for alert (placeholder implementation)."""
     try:
         sms_recipients = _get_sms_recipients_for_severity(alert.severity)
-        
+
         if not sms_recipients:
-            return {
-                "success": False,
-                "error": "No SMS recipients configured"
-            }
-        
+            return {"success": False, "error": "No SMS recipients configured"}
+
         message = f"SecureOps Alert: {alert.severity.upper()} - {alert.title[:100]}"
-        
+
         logger.info(
             f"[{delivery_id}] SMS would be sent to {len(sms_recipients)} recipients: {message}"
         )
-        
+
         return {
             "success": True,
             "recipients": sms_recipients,
             "message": message,
-            "note": "SMS delivery is not implemented - logged only"
+            "note": "SMS delivery is not implemented - logged only",
         }
-        
+
     except Exception as e:
         logger.error(f"[{delivery_id}] SMS notification failed: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 def _get_email_recipients_for_severity(severity: str) -> List[str]:
     """Get email recipients based on alert severity."""
     severity_lower = severity.lower()
-    
+
     if severity_lower == "critical":
         return getattr(settings, "critical_alert_emails", [])
     elif severity_lower == "high":
@@ -615,7 +610,7 @@ def _get_email_recipients_for_severity(severity: str) -> List[str]:
 def _get_sms_recipients_for_severity(severity: str) -> List[str]:
     """Get SMS recipients based on alert severity."""
     severity_lower = severity.lower()
-    
+
     if severity_lower in ["critical", "high"]:
         return getattr(settings, "alert_sms_recipients", [])
     return []
@@ -628,11 +623,11 @@ def _generate_email_html(alert: Alert) -> str:
         "high": "#fd7e14",
         "medium": "#ffc107",
         "low": "#17a2b8",
-        "info": "#28a745"
+        "info": "#28a745",
     }
-    
+
     color = severity_colors.get(alert.severity.lower(), "#6c757d")
-    
+
     return f"""
     <!DOCTYPE html>
     <html>
@@ -698,16 +693,18 @@ def deliver_escalation_notification(
 ) -> Dict[str, Any]:
     """Deliver escalation notification for unacknowledged critical alerts."""
     escalation_id = str(uuid.uuid4())
-    
+
     logger.warning(
         f"[{escalation_id}] Delivering escalation {channel} notification for alert {alert_id}"
     )
-    
+
     try:
-        return asyncio.run(_deliver_escalation_notification_async(
-            alert_id, channel, processing_id, escalation_id
-        ))
-        
+        return asyncio.run(
+            _deliver_escalation_notification_async(
+                alert_id, channel, processing_id, escalation_id
+            )
+        )
+
     except Exception as e:
         logger.error(f"[{escalation_id}] Escalation notification failed: {str(e)}")
         return {
@@ -715,15 +712,12 @@ def deliver_escalation_notification(
             "escalation_id": escalation_id,
             "alert_id": alert_id,
             "channel": channel,
-            "error": str(e)
+            "error": str(e),
         }
 
 
 async def _deliver_escalation_notification_async(
-    alert_id: int,
-    channel: str,
-    processing_id: str,
-    escalation_id: str
+    alert_id: int, channel: str, processing_id: str, escalation_id: str
 ) -> Dict[str, Any]:
     """Async implementation of escalation notification delivery."""
     async with AsyncSessionLocal() as db:
@@ -731,37 +725,45 @@ async def _deliver_escalation_notification_async(
             # Get alert details
             alert_query = select(Alert).where(Alert.id == alert_id)
             alert = (await db.execute(alert_query)).scalar_one_or_none()
-            
+
             if not alert:
                 raise ValueError(f"Alert {alert_id} not found")
-            
+
             # Create escalation-specific alert copy
             escalation_alert = _create_escalation_alert_copy(alert)
-            
+
             # Deliver escalation notification
             if channel == NotificationChannel.EMAIL.value:
-                delivery_result = await _deliver_email_notification(escalation_alert, escalation_id)
+                delivery_result = await _deliver_email_notification(
+                    escalation_alert, escalation_id
+                )
             elif channel == NotificationChannel.SLACK.value:
-                delivery_result = await _deliver_slack_notification(escalation_alert, escalation_id)
+                delivery_result = await _deliver_slack_notification(
+                    escalation_alert, escalation_id
+                )
             elif channel == NotificationChannel.SMS.value:
-                delivery_result = await _deliver_sms_notification(escalation_alert, escalation_id)
+                delivery_result = await _deliver_sms_notification(
+                    escalation_alert, escalation_id
+                )
             else:
                 raise ValueError(f"Escalation not supported for channel: {channel}")
-            
+
             # Update alert metadata with escalation info
-            await _update_alert_escalation_tracking(db, alert, escalation_id, channel, delivery_result)
+            await _update_alert_escalation_tracking(
+                db, alert, escalation_id, channel, delivery_result
+            )
             await db.commit()
-            
+
             result = {
                 "escalation_id": escalation_id,
                 "alert_id": alert_id,
                 "channel": channel,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             result.update(delivery_result)
-            
+
             return result
-            
+
         except Exception as e:
             await db.rollback()
             raise
@@ -780,7 +782,7 @@ def _create_escalation_alert_copy(alert: Alert) -> Alert:
     escalation_alert.created_at = alert.created_at
     escalation_alert.pipeline_id = alert.pipeline_id
     escalation_alert.metadata = alert.metadata or {}
-    
+
     return escalation_alert
 
 
@@ -789,40 +791,38 @@ async def _update_alert_escalation_tracking(
     alert: Alert,
     escalation_id: str,
     channel: str,
-    delivery_result: Dict[str, Any]
+    delivery_result: Dict[str, Any],
 ) -> None:
     """Update alert metadata with escalation tracking information."""
     if not alert.metadata:
         alert.metadata = {}
-    
+
     if "escalations" not in alert.metadata:
         alert.metadata["escalations"] = []
-    
-    alert.metadata["escalations"].append({
-        "escalation_id": escalation_id,
-        "channel": channel,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "success": delivery_result.get("success", False)
-    })
+
+    alert.metadata["escalations"].append(
+        {
+            "escalation_id": escalation_id,
+            "channel": channel,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "success": delivery_result.get("success", False),
+        }
+    )
 
 
 @celery_app.task(name="secureops.tasks.alert_tasks.cleanup_old_alerts")
 def cleanup_old_alerts() -> Dict[str, Any]:
     """Clean up old resolved alerts and their associated data."""
     cleanup_id = str(uuid.uuid4())
-    
+
     logger.info(f"[{cleanup_id}] Starting alert cleanup")
-    
+
     try:
         return asyncio.run(_cleanup_old_alerts_async(cleanup_id))
-        
+
     except Exception as e:
         logger.error(f"[{cleanup_id}] Alert cleanup failed: {str(e)}")
-        return {
-            "success": False,
-            "cleanup_id": cleanup_id,
-            "error": str(e)
-        }
+        return {"success": False, "cleanup_id": cleanup_id, "error": str(e)}
 
 
 async def _cleanup_old_alerts_async(cleanup_id: str) -> Dict[str, Any]:
@@ -834,32 +834,36 @@ async def _cleanup_old_alerts_async(cleanup_id: str) -> Dict[str, Any]:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "alerts_archived": 0,
                 "alerts_deleted": 0,
-                "success": True
+                "success": True,
             }
-            
+
             # Archive old resolved alerts (older than 90 days)
             archive_threshold = datetime.now(timezone.utc) - timedelta(days=90)
-            
-            archive_query = select(Alert).where(
-                and_(
-                    Alert.status.in_(["resolved", "closed"]),
-                    Alert.updated_at <= archive_threshold
+
+            archive_query = (
+                select(Alert)
+                .where(
+                    and_(
+                        Alert.status.in_(["resolved", "closed"]),
+                        Alert.updated_at <= archive_threshold,
+                    )
                 )
-            ).limit(100)
-            
+                .limit(100)
+            )
+
             alerts_to_archive = (await db.execute(archive_query)).scalars().all()
-            
+
             for alert in alerts_to_archive:
                 if not alert.metadata:
                     alert.metadata = {}
                 alert.metadata["archived_at"] = datetime.now(timezone.utc).isoformat()
                 results["alerts_archived"] += 1
-            
+
             await db.commit()
-            
+
             logger.info(f"[{cleanup_id}] Alert cleanup completed successfully")
             return results
-            
+
         except Exception as e:
             await db.rollback()
             raise
@@ -869,19 +873,19 @@ async def _cleanup_old_alerts_async(cleanup_id: str) -> Dict[str, Any]:
 def setup_alert_processing_schedule() -> Dict[str, str]:
     """Setup periodic alert processing tasks using Celery beat."""
     logger.info("Setting up alert processing schedule")
-    
+
     schedule_config = {
-        "alert_processing": "*/1 * * * *",      # Every minute
-        "escalation_check": "*/5 * * * *",      # Every 5 minutes
-        "alert_cleanup": "0 2 * * *"            # Daily at 2 AM
+        "alert_processing": "*/1 * * * *",  # Every minute
+        "escalation_check": "*/5 * * * *",  # Every 5 minutes
+        "alert_cleanup": "0 2 * * *",  # Daily at 2 AM
     }
-    
+
     logger.info(f"Alert processing schedule configured: {schedule_config}")
-    
+
     return {
         "status": "configured",
         "schedule": schedule_config,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -891,5 +895,5 @@ __all__ = [
     "deliver_alert_notification",
     "deliver_escalation_notification",
     "cleanup_old_alerts",
-    "setup_alert_processing_schedule"
+    "setup_alert_processing_schedule",
 ]

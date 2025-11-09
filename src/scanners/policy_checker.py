@@ -22,14 +22,8 @@ import yaml
 
 from ..utils.config import settings
 from ..utils.logger import get_logger
-from .common import (
-    BaseScanner,
-    ScannerType,
-    ScanResult,
-    ScanSummary,
-    SeverityLevel,
-    orchestrator,
-)
+from .common import (BaseScanner, ScannerType, ScanResult, ScanSummary,
+                     SeverityLevel, orchestrator)
 
 logger = get_logger(__name__)
 

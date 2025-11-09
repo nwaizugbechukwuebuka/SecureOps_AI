@@ -49,9 +49,10 @@ class SeverityLevel(Enum):
     INFO = "info"
 
 
-@dataclass 
+@dataclass
 class Vulnerability:
     """Represents a vulnerability finding."""
+
     id: str
     package: str
     version: str
@@ -62,6 +63,7 @@ class Vulnerability:
 @dataclass
 class ScanResult:
     """Represents the result of a security scan."""
+
     success: bool
     vulnerabilities: Optional[List[Vulnerability]] = None
     error: Optional[str] = None

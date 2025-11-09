@@ -6,18 +6,18 @@ import os
 from typing import AsyncGenerator, Generator
 
 from sqlalchemy import MetaData, create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
+                                    create_async_engine)
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
+from .models.alert import Alert
 from .models.base import Base
-from .utils.config import get_settings
-
+from .models.pipeline import Pipeline, PipelineRun, ScanJob
 # Import all models to ensure they are registered with Base.metadata
 from .models.user import User
-from .models.alert import Alert
-from .models.pipeline import Pipeline, PipelineRun, ScanJob
 from .models.vulnerability import Vulnerability
+from .utils.config import get_settings
 
 # Get application settings
 settings = get_settings()

@@ -50,8 +50,9 @@ class PaginationParams(BaseModel):
     skip: int = 0
     limit: int = 100
 
-    class Config:
-        schema_extra = {"example": {"skip": 0, "limit": 20}}
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"skip": 0, "limit": 20}}
+    )
 
 
 class PaginatedResponse(BaseModel):

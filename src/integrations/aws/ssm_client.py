@@ -2,9 +2,11 @@
 Async AWS SSM Parameter Store client for SecureOps.
 """
 
-import aiobotocore.session
-from config.settings import settings
 from typing import Any, Dict
+
+import aiobotocore.session
+
+from config.settings import settings
 
 
 class SSMClient:

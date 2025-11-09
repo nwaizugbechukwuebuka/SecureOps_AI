@@ -7,9 +7,9 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from main import app
 from api.models.alert import Alert
 from api.models.user import User
+from main import app
 
 
 @pytest.fixture
@@ -157,7 +157,9 @@ class TestAlertRetrieval:
         """Test successful alerts retrieval"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alerts") as mock_get_alerts:
+        ) as mock_get_db, patch(
+            "api.services.alert_service.AlertService.get_alerts"
+        ) as mock_get_alerts:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -194,7 +196,9 @@ class TestAlertRetrieval:
         """Test alerts retrieval with filters"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alerts") as mock_get_alerts:
+        ) as mock_get_db, patch(
+            "api.services.alert_service.AlertService.get_alerts"
+        ) as mock_get_alerts:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -694,7 +698,9 @@ class TestAlertFiltering:
         """Test filtering alerts by date range"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alerts") as mock_get_alerts:
+        ) as mock_get_db, patch(
+            "api.services.alert_service.AlertService.get_alerts"
+        ) as mock_get_alerts:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -722,7 +728,9 @@ class TestAlertFiltering:
         """Test searching alerts by text content"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch("api.services.alert_service.AlertService.search_alerts") as mock_search:
+        ) as mock_get_db, patch(
+            "api.services.alert_service.AlertService.search_alerts"
+        ) as mock_search:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user

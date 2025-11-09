@@ -1,11 +1,12 @@
 """Shared test configuration and fixtures."""
 
-import pytest
-from httpx import AsyncClient
 from unittest.mock import Mock
 
-from main import app
+import pytest
+from httpx import AsyncClient
+
 from api.models.user import User
+from main import app
 
 
 @pytest.fixture

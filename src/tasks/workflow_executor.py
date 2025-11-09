@@ -2,9 +2,9 @@
 Workflow executor for SecureOps tasks and pipelines.
 """
 
-from typing import Any, Dict, Callable, List
-import logging
 import asyncio
+import logging
+from typing import Any, Callable, Dict, List
 
 
 class WorkflowExecutor:

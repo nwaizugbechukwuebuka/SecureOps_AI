@@ -27,20 +27,28 @@ def get_logger(name: str) -> logging.Logger:
 
 class AuditLogger:
     """Simple audit logger for tracking security events."""
-    
+
     def __init__(self):
         self.logger = get_logger("audit")
-    
+
     def info(self, *args, **kwargs):
         self.logger.info(*args, **kwargs)
-    
+
     def warning(self, *args, **kwargs):
         self.logger.warning(*args, **kwargs)
-    
-    def login_attempt(self, username: str, success: bool, ip_address: Optional[str] = None, failure_reason: Optional[str] = None):
+
+    def login_attempt(
+        self,
+        username: str,
+        success: bool,
+        ip_address: Optional[str] = None,
+        failure_reason: Optional[str] = None,
+    ):
         """Log a login attempt."""
         result = "SUCCESS" if success else "FAILED"
-        message = f"Login attempt for {username}: {result} from {ip_address or 'unknown IP'}"
+        message = (
+            f"Login attempt for {username}: {result} from {ip_address or 'unknown IP'}"
+        )
         if not success and failure_reason:
             message += f" - Reason: {failure_reason}"
         self.logger.info(f"login_attempt: {message}")

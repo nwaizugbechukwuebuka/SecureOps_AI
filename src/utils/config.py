@@ -93,7 +93,7 @@ class ScannerConfig:
     enable_dependency_scanning: bool = True
     enable_secret_scanning: bool = True
     enable_policy_checking: bool = True
-    
+
     # Scanner API Keys and Configuration
     safety_api_key: Optional[str] = None
     bandit_config_file: Optional[str] = None

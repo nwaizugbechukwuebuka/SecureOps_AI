@@ -1,19 +1,11 @@
 ﻿"""Alert model for security notifications and incidents."""
 
-from datetime import datetime
-from typing import Optional, Dict, Any
 import json
+from datetime import datetime
+from typing import Any, Dict, Optional
 
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    String,
-    Integer,
-    Text,
-    JSON,
-    ForeignKey,
-)
+from sqlalchemy import (JSON, Boolean, Column, DateTime, ForeignKey, Integer,
+                        String, Text)
 from sqlalchemy.orm import relationship
 
 from .base import Base, IDMixin, TimestampMixin

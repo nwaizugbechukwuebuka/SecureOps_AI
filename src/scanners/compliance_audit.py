@@ -2,8 +2,8 @@
 Real-time compliance audit system for SecureOps.
 """
 
-from typing import Any, Dict, List
 import logging
+from typing import Any, Dict, List
 
 
 class ComplianceAuditEngine:

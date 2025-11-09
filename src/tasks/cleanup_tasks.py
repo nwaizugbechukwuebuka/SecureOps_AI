@@ -18,28 +18,27 @@ Date: 2024
 """
 
 import asyncio
+import concurrent.futures
 import os
 import shutil
 import tempfile
 import time
 import traceback
 import uuid
-import psutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
-import concurrent.futures
 
-from celery.utils.log import get_task_logger
+import psutil
 from celery import group
+from celery.utils.log import get_task_logger
 
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertStatus
-from src.api.models.pipeline import Pipeline, ScanJob, PipelineRun
+from src.api.models.pipeline import Pipeline, PipelineRun, ScanJob
 from src.api.models.vulnerability import Vulnerability, VulnerabilityStatus
 from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
-
 # Use the centralized Celery app
 from src.tasks.celery_app import app as celery_app
 
@@ -694,7 +693,7 @@ async def _cleanup_old_scan_jobs_async(
 
     async with AsyncSessionLocal() as session:
         try:
-            from sqlalchemy import text, select
+            from sqlalchemy import select, text
             from sqlalchemy.orm import selectinload
 
             # Get count of jobs to delete

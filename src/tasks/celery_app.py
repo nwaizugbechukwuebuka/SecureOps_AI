@@ -13,8 +13,9 @@ Author: Chukwuebuka Tobiloba Nwaizugbe
 Date: 2024
 """
 
-import os
 import logging
+import os
+
 from celery import Celery
 from celery.signals import after_setup_logger, worker_ready, worker_shutdown
 from kombu import Queue
@@ -168,12 +169,8 @@ def autodiscover_tasks():
     """Auto-discover tasks from all modules."""
     try:
         # Import all task modules to register them
-        from . import scan_tasks
-        from . import cleanup_tasks
-        from . import alert_tasks
-        from . import monitor_tasks
-        from . import background_tasks
-        from . import workflow_executor
+        from . import (alert_tasks, background_tasks, cleanup_tasks,
+                       monitor_tasks, scan_tasks, workflow_executor)
 
         logger.info("All task modules imported successfully")
 

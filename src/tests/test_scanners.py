@@ -1,8 +1,9 @@
 """Test suite for security scanners"""
 
 import json
+from unittest.mock import AsyncMock, Mock, mock_open, patch
+
 import pytest
-from unittest.mock import Mock, patch, mock_open, AsyncMock
 
 
 class TestSafetyScanner:
@@ -12,6 +13,7 @@ class TestSafetyScanner:
         """Test that safety scanner can be imported"""
         try:
             from scanners.safety_scanner import SafetyScanner
+
             assert SafetyScanner is not None
         except ImportError:
             pytest.skip("SafetyScanner not available")
@@ -20,11 +22,11 @@ class TestSafetyScanner:
     async def test_scan_requirements_mock(self):
         """Test requirements scanning with mocked subprocess"""
         mock_output = '[{"package": "flask", "installed": "1.1.4", "id": "39462"}]'
-        
+
         with patch("subprocess.run") as mock_run:
             mock_run.return_value.returncode = 0
             mock_run.return_value.stdout = mock_output
-            
+
             # Mock test that would work if scanner exists
             result = {"success": True, "vulnerabilities": 1}
             assert result["success"] is True
@@ -54,11 +56,11 @@ class TestDependencyScanner:
     async def test_npm_audit_mock(self):
         """Test npm audit functionality"""
         mock_result = {"vulnerabilities": {"lodash": {"severity": "moderate"}}}
-        
+
         with patch("subprocess.run") as mock_run:
             mock_run.return_value.returncode = 0
             mock_run.return_value.stdout = json.dumps(mock_result)
-            
+
             # Mock test for npm scanning
             result = {"success": True, "found_vulns": True}
             assert result["success"] is True
@@ -79,7 +81,7 @@ class TestDockerScanner:
         """Test basic Dockerfile analysis"""
         dockerfile_content = "FROM node:14-alpine\nWORKDIR /app\nCOPY . ."
         lines = dockerfile_content.split("\n")
-        
+
         # Check for basic security practices
         has_workdir = any("WORKDIR" in line for line in lines)
         assert has_workdir is True
@@ -88,19 +90,20 @@ class TestDockerScanner:
     async def test_trivy_scan_mock(self):
         """Test Trivy Docker image scanning"""
         mock_trivy_result = {
-            "Results": [{
-                "Target": "node:14-alpine",
-                "Vulnerabilities": [{
-                    "VulnerabilityID": "CVE-2023-1234",
-                    "Severity": "HIGH"
-                }]
-            }]
+            "Results": [
+                {
+                    "Target": "node:14-alpine",
+                    "Vulnerabilities": [
+                        {"VulnerabilityID": "CVE-2023-1234", "Severity": "HIGH"}
+                    ],
+                }
+            ]
         }
-        
+
         with patch("subprocess.run") as mock_run:
             mock_run.return_value.returncode = 0
             mock_run.return_value.stdout = json.dumps(mock_trivy_result)
-            
+
             # Mock scanning result
             result = {"vulnerabilities_found": 1}
             assert result["vulnerabilities_found"] > 0
@@ -112,14 +115,14 @@ class TestPolicyChecker:
     def test_severity_threshold_check(self):
         """Test severity threshold validation"""
         thresholds = {"critical": 0, "high": 2, "medium": 5}
-        
+
         # Mock vulnerabilities
         vulnerabilities = [
             {"severity": "HIGH", "id": "1"},
             {"severity": "HIGH", "id": "2"},
-            {"severity": "MEDIUM", "id": "3"}
+            {"severity": "MEDIUM", "id": "3"},
         ]
-        
+
         high_count = sum(1 for v in vulnerabilities if v["severity"] == "HIGH")
         assert high_count == 2
         assert high_count <= thresholds["high"]
@@ -128,7 +131,7 @@ class TestPolicyChecker:
         """Test banned packages policy"""
         banned_packages = ["debug", "eval", "exec"]
         found_packages = ["requests", "flask", "debug"]
-        
+
         violations = [pkg for pkg in found_packages if pkg in banned_packages]
         assert len(violations) == 1
         assert "debug" in violations
@@ -142,12 +145,12 @@ class TestScannerIntegration:
         results = [
             {"scanner": "safety", "vulnerabilities": 2, "success": True},
             {"scanner": "secrets", "vulnerabilities": 0, "success": True},
-            {"scanner": "docker", "vulnerabilities": 1, "success": True}
+            {"scanner": "docker", "vulnerabilities": 1, "success": True},
         ]
-        
+
         total_vulns = sum(r["vulnerabilities"] for r in results)
         assert total_vulns == 3
-        
+
         all_successful = all(r["success"] for r in results)
         assert all_successful is True
 
@@ -157,9 +160,9 @@ class TestScannerIntegration:
         error_result = {
             "success": False,
             "error": "Scanner not found",
-            "vulnerabilities": 0
+            "vulnerabilities": 0,
         }
-        
+
         assert error_result["success"] is False
         assert "error" in error_result
         assert error_result["vulnerabilities"] == 0
@@ -169,9 +172,9 @@ class TestScannerIntegration:
         empty_result = {
             "success": True,
             "vulnerabilities": [],
-            "summary": "No vulnerabilities found"
+            "summary": "No vulnerabilities found",
         }
-        
+
         assert empty_result["success"] is True
         assert len(empty_result["vulnerabilities"]) == 0
 
@@ -184,40 +187,31 @@ class TestReportGeneration:
         vulnerabilities = [
             {"id": "CVE-1", "severity": "HIGH", "package": "flask"},
             {"id": "CVE-2", "severity": "MEDIUM", "package": "requests"},
-            {"id": "CVE-3", "severity": "HIGH", "package": "urllib3"}
+            {"id": "CVE-3", "severity": "HIGH", "package": "urllib3"},
         ]
-        
+
         # Group by severity
         by_severity = {}
         for vuln in vulnerabilities:
             severity = vuln["severity"]
             by_severity[severity] = by_severity.get(severity, 0) + 1
-        
+
         assert by_severity["HIGH"] == 2
         assert by_severity["MEDIUM"] == 1
 
     def test_compliance_check(self):
         """Test compliance requirement checking"""
-        compliance_rules = {
-            "max_critical": 0,
-            "max_high": 3,
-            "require_scanning": True
-        }
-        
-        scan_stats = {
-            "critical": 0,
-            "high": 2,
-            "medium": 5,
-            "scanned": True
-        }
-        
+        compliance_rules = {"max_critical": 0, "max_high": 3, "require_scanning": True}
+
+        scan_stats = {"critical": 0, "high": 2, "medium": 5, "scanned": True}
+
         # Check compliance
         is_compliant = (
-            scan_stats["critical"] <= compliance_rules["max_critical"] and
-            scan_stats["high"] <= compliance_rules["max_high"] and
-            scan_stats["scanned"] == compliance_rules["require_scanning"]
+            scan_stats["critical"] <= compliance_rules["max_critical"]
+            and scan_stats["high"] <= compliance_rules["max_high"]
+            and scan_stats["scanned"] == compliance_rules["require_scanning"]
         )
-        
+
         assert is_compliant is True
 
 

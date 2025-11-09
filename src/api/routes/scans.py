@@ -12,31 +12,31 @@ Author: Chukwuebuka Tobiloba Nwaizugbe
 Date: 2024
 """
 
+import os
+# Import scanner components
+import sys
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, status
+from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException, Query,
+                     status)
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..models.pipeline import ScanJob, Pipeline
-from ..models.vulnerability import Vulnerability
+from ..models.pipeline import Pipeline, ScanJob
 from ..models.user import User
+from ..models.vulnerability import Vulnerability
 from ..utils.logger import get_logger
 from .auth import get_current_user
-
-# Import scanner components
-import sys
-import os
 
 sys.path.append(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-from scanners.common import enhanced_orchestrator, ScannerType, SeverityLevel
-from tasks.scan_tasks import orchestrate_security_scan, get_scan_status
+from scanners.common import ScannerType, SeverityLevel, enhanced_orchestrator
+from tasks.scan_tasks import get_scan_status, orchestrate_security_scan
 
 router = APIRouter()
 logger = get_logger(__name__)
