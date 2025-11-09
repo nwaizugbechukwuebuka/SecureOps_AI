@@ -1,4 +1,4 @@
-﻿"""Simplified logging configuration for SecureOps."""
+"""Simplified logging configuration for SecureOps."""
 
 import logging
 import sys
@@ -46,9 +46,7 @@ class AuditLogger:
     ):
         """Log a login attempt."""
         result = "SUCCESS" if success else "FAILED"
-        message = (
-            f"Login attempt for {username}: {result} from {ip_address or 'unknown IP'}"
-        )
+        message = f"Login attempt for {username}: {result} from {ip_address or 'unknown IP'}"
         if not success and failure_reason:
             message += f" - Reason: {failure_reason}"
         self.logger.info(f"login_attempt: {message}")

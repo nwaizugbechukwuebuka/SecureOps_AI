@@ -26,9 +26,7 @@ class SafetyScanner:
                 text=True,
             )
             if result.returncode != 0 and not result.stdout:
-                return ScanResult(
-                    success=False, error=result.stderr or "Safety scan failed"
-                )
+                return ScanResult(success=False, error=result.stderr or "Safety scan failed")
             vulns = []
             try:
                 data = json.loads(result.stdout)
@@ -43,9 +41,7 @@ class SafetyScanner:
                         )
                     )
             except Exception as e:
-                return ScanResult(
-                    success=False, error=f"Failed to parse safety output: {e}"
-                )
+                return ScanResult(success=False, error=f"Failed to parse safety output: {e}")
             return ScanResult(success=True, vulnerabilities=vulns)
         except Exception as e:
             return ScanResult(success=False, error=str(e))

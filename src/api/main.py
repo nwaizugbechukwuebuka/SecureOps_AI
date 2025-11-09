@@ -18,36 +18,30 @@ Date: 2024
 
 import asyncio
 import json
-import os
-import sys
 import time
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List
+from typing import List
 
 import redis.asyncio as aioredis
 import uvicorn
-from fastapi import (Depends, FastAPI, HTTPException, Request, WebSocket,
-                     WebSocketDisconnect, status)
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
-from prometheus_client import (Counter, Gauge, Histogram, make_asgi_app,
-                               start_http_server)
+from prometheus_client import Counter, Gauge, Histogram, make_asgi_app, start_http_server
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request as StrRequest
-from starlette.responses import Response
 
 # Import task modules
-from ..tasks.alert_tasks import process_alert
 from ..tasks.background_tasks import cleanup_old_logs
 from ..tasks.scan_tasks import run_security_scan
-from ..tasks.workflow_executor import execute_workflow
+
 # Import application modules
 from .database import get_async_db
 from .database import health_check as db_health_check
@@ -56,19 +50,12 @@ from .routes.alerts import router as alerts_router
 from .routes.auth import router as auth_router
 from .routes.pipelines import router as pipelines_router
 from .routes.reports import router as reports_router
-# Import services
-from .services.alert_service import AlertService
-from .services.compliance_service import ComplianceService
-from .services.pipeline_services import PipelineService
-from .services.report_service import ReportService
-from .services.vulnerability_service import VulnerabilityService
+
 # Import utilities
 from .utils.config import get_settings, validate_environment
-from .utils.logger import (AuditLogger, configure_logging, get_logger,
-                           setup_sentry)
+from .utils.logger import configure_logging, get_logger, setup_sentry
 from .utils.rbac import get_current_user
 from .utils.scheduler import start_scheduler
-from .utils.validators import validate_request
 
 # from .routes.scans import router as scans_router  # Enable when ready
 
@@ -96,14 +83,10 @@ async def get_redis():
 
 
 # Prometheus metrics
-REQUEST_COUNT = Counter(
-    "http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"]
-)
+REQUEST_COUNT = Counter("http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"])
 REQUEST_DURATION = Histogram("http_request_duration_seconds", "HTTP request duration")
 ACTIVE_CONNECTIONS = Gauge("http_active_connections", "Active HTTP connections")
-VULNERABILITY_COUNT = Gauge(
-    "secureops_vulnerabilities_total", "Total vulnerabilities", ["severity"]
-)
+VULNERABILITY_COUNT = Gauge("secureops_vulnerabilities_total", "Total vulnerabilities", ["severity"])
 PIPELINE_COUNT = Gauge("secureops_pipelines_total", "Total pipelines", ["status"])
 ALERT_COUNT = Gauge("secureops_alerts_total", "Total alerts", ["severity", "status"])
 
@@ -119,17 +102,13 @@ class ConnectionManager:
         await websocket.accept()
         self.active_connections.append(websocket)
         ACTIVE_CONNECTIONS.inc()
-        logger.info(
-            f"WebSocket connected. Active connections: {len(self.active_connections)}"
-        )
+        logger.info(f"WebSocket connected. Active connections: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
             ACTIVE_CONNECTIONS.dec()
-            logger.info(
-                f"WebSocket disconnected. Active connections: {len(self.active_connections)}"
-            )
+            logger.info(f"WebSocket disconnected. Active connections: {len(self.active_connections)}")
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         try:
@@ -170,9 +149,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Content-Security-Policy"] = "default-src 'self'"
 
@@ -237,9 +214,7 @@ async def lifespan(app: FastAPI):
         # Start Prometheus metrics server
         if settings.metrics_enabled:
             start_http_server(settings.metrics_port)
-            logger.info(
-                f"✅ Prometheus metrics server started on port {settings.metrics_port}"
-            )
+            logger.info(f"✅ Prometheus metrics server started on port {settings.metrics_port}")
 
         logger.info("🎉 SecureOps application startup completed successfully")
 
@@ -263,9 +238,7 @@ async def lifespan(app: FastAPI):
 
         # Close WebSocket connections
         if manager.active_connections:
-            await manager.broadcast(
-                json.dumps({"type": "shutdown", "message": "Server shutting down"})
-            )
+            await manager.broadcast(json.dumps({"type": "shutdown", "message": "Server shutting down"}))
             logger.info("✅ WebSocket connections notified of shutdown")
 
         logger.info("✅ SecureOps application shutdown completed")
@@ -329,11 +302,7 @@ async def root():
         "app": "SecureOps API",
         "version": getattr(settings, "app_version", "1.0.0"),
         "environment": settings.environment,
-        "docs_url": (
-            "/docs"
-            if settings.environment != "production"
-            else "Disabled in production"
-        ),
+        "docs_url": ("/docs" if settings.environment != "production" else "Disabled in production"),
         "health_url": "/health",
         "metrics_url": "/metrics" if settings.metrics_enabled else "Disabled",
         "api_prefix": "/api/v1",
@@ -405,9 +374,7 @@ async def system_status(current_user: dict = Depends(get_current_user)):
             "environment": settings.environment,
         },
         "metrics": {
-            "total_requests": (
-                REQUEST_COUNT._value._value if hasattr(REQUEST_COUNT, "_value") else 0
-            ),
+            "total_requests": (REQUEST_COUNT._value._value if hasattr(REQUEST_COUNT, "_value") else 0),
             "active_websockets": len(manager.active_connections),
         },
     }

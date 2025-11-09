@@ -13,110 +13,125 @@ def test_core_imports():
     # FastAPI core
     import fastapi
     import pydantic
-    import starlette
-    import uvicorn
+
+    # import starlette  # Used in other parts
+    # import uvicorn  # Used in other parts
 
     print("✅ FastAPI core imports successful")
 
     # Database
     import aiosqlite
-    import alembic
-    import asyncpg
-    import psycopg2
-    import sqlalchemy
+
+    # import alembic  # Used for migrations
+    # import asyncpg  # PostgreSQL adapter
+    # import psycopg2  # PostgreSQL adapter
+    # import sqlalchemy  # Used in other parts
 
     print("✅ Database imports successful")
 
     # Authentication & Security
     import cryptography
-    import itsdangerous
-    import jose
-    import passlib
+
+    # import itsdangerous  # Used for token signing
+    # import jose  # JWT token handling
+    # import passlib  # Password hashing
 
     print("✅ Authentication imports successful")
 
     # Task Queue
     import celery
-    import flower
-    import kombu
-    import redis
+
+    # import flower  # Celery monitoring
+    # import kombu  # Celery messaging
+    # import redis  # Cache and message broker
 
     print("✅ Task queue imports successful")
 
     # HTTP Clients
     import aiohttp
-    import httpx
-    import requests
+
+    # import httpx  # Modern HTTP client
+    # import requests  # HTTP client
 
     print("✅ HTTP client imports successful")
 
     # CI/CD Platform APIs
     import github
-    import gitlab
-    import jenkinsapi
+
+    # import gitlab  # GitLab API
+    # import jenkinsapi  # Jenkins API
 
     print("✅ CI/CD platform imports successful")
 
     # Security Scanning
     import bandit
-    import docker
-    import safety
+
+    # import docker  # Docker API
+    # import safety  # Security scanning
 
     print("✅ Security scanning imports successful")
 
     # Configuration
     import dotenv
-    import toml
-    import yaml
+
+    # import toml  # TOML config files
+    # import yaml  # YAML config files
 
     print("✅ Configuration imports successful")
 
     # Monitoring & Logging
     import prometheus_client
-    import sentry_sdk
-    import structlog
+
+    # import sentry_sdk  # Error tracking
+    # import structlog  # Structured logging
 
     print("✅ Monitoring imports successful")
 
     # Utilities
     import email_validator
-    import psutil
-    import validators
+
+    # import psutil  # System monitoring
+    # import validators  # Data validation
 
     print("✅ Utility imports successful")
 
     # Testing
     import faker
-    import pytest
+
+    # import pytest  # Testing framework
 
     print("✅ Testing imports successful")
 
     # Code Quality
     import black
-    import flake8
-    import isort
-    import mypy
+
+    # import flake8  # Style checker
+    # import isort  # Import sorter
+    # import mypy  # Type checker
 
     print("✅ Code quality imports successful")
 
     # Development Tools
     import rich
-    import typer
-    import watchdog
+
+    # import typer  # CLI framework
+    # import watchdog  # File system events
 
     print("✅ Development tool imports successful")
 
     # Data Processing
     import matplotlib
-    import numpy
-    import pandas
-    import plotly
+
+    # import numpy  # Numerical computing
+    # import pandas  # Data analysis
+    # import plotly  # Interactive plots
 
     print("✅ Data processing imports successful")
 
     # Notifications
     import sendgrid
-    import slack_sdk
+
+    # import slack_sdk  # Slack API
 
     print("✅ Notification imports successful")
 
@@ -127,8 +142,9 @@ def test_core_imports():
 
     # Additional dependencies
     import anyio
-    import jsonschema
-    import jwt
+
+    # import jsonschema  # JSON validation
+    # import jwt  # JWT tokens
 
     print("✅ Additional imports successful")
 

@@ -29,9 +29,7 @@ logger = get_logger(__name__)
 class ValidationError(Exception):
     """Custom validation error exception."""
 
-    def __init__(
-        self, message: str, field: Optional[str] = None, code: Optional[str] = None
-    ):
+    def __init__(self, message: str, field: Optional[str] = None, code: Optional[str] = None):
         self.message = message
         self.field = field
         self.code = code
@@ -310,9 +308,7 @@ def validate_filename(filename: str) -> ValidationResult:
 
     # Check for reserved names (Windows)
     reserved_names = (
-        ["CON", "PRN", "AUX", "NUL"]
-        + [f"COM{i}" for i in range(1, 10)]
-        + [f"LPT{i}" for i in range(1, 10)]
+        ["CON", "PRN", "AUX", "NUL"] + [f"COM{i}" for i in range(1, 10)] + [f"LPT{i}" for i in range(1, 10)]
     )
     if filename.upper() in reserved_names:
         result.add_error("Filename is a reserved name")
@@ -498,9 +494,7 @@ def validate_command_injection(value: str) -> ValidationResult:
 # File validation
 
 
-def validate_file_type(
-    file_path: str, allowed_extensions: List[str]
-) -> ValidationResult:
+def validate_file_type(file_path: str, allowed_extensions: List[str]) -> ValidationResult:
     """
     Validate file type based on extension.
 
@@ -528,9 +522,7 @@ def validate_file_type(
     file_ext = Path(file_path).suffix.lower()
 
     if file_ext not in normalized_extensions:
-        result.add_error(
-            f"File type '{file_ext}' not allowed. Allowed types: {', '.join(normalized_extensions)}"
-        )
+        result.add_error(f"File type '{file_ext}' not allowed. Allowed types: {', '.join(normalized_extensions)}")
 
     return result
 
@@ -557,9 +549,7 @@ def validate_file_size(file_path: str, max_size_mb: int = 10) -> ValidationResul
         max_size_bytes = max_size_mb * 1024 * 1024
 
         if file_size > max_size_bytes:
-            result.add_error(
-                f"File size ({file_size / 1024 / 1024:.2f} MB) exceeds limit ({max_size_mb} MB)"
-            )
+            result.add_error(f"File size ({file_size / 1024 / 1024:.2f} MB) exceeds limit ({max_size_mb} MB)")
 
         # Warning for large files
         if file_size > max_size_bytes * 0.8:
@@ -598,9 +588,7 @@ def validate_pipeline_config(config: Dict[str, Any]) -> ValidationResult:
 
     # Validate repository URL if present
     if "repository_url" in config:
-        url_result = validate_url(
-            config["repository_url"], ["http", "https", "git", "ssh"]
-        )
+        url_result = validate_url(config["repository_url"], ["http", "https", "git", "ssh"])
         result.merge(url_result)
 
     # Validate scanner configuration
@@ -685,9 +673,7 @@ def validate_input(value: Any, validation_type: str, **kwargs) -> ValidationResu
         "url": lambda v: validate_url(v, kwargs.get("allowed_schemes")),
         "ip": lambda v: validate_ip_address(v),
         "password": lambda v: validate_password(v),
-        "alphanumeric": lambda v: validate_alphanumeric(
-            v, kwargs.get("field_name", "field")
-        ),
+        "alphanumeric": lambda v: validate_alphanumeric(v, kwargs.get("field_name", "field")),
         "filename": lambda v: validate_filename(v),
         "json": lambda v: validate_json(v),
         "yaml": lambda v: validate_yaml(v),

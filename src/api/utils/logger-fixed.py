@@ -73,7 +73,8 @@ def configure_logging():
             logging.getLogger().info("ELK/Elasticsearch log forwarding enabled.")
         except ImportError:
             logging.getLogger().warning(
-                "ELK log forwarding requested but elasticsearch-logging package not installed. Install with: pip install elasticsearch-logging"
+                "ELK log forwarding requested but elasticsearch-logging package not installed. "
+                "Install with: pip install elasticsearch-logging"
             )
         except Exception as e:
             logging.getLogger().error(f"Failed to enable ELK log forwarding: {e}")
@@ -102,8 +103,7 @@ def configure_logging():
                             "ddtags": f"level:{record.levelname.lower()},source:secureops",
                             "message": self.format(record),
                             "level": record.levelname,
-                            "timestamp": record.created
-                            * 1000,  # Convert to milliseconds
+                            "timestamp": record.created * 1000,  # Convert to milliseconds
                         }
                         # Send log to Datadog Logs API (this would need proper implementation)
                         pass  # Placeholder for actual Datadog logs submission
@@ -117,7 +117,8 @@ def configure_logging():
             logging.getLogger().info("Datadog log forwarding enabled.")
         except ImportError:
             logging.getLogger().warning(
-                "Datadog log forwarding requested but datadog-api-client package not installed. Install with: pip install datadog-api-client"
+                "Datadog log forwarding requested but datadog-api-client package not installed. "
+                "Install with: pip install datadog-api-client"
             )
         except Exception as e:
             logging.getLogger().error(f"Failed to enable Datadog log forwarding: {e}")
@@ -137,7 +138,8 @@ def configure_logging():
             logging.getLogger().info("Splunk log forwarding enabled.")
         except ImportError:
             logging.getLogger().warning(
-                "Splunk log forwarding requested but splunk-handler package not installed. Install with: pip install splunk-handler"
+                "Splunk log forwarding requested but splunk-handler package not installed. "
+                "Install with: pip install splunk-handler"
             )
         except Exception as e:
             logging.getLogger().error(f"Failed to enable Splunk log forwarding: {e}")
@@ -183,9 +185,7 @@ def configure_logging():
     # Configure structlog
     structlog.configure(
         processors=processors,
-        wrapper_class=structlog.make_filtering_bound_logger(
-            getattr(logging, settings.log_level)
-        ),
+        wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, settings.log_level)),
         logger_factory=structlog.WriteLoggerFactory(),
         cache_logger_on_first_use=True,
     )
@@ -201,9 +201,7 @@ def setup_sentry():
             import sentry_sdk
             from sentry_sdk.integrations.logging import LoggingIntegration
 
-            sentry_logging = LoggingIntegration(
-                level=logging.INFO, event_level=logging.ERROR
-            )
+            sentry_logging = LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
 
             sentry_sdk.init(
                 dsn=settings.sentry_dsn,
@@ -263,9 +261,7 @@ def log_audit_trail(action: str, user_id: Optional[str], resource: str, **kwargs
     )
 
 
-def log_api_request(
-    method: str, path: str, status_code: int, response_time: float, **kwargs
-):
+def log_api_request(method: str, path: str, status_code: int, response_time: float, **kwargs):
     """Log API requests with consistent format."""
     logger = get_logger("api")
     logger.info(
@@ -296,9 +292,7 @@ class SecurityFilter(logging.Filter):
             for pattern in self.SENSITIVE_PATTERNS:
                 if pattern.lower() in message.lower():
                     # Replace sensitive data with placeholder
-                    record.msg = record.msg.replace(
-                        record.args[0] if record.args else "", "[REDACTED]"
-                    )
+                    record.msg = record.msg.replace(record.args[0] if record.args else "", "[REDACTED]")
                     break
         return True
 

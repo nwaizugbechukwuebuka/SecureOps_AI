@@ -56,9 +56,7 @@ class ReportService:
 
             # Get vulnerability counts
             vuln_query = (
-                select(
-                    func.count(Vulnerability.id).label("total"), Vulnerability.severity
-                )
+                select(func.count(Vulnerability.id).label("total"), Vulnerability.severity)
                 .join(Pipeline)
                 .where(
                     and_(
@@ -70,20 +68,14 @@ class ReportService:
             )
 
             vuln_result = await self.db.execute(vuln_query)
-            vuln_counts = {
-                severity: count for count, severity in vuln_result.fetchall()
-            }
+            vuln_counts = {severity: count for count, severity in vuln_result.fetchall()}
 
             # Get recent scan counts
             recent_date = datetime.now(timezone.utc) - timedelta(days=7)
             scan_query = (
                 select(func.count(ScanJob.id))
                 .join(Pipeline)
-                .where(
-                    and_(
-                        Pipeline.owner_id == user_id, ScanJob.created_at >= recent_date
-                    )
-                )
+                .where(and_(Pipeline.owner_id == user_id, ScanJob.created_at >= recent_date))
             )
 
             scan_result = await self.db.execute(scan_query)
@@ -117,8 +109,7 @@ class ReportService:
                 "pipelines": {
                     "total": pipeline_stats.total or 0,
                     "active": pipeline_stats.active or 0,
-                    "inactive": (pipeline_stats.total or 0)
-                    - (pipeline_stats.active or 0),
+                    "inactive": (pipeline_stats.total or 0) - (pipeline_stats.active or 0),
                 },
                 "vulnerabilities": {
                     "total": total_vulns,
@@ -160,9 +151,7 @@ class ReportService:
             start_date = datetime.now(timezone.utc) - timedelta(days=days_back)
 
             # Build base query
-            base_query = (
-                select(Vulnerability).join(Pipeline).where(Pipeline.owner_id == user_id)
-            )
+            base_query = select(Vulnerability).join(Pipeline).where(Pipeline.owner_id == user_id)
 
             if pipeline_id:
                 base_query = base_query.where(Vulnerability.pipeline_id == pipeline_id)
@@ -209,15 +198,11 @@ class ReportService:
             )
 
             scanner_result = await self.db.execute(scanner_query)
-            scanner_distribution = {
-                scanner: count for count, scanner in scanner_result.fetchall()
-            }
+            scanner_distribution = {scanner: count for count, scanner in scanner_result.fetchall()}
 
             # Get top vulnerable files
             files_query = (
-                select(
-                    func.count(Vulnerability.id).label("count"), Vulnerability.file_path
-                )
+                select(func.count(Vulnerability.id).label("count"), Vulnerability.file_path)
                 .select_from(base_query.subquery())
                 .where(Vulnerability.file_path.isnot(None))
                 .group_by(Vulnerability.file_path)
@@ -227,30 +212,23 @@ class ReportService:
 
             files_result = await self.db.execute(files_query)
             top_files = [
-                {"file_path": file_path, "vulnerability_count": count}
-                for count, file_path in files_result.fetchall()
+                {"file_path": file_path, "vulnerability_count": count} for count, file_path in files_result.fetchall()
             ]
 
             # Get remediation status
             remediation_query = (
-                select(
-                    func.count(Vulnerability.id).label("count"), Vulnerability.status
-                )
+                select(func.count(Vulnerability.id).label("count"), Vulnerability.status)
                 .select_from(base_query.subquery())
                 .group_by(Vulnerability.status)
             )
 
             remediation_result = await self.db.execute(remediation_query)
-            remediation_status = {
-                status: count for count, status in remediation_result.fetchall()
-            }
+            remediation_status = {status: count for count, status in remediation_result.fetchall()}
 
             # Calculate metrics
             total_vulns = sum(remediation_status.values())
             resolved_vulns = remediation_status.get("resolved", 0)
-            resolution_rate = (
-                (resolved_vulns / total_vulns * 100) if total_vulns > 0 else 0
-            )
+            resolution_rate = (resolved_vulns / total_vulns * 100) if total_vulns > 0 else 0
 
             return {
                 "period_days": days_back,
@@ -304,9 +282,7 @@ class ReportService:
                 "overall_score": round(overall_score, 1),
                 "total_pipelines": len(pipelines),
                 "compliant_pipelines": sum(
-                    1
-                    for pipeline in pipelines
-                    if await self._is_pipeline_compliant(pipeline.id)
+                    1 for pipeline in pipelines if await self._is_pipeline_compliant(pipeline.id)
                 ),
                 "last_assessment": datetime.now(timezone.utc).isoformat(),
             }
@@ -315,9 +291,7 @@ class ReportService:
             logger.error(f"Error getting compliance status: {str(e)}")
             raise
 
-    async def get_scan_performance_metrics(
-        self, user_id: int, days_back: int = 30
-    ) -> Dict[str, Any]:
+    async def get_scan_performance_metrics(self, user_id: int, days_back: int = 30) -> Dict[str, Any]:
         """
         Get scan performance and reliability metrics.
 
@@ -335,15 +309,11 @@ class ReportService:
             scan_query = (
                 select(
                     func.count(ScanJob.id).label("total_scans"),
-                    func.avg(
-                        func.extract("epoch", ScanJob.completed_at - ScanJob.started_at)
-                    ).label("avg_duration"),
+                    func.avg(func.extract("epoch", ScanJob.completed_at - ScanJob.started_at)).label("avg_duration"),
                     ScanJob.status,
                 )
                 .join(Pipeline)
-                .where(
-                    and_(Pipeline.owner_id == user_id, ScanJob.created_at >= start_date)
-                )
+                .where(and_(Pipeline.owner_id == user_id, ScanJob.created_at >= start_date))
                 .group_by(ScanJob.status)
             )
 
@@ -361,14 +331,10 @@ class ReportService:
 
             # Calculate success rate
             successful_scans = scan_stats.get("completed", 0)
-            success_rate = (
-                (successful_scans / total_scans * 100) if total_scans > 0 else 0
-            )
+            success_rate = (successful_scans / total_scans * 100) if total_scans > 0 else 0
 
             # Calculate average scan duration
-            avg_scan_duration = (
-                sum(avg_durations) / len(avg_durations) if avg_durations else 0
-            )
+            avg_scan_duration = sum(avg_durations) / len(avg_durations) if avg_durations else 0
 
             # Get scan frequency by scanner type
             frequency_query = (
@@ -377,16 +343,12 @@ class ReportService:
                     func.unnest(ScanJob.scanner_types).label("scanner_type"),
                 )
                 .join(Pipeline)
-                .where(
-                    and_(Pipeline.owner_id == user_id, ScanJob.created_at >= start_date)
-                )
+                .where(and_(Pipeline.owner_id == user_id, ScanJob.created_at >= start_date))
                 .group_by("scanner_type")
             )
 
             frequency_result = await self.db.execute(frequency_query)
-            scanner_frequency = {
-                scanner: count for count, scanner in frequency_result.fetchall()
-            }
+            scanner_frequency = {scanner: count for count, scanner in frequency_result.fetchall()}
 
             # Get daily scan volume
             daily_query = (
@@ -395,18 +357,13 @@ class ReportService:
                     func.date_trunc("day", ScanJob.created_at).label("date"),
                 )
                 .join(Pipeline)
-                .where(
-                    and_(Pipeline.owner_id == user_id, ScanJob.created_at >= start_date)
-                )
+                .where(and_(Pipeline.owner_id == user_id, ScanJob.created_at >= start_date))
                 .group_by(func.date_trunc("day", ScanJob.created_at))
                 .order_by("date")
             )
 
             daily_result = await self.db.execute(daily_query)
-            daily_volumes = {
-                date.strftime("%Y-%m-%d"): count
-                for count, date in daily_result.fetchall()
-            }
+            daily_volumes = {date.strftime("%Y-%m-%d"): count for count, date in daily_result.fetchall()}
 
             return {
                 "period_days": days_back,
@@ -423,9 +380,7 @@ class ReportService:
             logger.error(f"Error getting scan performance metrics: {str(e)}")
             raise
 
-    async def generate_custom_report(
-        self, user_id: int, report_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def generate_custom_report(self, user_id: int, report_config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate custom report based on configuration.
 
@@ -448,9 +403,7 @@ class ReportService:
                     (datetime.now(timezone.utc) - timedelta(days=30)).isoformat(),
                 )
             )
-            end_date = datetime.fromisoformat(
-                date_range.get("end", datetime.now(timezone.utc).isoformat())
-            )
+            end_date = datetime.fromisoformat(date_range.get("end", datetime.now(timezone.utc).isoformat()))
 
             report_data = {
                 "report_type": report_type,
@@ -471,18 +424,14 @@ class ReportService:
                     user_id, start_date, end_date, filters
                 )
             elif report_type == "scan_history":
-                report_data["data"] = await self._generate_scan_history_report(
-                    user_id, start_date, end_date, filters
-                )
+                report_data["data"] = await self._generate_scan_history_report(user_id, start_date, end_date, filters)
             elif report_type == "security_trends":
                 report_data["data"] = await self._generate_security_trends_report(
                     user_id, start_date, end_date, filters
                 )
             else:
                 # Default summary report
-                report_data["data"] = await self._generate_summary_report(
-                    user_id, start_date, end_date, filters
-                )
+                report_data["data"] = await self._generate_summary_report(user_id, start_date, end_date, filters)
 
             return report_data
 
@@ -591,9 +540,7 @@ class ReportService:
             logger.error(f"Error exporting report CSV: {str(e)}")
             raise
 
-    async def export_report_json(
-        self, user_id: int, report_data: Dict[str, Any]
-    ) -> str:
+    async def export_report_json(self, user_id: int, report_data: Dict[str, Any]) -> str:
         """
         Export report data as JSON string.
 
@@ -655,11 +602,7 @@ class ReportService:
             if vuln_count == 0:
                 compliant_categories += 1
 
-        score = (
-            (compliant_categories / total_categories * 100)
-            if total_categories > 0
-            else 0
-        )
+        score = (compliant_categories / total_categories * 100) if total_categories > 0 else 0
 
         return {
             "score": round(score, 1),
@@ -680,8 +623,7 @@ class ReportService:
             .where(
                 and_(
                     Pipeline.owner_id == user_id,
-                    ScanJob.created_at
-                    >= datetime.now(timezone.utc) - timedelta(days=7),
+                    ScanJob.created_at >= datetime.now(timezone.utc) - timedelta(days=7),
                 )
             )
         )
@@ -794,8 +736,7 @@ class ReportService:
             select(func.count(ScanJob.id)).where(
                 and_(
                     ScanJob.pipeline_id == pipeline_id,
-                    ScanJob.created_at
-                    >= datetime.now(timezone.utc) - timedelta(days=14),
+                    ScanJob.created_at >= datetime.now(timezone.utc) - timedelta(days=14),
                     ScanJob.status == "completed",
                 )
             )

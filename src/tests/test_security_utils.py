@@ -32,7 +32,7 @@ class TestSecurityUtils:
         key = utils1.key
         data = b"secret-message"
         token = utils1.encrypt(data)
-        
+
         # Create second instance with same key and decrypt
         utils2 = SecurityUtils(key)
         decrypted = utils2.decrypt(token)
@@ -50,16 +50,16 @@ class TestSecurityUtils:
         """Test encryption and decryption of unicode text."""
         utils = SecurityUtils()
         text = "Hello, 世界! 🔒"
-        data = text.encode('utf-8')
+        data = text.encode("utf-8")
         token = utils.encrypt(data)
         decrypted = utils.decrypt(token)
-        assert decrypted.decode('utf-8') == text
+        assert decrypted.decode("utf-8") == text
 
     def test_decrypt_invalid_token(self):
         """Test decryption with invalid token raises appropriate error."""
         utils = SecurityUtils()
         invalid_token = b"invalid-token-data"
-        
+
         with pytest.raises(Exception):  # Should raise InvalidToken or similar
             utils.decrypt(invalid_token)
 
@@ -104,7 +104,7 @@ class TestSecurityUtils:
             (b"hello", "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
             (b"test", "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"),
         ]
-        
+
         for data, expected_hash in test_cases:
             actual_hash = SecurityUtils.hash_sha256(data)
             assert actual_hash == expected_hash
@@ -153,18 +153,18 @@ class TestSecurityUtils:
     def test_decode_base64_invalid_data(self):
         """Test Base64 decoding with invalid data."""
         invalid_base64 = "invalid-base64-data!"
-        
+
         with pytest.raises(Exception):  # Should raise binascii.Error or similar
             SecurityUtils.decode_base64(invalid_base64)
 
     def test_security_utils_with_custom_key(self):
         """Test SecurityUtils with custom encryption key."""
         from cryptography.fernet import Fernet
-        
+
         # Generate a custom key
         custom_key = Fernet.generate_key()
         utils = SecurityUtils(custom_key)
-        
+
         # Test encryption/decryption works with custom key
         data = b"custom-key-test"
         token = utils.encrypt(data)
@@ -176,14 +176,14 @@ class TestSecurityUtils:
         """Test that multiple SecurityUtils instances are properly isolated."""
         utils1 = SecurityUtils()
         utils2 = SecurityUtils()
-        
+
         # Keys should be different
         assert utils1.key != utils2.key
-        
+
         # Data encrypted by one should not be decryptable by the other
         data = b"isolation-test"
         token1 = utils1.encrypt(data)
-        
+
         with pytest.raises(Exception):
             utils2.decrypt(token1)
 

@@ -12,31 +12,27 @@ Author: Chukwuebuka Tobiloba Nwaizugbe
 Date: 2024
 """
 
+from tasks.scan_tasks import get_scan_status, orchestrate_security_scan
+from scanners.common import ScannerType, SeverityLevel, enhanced_orchestrator
 import os
+
 # Import scanner components
 import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from uuid import UUID
 
-from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException, Query,
-                     status)
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..models.pipeline import Pipeline, ScanJob
+from ..models.pipeline import ScanJob
 from ..models.user import User
-from ..models.vulnerability import Vulnerability
 from ..utils.logger import get_logger
 from .auth import get_current_user
 
-sys.path.append(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from scanners.common import ScannerType, SeverityLevel, enhanced_orchestrator
-from tasks.scan_tasks import get_scan_status, orchestrate_security_scan
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -52,12 +48,8 @@ class ScanRequest(BaseModel):
         default=["dependency", "docker", "secret", "threat", "compliance"],
         description="Types of scans to perform",
     )
-    scan_config: Optional[Dict[str, Any]] = Field(
-        default=None, description="Additional scan configuration options"
-    )
-    notify_on_completion: bool = Field(
-        default=True, description="Whether to send notifications when scan completes"
-    )
+    scan_config: Optional[Dict[str, Any]] = Field(default=None, description="Additional scan configuration options")
+    notify_on_completion: bool = Field(default=True, description="Whether to send notifications when scan completes")
 
     @validator("repository_url")
     def validate_repository_url(cls, v):
@@ -72,9 +64,7 @@ class ScanRequest(BaseModel):
         valid_types = ["dependency", "docker", "secret", "threat", "compliance"]
         for scan_type in v:
             if scan_type not in valid_types:
-                raise ValueError(
-                    f"Invalid scan type: {scan_type}. Valid types: {valid_types}"
-                )
+                raise ValueError(f"Invalid scan type: {scan_type}. Valid types: {valid_types}")
         return v
 
 
@@ -171,7 +161,8 @@ async def initiate_security_scan(
     """
     try:
         logger.info(
-            f"Initiating security scan for {scan_request.repository_url}#{scan_request.branch} by user {current_user.id}"
+            f"Initiating security scan for {scan_request.repository_url}#{scan_request.branch} "
+            f"by user {current_user.id}"
         )
 
         # Trigger the comprehensive scan via Celery task
@@ -220,10 +211,8 @@ async def initiate_security_scan(
         )
 
 
-@router.get(
-    "/scans/{scan_id}/status", response_model=ScanStatusResponse, tags=["Scanning"]
-)
-async def get_scan_status(
+@router.get("/scans/{scan_id}/status", response_model=ScanStatusResponse, tags=["Scanning"])
+async def get_scan_status_endpoint(
     scan_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -241,15 +230,11 @@ async def get_scan_status(
         # Get scan job from database
         scan_job = await db.get(ScanJob, scan_id)
         if not scan_job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
 
         # Check authorization
         if scan_job.user_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
         # Get task status from Celery
         task_status = get_scan_status(scan_job.task_id)
@@ -283,14 +268,10 @@ async def get_scan_status(
         )
 
 
-@router.get(
-    "/scans/{scan_id}/results", response_model=ScanResultsResponse, tags=["Scanning"]
-)
+@router.get("/scans/{scan_id}/results", response_model=ScanResultsResponse, tags=["Scanning"])
 async def get_scan_results(
     scan_id: str,
-    include_details: bool = Query(
-        default=True, description="Include detailed findings"
-    ),
+    include_details: bool = Query(default=True, description="Include detailed findings"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -307,20 +288,14 @@ async def get_scan_results(
         # Get scan job
         scan_job = await db.get(ScanJob, scan_id)
         if not scan_job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
 
         # Check authorization
         if scan_job.user_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
         if scan_job.status != "completed":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Scan not completed yet"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Scan not completed yet")
 
         # Get scan results from task
         task_result = orchestrate_security_scan.AsyncResult(scan_job.task_id)
@@ -351,9 +326,7 @@ async def get_scan_results(
             "risk_level": executive_summary.get("risk_level", "UNKNOWN"),
             "compliance_status": results.get("compliance_status", {}),
             "scan_summary": results.get("scan_metadata", {}),
-            "detailed_findings": (
-                results.get("detailed_findings", {}) if include_details else {}
-            ),
+            "detailed_findings": (results.get("detailed_findings", {}) if include_details else {}),
         }
 
         return ScanResultsResponse(**response_data)
@@ -372,9 +345,7 @@ async def get_scan_results(
 async def list_scans(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
-    status_filter: Optional[str] = Query(
-        default=None, description="Filter by scan status"
-    ),
+    status_filter: Optional[str] = Query(default=None, description="Filter by scan status"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -465,9 +436,7 @@ async def get_scanner_capabilities(current_user: User = Depends(get_current_user
     """
     try:
         capabilities = {
-            "supported_scan_types": [
-                scanner_type.value for scanner_type in ScannerType
-            ],
+            "supported_scan_types": [scanner_type.value for scanner_type in ScannerType],
             "severity_levels": [level.value for level in SeverityLevel],
             "scanner_details": {},
         }
@@ -506,15 +475,11 @@ async def cancel_scan(
         # Get scan job
         scan_job = await db.get(ScanJob, scan_id)
         if not scan_job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
 
         # Check authorization
         if scan_job.user_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
         if scan_job.status in ["completed", "failed", "cancelled"]:
             raise HTTPException(
@@ -559,15 +524,11 @@ async def retry_failed_scan(
         # Get original scan job
         original_scan = await db.get(ScanJob, scan_id)
         if not original_scan:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Original scan not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Original scan not found")
 
         # Check authorization
         if original_scan.user_id != current_user.id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
         if original_scan.status != "failed":
             raise HTTPException(

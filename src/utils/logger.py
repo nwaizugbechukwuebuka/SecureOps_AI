@@ -29,9 +29,7 @@ class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as JSON."""
         log_entry = {
-            "timestamp": datetime.fromtimestamp(
-                record.created, timezone.utc
-            ).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.created, timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -121,9 +119,7 @@ class SecurityAwareFormatter(logging.Formatter):
 
         # Sanitize arguments
         if record_copy.args:
-            record_copy.args = tuple(
-                self._sanitize_value(arg) for arg in record_copy.args
-            )
+            record_copy.args = tuple(self._sanitize_value(arg) for arg in record_copy.args)
 
         return super().format(record_copy)
 
@@ -151,7 +147,7 @@ class SecurityAwareFormatter(logging.Formatter):
 
             # Match 'key': 'value'
             message = re.sub(
-                f"'{pattern}':\s*'[^']*'",
+                f"'{pattern}':\\s*'[^']*'",
                 f"'{pattern}': '***REDACTED***'",
                 message,
                 flags=re.IGNORECASE,
@@ -165,11 +161,7 @@ class SecurityAwareFormatter(logging.Formatter):
             return self._sanitize_message(value)
         elif isinstance(value, dict):
             return {
-                k: (
-                    "***REDACTED***"
-                    if any(pattern in k.lower() for pattern in self.SENSITIVE_PATTERNS)
-                    else v
-                )
+                k: ("***REDACTED***" if any(pattern in k.lower() for pattern in self.SENSITIVE_PATTERNS) else v)
                 for k, v in value.items()
             }
         return value
@@ -203,9 +195,7 @@ class LoggerManager:
         if settings.logging.enable_json_logging:
             console_formatter = JSONFormatter()
         else:
-            console_formatter = SecurityAwareFormatter(
-                fmt=settings.logging.format, datefmt="%Y-%m-%d %H:%M:%S"
-            )
+            console_formatter = SecurityAwareFormatter(fmt=settings.logging.format, datefmt="%Y-%m-%d %H:%M:%S")
 
         console_handler.setFormatter(console_formatter)
         console_handler.addFilter(self._context_filter)
@@ -240,9 +230,7 @@ class LoggerManager:
             if settings.logging.enable_json_logging:
                 file_formatter = JSONFormatter()
             else:
-                file_formatter = SecurityAwareFormatter(
-                    fmt=settings.logging.format, datefmt="%Y-%m-%d %H:%M:%S"
-                )
+                file_formatter = SecurityAwareFormatter(fmt=settings.logging.format, datefmt="%Y-%m-%d %H:%M:%S")
 
             file_handler.setFormatter(file_formatter)
             file_handler.addFilter(self._context_filter)
@@ -263,9 +251,7 @@ class LoggerManager:
         logging.getLogger("urllib3").setLevel(logging.WARNING)
 
         # Configure application loggers
-        logging.getLogger("secureops").setLevel(
-            getattr(logging, settings.logging.level.upper())
-        )
+        logging.getLogger("secureops").setLevel(getattr(logging, settings.logging.level.upper()))
         logging.getLogger("secureops.scanners").setLevel(logging.INFO)
         logging.getLogger("secureops.tasks").setLevel(logging.INFO)
         logging.getLogger("secureops.api").setLevel(logging.INFO)
@@ -517,9 +503,7 @@ def log_api_request(method: str, path: str, user_id: Optional[str] = None, **kwa
     logger.info(f"{method} {path}", extra={"extra_data": context})
 
 
-def log_scan_event(
-    event: str, pipeline_id: int, scan_job_id: Optional[int] = None, **kwargs
-):
+def log_scan_event(event: str, pipeline_id: int, scan_job_id: Optional[int] = None, **kwargs):
     """
     Log scan-related event with standard format.
 
@@ -565,9 +549,7 @@ def log_security_event(event: str, severity: str = "info", **kwargs):
     log_method(f"SECURITY EVENT: {event}", extra={"extra_data": context})
 
 
-def log_performance_metric(
-    metric_name: str, value: Union[int, float], unit: str = None, **kwargs
-):
+def log_performance_metric(metric_name: str, value: Union[int, float], unit: str = None, **kwargs):
     """
     Log performance metric.
 

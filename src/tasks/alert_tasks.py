@@ -44,9 +44,7 @@ logger = get_task_logger(__name__)
 ALERT_PROCESSING_BATCH_SIZE = getattr(settings, "ALERT_PROCESSING_BATCH_SIZE", 50)
 ALERT_ESCALATION_DELAY_MINUTES = getattr(settings, "ALERT_ESCALATION_DELAY_MINUTES", 30)
 NOTIFICATION_RETRY_ATTEMPTS = getattr(settings, "NOTIFICATION_RETRY_ATTEMPTS", 3)
-NOTIFICATION_RETRY_DELAY_SECONDS = getattr(
-    settings, "NOTIFICATION_RETRY_DELAY_SECONDS", 60
-)
+NOTIFICATION_RETRY_DELAY_SECONDS = getattr(settings, "NOTIFICATION_RETRY_DELAY_SECONDS", 60)
 WEBHOOK_TIMEOUT_SECONDS = getattr(settings, "WEBHOOK_TIMEOUT_SECONDS", 30)
 MAX_RETRY_ATTEMPTS = getattr(settings, "MAX_RETRY_ATTEMPTS", 3)
 RETRY_DELAY_SECONDS = getattr(settings, "RETRY_DELAY_SECONDS", 60)
@@ -135,9 +133,7 @@ async def _process_new_alerts_async(processing_id: str) -> Dict[str, Any]:
                     await _schedule_alert_notifications(alert, processing_id)
                     results["notifications_scheduled"] += 1
                 except Exception as e:
-                    logger.error(
-                        f"[{processing_id}] Failed to process alert {alert.id}: {str(e)}"
-                    )
+                    logger.error(f"[{processing_id}] Failed to process alert {alert.id}: {str(e)}")
                     continue
 
             # Check for escalation candidates
@@ -156,9 +152,7 @@ async def _process_new_alerts_async(processing_id: str) -> Dict[str, Any]:
             raise
 
 
-async def _enrich_alert_context(
-    db: AsyncSession, alert: Alert, processing_id: str
-) -> None:
+async def _enrich_alert_context(db: AsyncSession, alert: Alert, processing_id: str) -> None:
     """Enrich alert with additional context data."""
     try:
         if not alert.metadata:
@@ -180,9 +174,7 @@ async def _enrich_alert_context(
 
         # Add vulnerability context if available
         if hasattr(alert, "vulnerability_id") and alert.vulnerability_id:
-            vuln_query = select(Vulnerability).where(
-                Vulnerability.id == alert.vulnerability_id
-            )
+            vuln_query = select(Vulnerability).where(Vulnerability.id == alert.vulnerability_id)
             vulnerability = (await db.execute(vuln_query)).scalar_one_or_none()
 
             if vulnerability:
@@ -214,9 +206,7 @@ async def _schedule_alert_notifications(alert: Alert, processing_id: str) -> Non
             )
             task_signature.apply_async(countdown=countdown)
 
-            logger.debug(
-                f"[{processing_id}] Scheduled {channel.value} notification for alert {alert.id}"
-            )
+            logger.debug(f"[{processing_id}] Scheduled {channel.value} notification for alert {alert.id}")
 
     except Exception as e:
         logger.error(f"[{processing_id}] Failed to schedule notifications: {str(e)}")
@@ -242,9 +232,7 @@ def _get_notification_channels_for_severity(severity: str) -> List[NotificationC
 
 async def _identify_escalation_candidates(db: AsyncSession) -> List[Alert]:
     """Identify alerts that should be escalated."""
-    escalation_threshold = datetime.now(timezone.utc) - timedelta(
-        minutes=ALERT_ESCALATION_DELAY_MINUTES
-    )
+    escalation_threshold = datetime.now(timezone.utc) - timedelta(minutes=ALERT_ESCALATION_DELAY_MINUTES)
 
     escalation_query = select(Alert).where(
         and_(
@@ -281,9 +269,7 @@ async def _trigger_alert_escalation(alert: Alert, processing_id: str) -> None:
     max_retries=NOTIFICATION_RETRY_ATTEMPTS,
     default_retry_delay=NOTIFICATION_RETRY_DELAY_SECONDS,
 )
-def deliver_alert_notification(
-    self, alert_id: int, channel: str, processing_id: str
-) -> Dict[str, Any]:
+def deliver_alert_notification(self, alert_id: int, channel: str, processing_id: str) -> Dict[str, Any]:
     """
     Deliver alert notification through specified channel.
 
@@ -309,11 +295,7 @@ def deliver_alert_notification(
     )
 
     try:
-        return asyncio.run(
-            _deliver_alert_notification_async(
-                alert_id, channel, processing_id, delivery_id
-            )
-        )
+        return asyncio.run(_deliver_alert_notification_async(alert_id, channel, processing_id, delivery_id))
 
     except Exception as e:
         logger.error(
@@ -369,9 +351,7 @@ async def _deliver_alert_notification_async(
             elif channel == NotificationChannel.SLACK.value:
                 delivery_result = await _deliver_slack_notification(alert, delivery_id)
             elif channel == NotificationChannel.WEBHOOK.value:
-                delivery_result = await _deliver_webhook_notification(
-                    alert, delivery_id
-                )
+                delivery_result = await _deliver_webhook_notification(alert, delivery_id)
             elif channel == NotificationChannel.SMS.value:
                 delivery_result = await _deliver_sms_notification(alert, delivery_id)
             else:
@@ -453,9 +433,7 @@ async def _deliver_email_notification(alert: Alert, delivery_id: str) -> Dict[st
 
             server.send_message(msg)
 
-        logger.info(
-            f"[{delivery_id}] Email sent successfully to {len(recipients)} recipients"
-        )
+        logger.info(f"[{delivery_id}] Email sent successfully to {len(recipients)} recipients")
 
         return {"success": True, "recipients": recipients, "subject": subject}
 
@@ -511,9 +489,7 @@ async def _deliver_slack_notification(alert: Alert, delivery_id: str) -> Dict[st
         }
 
         # Send to Slack
-        response = requests.post(
-            slack_webhook_url, json=payload, timeout=WEBHOOK_TIMEOUT_SECONDS
-        )
+        response = requests.post(slack_webhook_url, json=payload, timeout=WEBHOOK_TIMEOUT_SECONDS)
 
         response.raise_for_status()
 
@@ -526,9 +502,7 @@ async def _deliver_slack_notification(alert: Alert, delivery_id: str) -> Dict[st
         return {"success": False, "error": str(e)}
 
 
-async def _deliver_webhook_notification(
-    alert: Alert, delivery_id: str
-) -> Dict[str, Any]:
+async def _deliver_webhook_notification(alert: Alert, delivery_id: str) -> Dict[str, Any]:
     """Deliver webhook notification for alert."""
     try:
         webhook_url = getattr(settings, "alert_webhook_url", None)
@@ -579,9 +553,7 @@ async def _deliver_sms_notification(alert: Alert, delivery_id: str) -> Dict[str,
 
         message = f"SecureOps Alert: {alert.severity.upper()} - {alert.title[:100]}"
 
-        logger.info(
-            f"[{delivery_id}] SMS would be sent to {len(sms_recipients)} recipients: {message}"
-        )
+        logger.info(f"[{delivery_id}] SMS would be sent to {len(sms_recipients)} recipients: {message}")
 
         return {
             "success": True,
@@ -648,7 +620,7 @@ def _generate_email_html(alert: Alert) -> str:
         <div class="alert-body">
             <h3>{alert.title}</h3>
             <p>{alert.description}</p>
-            
+
             <div class="alert-meta">
                 <p><strong>Alert ID:</strong> {alert.id}</p>
                 <p><strong>Type:</strong> {alert.alert_type}</p>
@@ -688,22 +660,14 @@ This alert was generated by SecureOps AI security monitoring system.
     max_retries=NOTIFICATION_RETRY_ATTEMPTS,
     default_retry_delay=NOTIFICATION_RETRY_DELAY_SECONDS,
 )
-def deliver_escalation_notification(
-    self, alert_id: int, channel: str, processing_id: str
-) -> Dict[str, Any]:
+def deliver_escalation_notification(self, alert_id: int, channel: str, processing_id: str) -> Dict[str, Any]:
     """Deliver escalation notification for unacknowledged critical alerts."""
     escalation_id = str(uuid.uuid4())
 
-    logger.warning(
-        f"[{escalation_id}] Delivering escalation {channel} notification for alert {alert_id}"
-    )
+    logger.warning(f"[{escalation_id}] Delivering escalation {channel} notification for alert {alert_id}")
 
     try:
-        return asyncio.run(
-            _deliver_escalation_notification_async(
-                alert_id, channel, processing_id, escalation_id
-            )
-        )
+        return asyncio.run(_deliver_escalation_notification_async(alert_id, channel, processing_id, escalation_id))
 
     except Exception as e:
         logger.error(f"[{escalation_id}] Escalation notification failed: {str(e)}")
@@ -734,24 +698,16 @@ async def _deliver_escalation_notification_async(
 
             # Deliver escalation notification
             if channel == NotificationChannel.EMAIL.value:
-                delivery_result = await _deliver_email_notification(
-                    escalation_alert, escalation_id
-                )
+                delivery_result = await _deliver_email_notification(escalation_alert, escalation_id)
             elif channel == NotificationChannel.SLACK.value:
-                delivery_result = await _deliver_slack_notification(
-                    escalation_alert, escalation_id
-                )
+                delivery_result = await _deliver_slack_notification(escalation_alert, escalation_id)
             elif channel == NotificationChannel.SMS.value:
-                delivery_result = await _deliver_sms_notification(
-                    escalation_alert, escalation_id
-                )
+                delivery_result = await _deliver_sms_notification(escalation_alert, escalation_id)
             else:
                 raise ValueError(f"Escalation not supported for channel: {channel}")
 
             # Update alert metadata with escalation info
-            await _update_alert_escalation_tracking(
-                db, alert, escalation_id, channel, delivery_result
-            )
+            await _update_alert_escalation_tracking(db, alert, escalation_id, channel, delivery_result)
             await db.commit()
 
             result = {

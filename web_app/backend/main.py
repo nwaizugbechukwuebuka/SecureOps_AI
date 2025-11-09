@@ -3,6 +3,7 @@ SecureOps AI Backend - Main Application
 Clean FastAPI application with modular router architecture
 """
 
+from datetime import datetime
 import os
 import logging
 from contextlib import asynccontextmanager
@@ -30,8 +31,7 @@ from models_enhanced import Base as EnhancedBase
 
 # Configure logging
 logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper()),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=getattr(logging, settings.log_level.upper()), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("SecureOps-AI")
 
@@ -39,47 +39,46 @@ logger = logging.getLogger("SecureOps-AI")
 security_logger = SecurityLogger()
 
 # Application lifecycle
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown events"""
-    
+
     # Startup
     logger.info("🚀 Starting SecureOps AI Backend with Enhanced Security...")
-    
+
     # Create database tables
     try:
         # Create both original and enhanced tables
         Base.metadata.create_all(bind=engine)
         EnhancedBase.metadata.create_all(bind=engine)
         logger.info("✅ Database tables created successfully")
-        
+
         # Initialize database and create default users if they don't exist
         init_database()
         logger.info("✅ Database and default users initialized")
-        
+
         # Log application startup
         await security_logger.log_system_event(
-            "application_startup",
-            "SecureOps AI backend started with enhanced security features",
-            risk_level="low"
+            "application_startup", "SecureOps AI backend started with enhanced security features", risk_level="low"
         )
-        
+
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
         raise
-    
+
     logger.info(f"🔐 SecureOps AI Backend started on {settings.host}:{settings.port}")
     logger.info("🛡️ Security features: JWT+MFA, RBAC, Audit Logging, Rate Limiting")
-    
+
     yield  # Application runs here
-    
+
     # Shutdown
     logger.info("🛑 Shutting down SecureOps AI Backend...")
     await security_logger.log_system_event(
-        "application_shutdown",
-        "SecureOps AI backend shutdown gracefully",
-        risk_level="low"
+        "application_shutdown", "SecureOps AI backend shutdown gracefully", risk_level="low"
     )
+
 
 # Create FastAPI application
 app = FastAPI(
@@ -94,20 +93,19 @@ app = FastAPI(
     swagger_ui_parameters={
         "persistAuthorization": True,
         "displayRequestDuration": True,
-    }
+    },
 )
 
 # Enhanced Security Middleware
-from fastapi import Request, Response
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from datetime import datetime
 
 # Security headers middleware
+
+
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     """Add security headers to all responses"""
     response = await call_next(request)
-    
+
     # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -115,7 +113,7 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    
+
     # Content Security Policy
     csp = (
         "default-src 'self'; "
@@ -129,22 +127,25 @@ async def security_headers_middleware(request: Request, call_next):
         "frame-src 'none';"
     )
     response.headers["Content-Security-Policy"] = csp
-    
+
     return response
 
+
 # Request logging middleware
+
+
 @app.middleware("http")
 async def request_logging_middleware(request: Request, call_next):
     """Log all requests for security monitoring"""
     start_time = datetime.now()
-    
+
     # Get client IP (consider proxy headers)
     client_ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
-    
+
     response = await call_next(request)
-    
+
     process_time = (datetime.now() - start_time).total_seconds()
-    
+
     # Log security-sensitive requests
     sensitive_paths = ["/auth/", "/users/", "/admin/"]
     if any(path in str(request.url) for path in sensitive_paths):
@@ -154,10 +155,11 @@ async def request_logging_middleware(request: Request, call_next):
             response.status_code,
             client_ip,
             user_id=getattr(request.state, "user_id", None),
-            risk_level="medium" if response.status_code >= 400 else "low"
+            risk_level="medium" if response.status_code >= 400 else "low",
         )
-    
+
     return response
+
 
 # Add middleware
 app.add_middleware(
@@ -176,27 +178,25 @@ app.add_middleware(
         "127.0.0.1",
         "0.0.0.0",
         "*.localhost",
-    ]
+    ],
 )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Global exception handler
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
     return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "success": False,
-            "message": exc.detail,
-            "status_code": exc.status_code
-        }
+        status_code=exc.status_code, content={"success": False, "message": exc.detail, "status_code": exc.status_code}
     )
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """Enhanced global exception handler with security logging"""
-    
+
     # Log security incidents
     await security_logger.log_security_incident(
         "application_error",
@@ -206,22 +206,25 @@ async def global_exception_handler(request, exc):
             "url": str(request.url),
             "client_ip": request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown"),
         },
-        risk_level="high"
+        risk_level="high",
     )
-    
+
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "success": False,
             "message": "Internal server error",
             "status_code": 500,
-            "error_id": datetime.now().isoformat()
-        }
+            "error_id": datetime.now().isoformat(),
+        },
     )
 
+
 # Health and Status Endpoints
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring and connection testing"""
@@ -230,8 +233,9 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "service": "SecureOps AI Backend",
         "version": "2.0.0",
-        "environment": os.getenv("ENVIRONMENT", "development")
+        "environment": os.getenv("ENVIRONMENT", "development"),
     }
+
 
 @app.get("/security-status")
 async def security_status():
@@ -239,41 +243,30 @@ async def security_status():
     return {
         "security_features": {
             "authentication": "JWT with MFA",
-            "authorization": "Role-Based Access Control (RBAC)", 
+            "authorization": "Role-Based Access Control (RBAC)",
             "audit_logging": "Comprehensive",
             "rate_limiting": "Enabled",
             "encryption": "TLS/HTTPS",
             "session_management": "Secure cookies",
-            "password_policy": "Enterprise-grade"
+            "password_policy": "Enterprise-grade",
         },
         "compliance": {
             "security_headers": "Enabled",
             "csp": "Enabled",
             "cors": "Configured",
-            "trusted_hosts": "Enabled"
+            "trusted_hosts": "Enabled",
         },
-        "monitoring": {
-            "request_logging": "Enabled",
-            "security_events": "Enabled", 
-            "audit_trail": "Enabled"
-        }
+        "monitoring": {"request_logging": "Enabled", "security_events": "Enabled", "audit_trail": "Enabled"},
     }
+
 
 # Include enhanced routers
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(users_router, prefix="/users", tags=["User Management"])
 app.include_router(dashboard_router, prefix="/dashboard", tags=["Security Dashboard"])
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "SecureOps AI Backend",
-        "version": "2.0.0",
-        "environment": os.getenv("ENVIRONMENT", "development")
-    }
+# Root endpoint
+
 
 @app.get("/")
 async def root():
@@ -282,45 +275,44 @@ async def root():
         "message": "SecureOps AI - Enterprise Security Platform API",
         "version": "2.0.0",
         "documentation": "/api/docs",
-        "security_status": "/security-status", 
+        "security_status": "/security-status",
         "health": "/health",
-        "endpoints": {
-            "authentication": "/auth",
-            "user_management": "/users",
-            "security_dashboard": "/dashboard"
-        },
+        "endpoints": {"authentication": "/auth", "user_management": "/users", "security_dashboard": "/dashboard"},
         "features": [
             "JWT Authentication with MFA",
             "Role-Based Access Control (RBAC)",
-            "Comprehensive Audit Logging", 
+            "Comprehensive Audit Logging",
             "Rate Limiting & Brute Force Protection",
             "Enterprise Security Headers",
-            "Real-time Security Monitoring"
-        ]
+            "Real-time Security Monitoring",
+        ],
     }
 
+
 # WebSocket manager for real-time updates
+
+
 class ConnectionManager:
     """Manage WebSocket connections for real-time updates"""
-    
+
     def __init__(self):
         self.active_connections: List[WebSocket] = []
-    
+
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
         logger.info(f"WebSocket connected. Total connections: {len(self.active_connections)}")
-    
+
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
         logger.info(f"WebSocket disconnected. Total connections: {len(self.active_connections)}")
-    
+
     async def broadcast(self, data: Dict[str, Any]):
         """Broadcast data to all connected clients"""
         if not self.active_connections:
             return
-            
+
         disconnected = []
         for connection in self.active_connections:
             try:
@@ -328,19 +320,21 @@ class ConnectionManager:
             except Exception as e:
                 logger.error(f"Failed to send data to WebSocket: {e}")
                 disconnected.append(connection)
-        
+
         # Remove disconnected clients
         for connection in disconnected:
             self.disconnect(connection)
 
+
 # WebSocket manager instance
 manager = ConnectionManager()
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates"""
     await manager.connect(websocket)
-    
+
     try:
         while True:
             # Keep connection alive
@@ -350,15 +344,16 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         manager.disconnect(websocket)
 
+
 # Development server
 if __name__ == "__main__":
     import uvicorn
-    
+
     # Configure uvicorn logging
     log_config = uvicorn.config.LOGGING_CONFIG
     log_config["formatters"]["default"]["fmt"] = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     log_config["formatters"]["access"]["fmt"] = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    
+
     # Run the application
     uvicorn.run(
         "main:app",
@@ -366,5 +361,5 @@ if __name__ == "__main__":
         port=settings.port,
         reload=settings.debug,
         log_config=log_config,
-        access_log=True
+        access_log=True,
     )

@@ -15,9 +15,7 @@ class WorkflowExecutor:
     def __init__(self):
         self.logger = logging.getLogger("WorkflowExecutor")
 
-    async def execute(
-        self, tasks: List[Callable[..., Any]], *args, **kwargs
-    ) -> List[Any]:
+    async def execute(self, tasks: List[Callable[..., Any]], *args, **kwargs) -> List[Any]:
         """
         Execute a list of tasks in sequence. Supports async and sync callables.
         """

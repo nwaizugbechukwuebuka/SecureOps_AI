@@ -18,8 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from ..utils.config import settings
 from ..utils.logger import get_logger
-from .common import (BaseScanner, FileTypeDetector, ScannerType, ScanResult,
-                     ScanSummary, SeverityLevel, orchestrator)
+from .common import BaseScanner, FileTypeDetector, ScannerType, ScanResult, ScanSummary, SeverityLevel, orchestrator
 
 logger = get_logger(__name__)
 
@@ -34,9 +33,7 @@ class SafetyScanner(BaseScanner):
     def is_available(self) -> bool:
         """Check if Safety is available."""
         try:
-            result = subprocess.run(
-                ["safety", "--version"], capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(["safety", "--version"], capture_output=True, text=True, timeout=10)
             return result.returncode == 0
         except Exception:
             return False
@@ -70,9 +67,7 @@ class SafetyScanner(BaseScanner):
         except Exception as e:
             error_msg = f"Safety scan failed: {e}"
             self.logger.error(error_msg)
-            summary = self._create_summary(
-                target, started_at, success=False, error_message=error_msg
-            )
+            summary = self._create_summary(target, started_at, success=False, error_message=error_msg)
             return summary, []
 
     def _find_requirements_files(self, target: str) -> List[str]:
@@ -80,9 +75,7 @@ class SafetyScanner(BaseScanner):
         req_files = []
 
         if os.path.isfile(target):
-            if target.endswith(
-                ("requirements.txt", "Pipfile", "pyproject.toml", "setup.py")
-            ):
+            if target.endswith(("requirements.txt", "Pipfile", "pyproject.toml", "setup.py")):
                 return [target]
             return []
 
@@ -100,12 +93,7 @@ class SafetyScanner(BaseScanner):
 
         for root, dirs, files in os.walk(target):
             # Skip virtual environments and build directories
-            dirs[:] = [
-                d
-                for d in dirs
-                if d
-                not in {"venv", ".venv", "__pycache__", "node_modules", "build", "dist"}
-            ]
+            dirs[:] = [d for d in dirs if d not in {"venv", ".venv", "__pycache__", "node_modules", "build", "dist"}]
 
             for file in files:
                 if any(file.endswith(pattern.split("/")[-1]) for pattern in patterns):
@@ -128,9 +116,7 @@ class SafetyScanner(BaseScanner):
             return_code, stdout, stderr = await self._run_command(command)
 
             if return_code != 0 and not stdout:
-                self.logger.warning(
-                    f"Safety scan of {req_file} returned code {return_code}: {stderr}"
-                )
+                self.logger.warning(f"Safety scan of {req_file} returned code {return_code}: {stderr}")
                 return results
 
             # Parse JSON output
@@ -161,9 +147,7 @@ class SafetyScanner(BaseScanner):
             return_code, stdout, stderr = await self._run_command(command, cwd=target)
 
             if return_code != 0 and not stdout:
-                self.logger.warning(
-                    f"Safety scan returned code {return_code}: {stderr}"
-                )
+                self.logger.warning(f"Safety scan returned code {return_code}: {stderr}")
                 return results
 
             # Parse JSON output
@@ -215,11 +199,7 @@ class SafetyScanner(BaseScanner):
                     file_path=source,
                     cve_id=cve if cve else None,
                     remediation=f"Update {package_name} to a version not in: {', '.join(affected_versions) if affected_versions else 'latest version'}",
-                    references=(
-                        [f"https://osv.dev/vulnerability/{vulnerability_id}"]
-                        if vulnerability_id
-                        else []
-                    ),
+                    references=([f"https://osv.dev/vulnerability/{vulnerability_id}"] if vulnerability_id else []),
                     metadata={
                         "package_name": package_name,
                         "installed_version": installed_version,
@@ -284,9 +264,7 @@ class BanditScanner(BaseScanner):
     def is_available(self) -> bool:
         """Check if Bandit is available."""
         try:
-            result = subprocess.run(
-                ["bandit", "--version"], capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(["bandit", "--version"], capture_output=True, text=True, timeout=10)
             return result.returncode == 0
         except Exception:
             return False
@@ -310,9 +288,7 @@ class BanditScanner(BaseScanner):
                 return summary, []
 
             # Run Bandit scan
-            results = await self._run_bandit_scan(
-                target, confidence_level, severity_level
-            )
+            results = await self._run_bandit_scan(target, confidence_level, severity_level)
 
             summary = self._create_summary(target, started_at, success=True)
 
@@ -326,9 +302,7 @@ class BanditScanner(BaseScanner):
         except Exception as e:
             error_msg = f"Bandit scan failed: {e}"
             self.logger.error(error_msg)
-            summary = self._create_summary(
-                target, started_at, success=False, error_message=error_msg
-            )
+            summary = self._create_summary(target, started_at, success=False, error_message=error_msg)
             return summary, []
 
     def _find_python_files(self, target: str) -> List[str]:
@@ -342,9 +316,7 @@ class BanditScanner(BaseScanner):
             if FileTypeDetector.get_file_language(file_path) == "python"
         ]
 
-    async def _run_bandit_scan(
-        self, target: str, confidence: str, severity: str
-    ) -> List[ScanResult]:
+    async def _run_bandit_scan(self, target: str, confidence: str, severity: str) -> List[ScanResult]:
         """Run Bandit scan and parse results."""
         results = []
 
@@ -423,9 +395,7 @@ class BanditScanner(BaseScanner):
                     code_snippet=code,
                     cwe_id=cwe_id,
                     remediation=self._get_remediation_for_test(test_id),
-                    references=[
-                        f"https://bandit.readthedocs.io/en/latest/plugins/{test_id.lower()}.html"
-                    ],
+                    references=[f"https://bandit.readthedocs.io/en/latest/plugins/{test_id.lower()}.html"],
                     metadata={
                         "test_id": test_id,
                         "test_name": test_name,
@@ -554,9 +524,7 @@ class BanditScanner(BaseScanner):
             "B608": "Use parameterized queries to prevent SQL injection",
         }
 
-        return remediation_mapping.get(
-            test_id, "Refer to Bandit documentation for specific remediation steps"
-        )
+        return remediation_mapping.get(test_id, "Refer to Bandit documentation for specific remediation steps")
 
 
 class PipAuditScanner(BaseScanner):
@@ -568,9 +536,7 @@ class PipAuditScanner(BaseScanner):
     def is_available(self) -> bool:
         """Check if pip-audit is available."""
         try:
-            result = subprocess.run(
-                ["pip-audit", "--version"], capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(["pip-audit", "--version"], capture_output=True, text=True, timeout=10)
             return result.returncode == 0
         except Exception:
             return False
@@ -586,9 +552,7 @@ class PipAuditScanner(BaseScanner):
 
             if req_files:
                 for req_file in req_files:
-                    file_results = await self._scan_requirements_with_pip_audit(
-                        req_file
-                    )
+                    file_results = await self._scan_requirements_with_pip_audit(req_file)
                     results.extend(file_results)
             else:
                 # Scan installed packages
@@ -606,14 +570,10 @@ class PipAuditScanner(BaseScanner):
         except Exception as e:
             error_msg = f"pip-audit scan failed: {e}"
             self.logger.error(error_msg)
-            summary = self._create_summary(
-                target, started_at, success=False, error_message=error_msg
-            )
+            summary = self._create_summary(target, started_at, success=False, error_message=error_msg)
             return summary, []
 
-    async def _scan_requirements_with_pip_audit(
-        self, req_file: str
-    ) -> List[ScanResult]:
+    async def _scan_requirements_with_pip_audit(self, req_file: str) -> List[ScanResult]:
         """Scan requirements file with pip-audit."""
         results = []
 
@@ -655,9 +615,7 @@ class PipAuditScanner(BaseScanner):
 
         return results
 
-    def _parse_pip_audit_output(
-        self, audit_data: Dict[str, Any], source: str
-    ) -> List[ScanResult]:
+    def _parse_pip_audit_output(self, audit_data: Dict[str, Any], source: str) -> List[ScanResult]:
         """Parse pip-audit JSON output into ScanResult objects."""
         results = []
 
@@ -686,11 +644,7 @@ class PipAuditScanner(BaseScanner):
                         confidence=0.9,
                         file_path=source,
                         remediation=f"Update {package_name} to version: {', '.join(fix_versions) if fix_versions else 'latest'}",
-                        references=(
-                            [f"https://osv.dev/vulnerability/{vuln_id}"]
-                            if vuln_id
-                            else []
-                        ),
+                        references=([f"https://osv.dev/vulnerability/{vuln_id}"] if vuln_id else []),
                         metadata={
                             "package_name": package_name,
                             "installed_version": package_version,

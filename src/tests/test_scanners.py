@@ -93,9 +93,7 @@ class TestDockerScanner:
             "Results": [
                 {
                     "Target": "node:14-alpine",
-                    "Vulnerabilities": [
-                        {"VulnerabilityID": "CVE-2023-1234", "Severity": "HIGH"}
-                    ],
+                    "Vulnerabilities": [{"VulnerabilityID": "CVE-2023-1234", "Severity": "HIGH"}],
                 }
             ]
         }

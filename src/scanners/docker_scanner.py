@@ -19,8 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from ..utils.config import settings
 from ..utils.logger import get_logger
-from .common import (BaseScanner, ScannerType, ScanResult, ScanSummary,
-                     SeverityLevel, orchestrator)
+from .common import BaseScanner, ScannerType, ScanResult, ScanSummary, SeverityLevel, orchestrator
 
 logger = get_logger(__name__)
 
@@ -35,9 +34,7 @@ class TrivyScanner(BaseScanner):
     def is_available(self) -> bool:
         """Check if Trivy is available."""
         try:
-            result = subprocess.run(
-                ["trivy", "--version"], capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(["trivy", "--version"], capture_output=True, text=True, timeout=10)
             return result.returncode == 0
         except Exception:
             return False
@@ -74,9 +71,7 @@ class TrivyScanner(BaseScanner):
         except Exception as e:
             error_msg = f"Trivy scan failed: {e}"
             self.logger.error(error_msg)
-            summary = self._create_summary(
-                target, started_at, success=False, error_message=error_msg
-            )
+            summary = self._create_summary(target, started_at, success=False, error_message=error_msg)
             return summary, []
 
     def _detect_scan_type(self, target: str) -> str:
@@ -118,9 +113,7 @@ class TrivyScanner(BaseScanner):
             ]
 
             # Add security checks
-            security_checks = kwargs.get(
-                "security_checks", ["vuln", "config", "secret"]
-            )
+            security_checks = kwargs.get("security_checks", ["vuln", "config", "secret"])
             if security_checks:
                 command.extend(["--security-checks", ",".join(security_checks)])
 
@@ -129,9 +122,7 @@ class TrivyScanner(BaseScanner):
             command.extend(["--severity", severity_filter])
 
             # Run Trivy scan
-            return_code, stdout, stderr = await self._run_command(
-                command, timeout=600
-            )  # 10 minutes timeout
+            return_code, stdout, stderr = await self._run_command(command, timeout=600)  # 10 minutes timeout
 
             if stdout.strip():
                 try:
@@ -165,9 +156,7 @@ class TrivyScanner(BaseScanner):
             ]
 
             # Add security checks
-            security_checks = kwargs.get(
-                "security_checks", ["vuln", "secret", "config"]
-            )
+            security_checks = kwargs.get("security_checks", ["vuln", "secret", "config"])
             if security_checks:
                 command.extend(["--security-checks", ",".join(security_checks)])
 
@@ -225,9 +214,7 @@ class TrivyScanner(BaseScanner):
 
         return results
 
-    def _parse_trivy_output(
-        self, trivy_data: Dict[str, Any], target: str
-    ) -> List[ScanResult]:
+    def _parse_trivy_output(self, trivy_data: Dict[str, Any], target: str) -> List[ScanResult]:
         """Parse Trivy JSON output into ScanResult objects."""
         results = []
 
@@ -242,36 +229,24 @@ class TrivyScanner(BaseScanner):
                 # Process vulnerabilities
                 vulnerabilities = result.get("Vulnerabilities", [])
                 for vuln in vulnerabilities:
-                    results.append(
-                        self._create_vulnerability_result(
-                            vuln, target_name, result_type
-                        )
-                    )
+                    results.append(self._create_vulnerability_result(vuln, target_name, result_type))
 
                 # Process misconfigurations
                 misconfigurations = result.get("Misconfigurations", [])
                 for misconf in misconfigurations:
-                    results.append(
-                        self._create_misconfiguration_result(
-                            misconf, target_name, result_type
-                        )
-                    )
+                    results.append(self._create_misconfiguration_result(misconf, target_name, result_type))
 
                 # Process secrets
                 secrets = result.get("Secrets", [])
                 for secret in secrets:
-                    results.append(
-                        self._create_secret_result(secret, target_name, result_type)
-                    )
+                    results.append(self._create_secret_result(secret, target_name, result_type))
 
         except Exception as e:
             self.logger.error(f"Failed to parse Trivy output: {e}")
 
         return results
 
-    def _create_vulnerability_result(
-        self, vuln: Dict[str, Any], target: str, result_type: str
-    ) -> ScanResult:
+    def _create_vulnerability_result(self, vuln: Dict[str, Any], target: str, result_type: str) -> ScanResult:
         """Create ScanResult for vulnerability."""
         vuln_id = vuln.get("VulnerabilityID", "")
         pkg_name = vuln.get("PkgName", "")
@@ -332,9 +307,7 @@ class TrivyScanner(BaseScanner):
             },
         )
 
-    def _create_misconfiguration_result(
-        self, misconf: Dict[str, Any], target: str, result_type: str
-    ) -> ScanResult:
+    def _create_misconfiguration_result(self, misconf: Dict[str, Any], target: str, result_type: str) -> ScanResult:
         """Create ScanResult for misconfiguration."""
         rule_id = misconf.get("ID", "")
         title = misconf.get("Title", "")
@@ -361,9 +334,7 @@ class TrivyScanner(BaseScanner):
             if code and "Lines" in code:
                 lines = code["Lines"]
                 if lines:
-                    code_snippet = "\n".join(
-                        [line.get("Content", "") for line in lines[:10]]
-                    )  # Limit to 10 lines
+                    code_snippet = "\n".join([line.get("Content", "") for line in lines[:10]])  # Limit to 10 lines
 
         # Get remediation
         resolution = misconf.get("Resolution", "")
@@ -398,9 +369,7 @@ class TrivyScanner(BaseScanner):
             },
         )
 
-    def _create_secret_result(
-        self, secret: Dict[str, Any], target: str, result_type: str
-    ) -> ScanResult:
+    def _create_secret_result(self, secret: Dict[str, Any], target: str, result_type: str) -> ScanResult:
         """Create ScanResult for exposed secret."""
         rule_id = secret.get("RuleID", "")
         category = secret.get("Category", "")
@@ -473,9 +442,7 @@ class TrivyScanner(BaseScanner):
 
         masked_content = content
         for pattern, replacement in patterns:
-            masked_content = re.sub(
-                pattern, replacement, masked_content, flags=re.IGNORECASE
-            )
+            masked_content = re.sub(pattern, replacement, masked_content, flags=re.IGNORECASE)
 
         return masked_content
 
@@ -532,9 +499,7 @@ class DockerBenchScanner(BaseScanner):
         except Exception as e:
             error_msg = f"Docker Bench scan failed: {e}"
             self.logger.error(error_msg)
-            summary = self._create_summary(
-                "docker-host", started_at, success=False, error_message=error_msg
-            )
+            summary = self._create_summary("docker-host", started_at, success=False, error_message=error_msg)
             return summary, []
 
     async def _run_docker_bench(self) -> List[ScanResult]:
@@ -568,9 +533,7 @@ class DockerBenchScanner(BaseScanner):
 
         return results
 
-    def _parse_docker_bench_result(
-        self, bench_data: Dict[str, Any]
-    ) -> Optional[ScanResult]:
+    def _parse_docker_bench_result(self, bench_data: Dict[str, Any]) -> Optional[ScanResult]:
         """Parse Docker Bench result into ScanResult."""
         try:
             test_id = bench_data.get("id", "")
@@ -581,9 +544,7 @@ class DockerBenchScanner(BaseScanner):
             if result_status not in ["WARN", "FAIL"]:
                 return None
 
-            severity = (
-                SeverityLevel.MEDIUM if result_status == "WARN" else SeverityLevel.HIGH
-            )
+            severity = SeverityLevel.MEDIUM if result_status == "WARN" else SeverityLevel.HIGH
 
             return ScanResult(
                 scanner_type=ScannerType.CONTAINER,
@@ -615,9 +576,7 @@ class HadolintScanner(BaseScanner):
     def is_available(self) -> bool:
         """Check if Hadolint is available."""
         try:
-            result = subprocess.run(
-                ["hadolint", "--version"], capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(["hadolint", "--version"], capture_output=True, text=True, timeout=10)
             return result.returncode == 0
         except Exception:
             return False
@@ -653,9 +612,7 @@ class HadolintScanner(BaseScanner):
         except Exception as e:
             error_msg = f"Hadolint scan failed: {e}"
             self.logger.error(error_msg)
-            summary = self._create_summary(
-                target, started_at, success=False, error_message=error_msg
-            )
+            summary = self._create_summary(target, started_at, success=False, error_message=error_msg)
             return summary, []
 
     def _find_dockerfiles(self, target: str) -> List[str]:
@@ -668,9 +625,7 @@ class HadolintScanner(BaseScanner):
         dockerfiles = []
         for root, dirs, files in os.walk(target):
             for file in files:
-                if file.lower() in ["dockerfile", "containerfile"] or file.startswith(
-                    "Dockerfile."
-                ):
+                if file.lower() in ["dockerfile", "containerfile"] or file.startswith("Dockerfile."):
                     dockerfiles.append(os.path.join(root, file))
 
         return dockerfiles
@@ -699,9 +654,7 @@ class HadolintScanner(BaseScanner):
 
         return results
 
-    def _parse_hadolint_issue(
-        self, issue: Dict[str, Any], dockerfile: str
-    ) -> Optional[ScanResult]:
+    def _parse_hadolint_issue(self, issue: Dict[str, Any], dockerfile: str) -> Optional[ScanResult]:
         """Parse Hadolint issue into ScanResult."""
         try:
             rule_code = issue.get("code", "")

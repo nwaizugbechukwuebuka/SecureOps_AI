@@ -185,9 +185,7 @@ class Settings:
         # Celery configuration
         self.celery = CeleryConfig(
             broker_url=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/1"),
-            result_backend=os.getenv(
-                "CELERY_RESULT_BACKEND", "redis://localhost:6379/1"
-            ),
+            result_backend=os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1"),
         )
 
         # Email configuration
@@ -202,12 +200,8 @@ class Settings:
 
         # Security configuration
         self.security = SecurityConfig(
-            secret_key=os.getenv(
-                "SECRET_KEY", "default-secret-key-change-in-production"
-            ),
-            access_token_expire_minutes=int(
-                os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
-            ),
+            secret_key=os.getenv("SECRET_KEY", "default-secret-key-change-in-production"),
+            access_token_expire_minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")),
             refresh_token_expire_days=int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7")),
         )
 
@@ -362,9 +356,7 @@ class Settings:
 
         # Validate required settings
         if self.security.secret_key == "default-secret-key-change-in-production":
-            issues.append(
-                "SECRET_KEY should be changed from default value in production"
-            )
+            issues.append("SECRET_KEY should be changed from default value in production")
 
         if self.environment == "production":
             if self.api.debug:
@@ -387,9 +379,7 @@ class Settings:
 
         active_integrations = [name for name, value in integrations.items() if value]
         if not active_integrations:
-            issues.append(
-                "No CI/CD integrations configured - limited functionality available"
-            )
+            issues.append("No CI/CD integrations configured - limited functionality available")
 
         return issues
 

@@ -20,8 +20,7 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple
 
 from ..utils.config import settings
 from ..utils.logger import get_logger
-from .common import (BaseScanner, FileTypeDetector, ScannerType, ScanResult,
-                     ScanSummary, SeverityLevel, orchestrator)
+from .common import BaseScanner, FileTypeDetector, ScannerType, ScanResult, ScanSummary, SeverityLevel, orchestrator
 
 logger = get_logger(__name__)
 
@@ -47,29 +46,19 @@ class SecretScanner(BaseScanner):
         """Initialize regex patterns for different secret types."""
         patterns = {
             "api_keys": [
-                re.compile(
-                    r'(?i)api[_-]?key\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{16,})["\']?'
-                ),
+                re.compile(r'(?i)api[_-]?key\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{16,})["\']?'),
                 re.compile(r'(?i)apikey\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{16,})["\']?'),
                 re.compile(r'(?i)x-api-key\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{16,})["\']?'),
             ],
             "aws_credentials": [
                 re.compile(r"AKIA[0-9A-Z]{16}"),  # AWS Access Key ID
-                re.compile(
-                    r'(?i)aws[_-]?access[_-]?key[_-]?id\s*[:=]\s*["\']?(AKIA[0-9A-Z]{16})["\']?'
-                ),
-                re.compile(
-                    r'(?i)aws[_-]?secret[_-]?access[_-]?key\s*[:=]\s*["\']?([a-zA-Z0-9+/]{40})["\']?'
-                ),
-                re.compile(
-                    r'(?i)aws[_-]?session[_-]?token\s*[:=]\s*["\']?([a-zA-Z0-9+/=]{100,})["\']?'
-                ),
+                re.compile(r'(?i)aws[_-]?access[_-]?key[_-]?id\s*[:=]\s*["\']?(AKIA[0-9A-Z]{16})["\']?'),
+                re.compile(r'(?i)aws[_-]?secret[_-]?access[_-]?key\s*[:=]\s*["\']?([a-zA-Z0-9+/]{40})["\']?'),
+                re.compile(r'(?i)aws[_-]?session[_-]?token\s*[:=]\s*["\']?([a-zA-Z0-9+/=]{100,})["\']?'),
             ],
             "google_api": [
                 re.compile(r"AIza[0-9A-Za-z_\-]{35}"),  # Google API Key
-                re.compile(
-                    r'(?i)google[_-]?api[_-]?key\s*[:=]\s*["\']?(AIza[0-9A-Za-z_\-]{35})["\']?'
-                ),
+                re.compile(r'(?i)google[_-]?api[_-]?key\s*[:=]\s*["\']?(AIza[0-9A-Za-z_\-]{35})["\']?'),
             ],
             "github_tokens": [
                 re.compile(r"ghp_[a-zA-Z0-9]{36}"),  # GitHub Personal Access Token
@@ -80,41 +69,25 @@ class SecretScanner(BaseScanner):
             ],
             "gitlab_tokens": [
                 re.compile(r"glpat-[a-zA-Z0-9_\-]{20}"),  # GitLab Personal Access Token
-                re.compile(
-                    r'(?i)gitlab[_-]?token\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?'
-                ),
+                re.compile(r'(?i)gitlab[_-]?token\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?'),
             ],
             "slack_tokens": [
                 re.compile(r"xox[baprs]-([0-9a-zA-Z]{10,48})"),  # Slack tokens
-                re.compile(
-                    r'(?i)slack[_-]?token\s*[:=]\s*["\']?(xox[baprs]-[0-9a-zA-Z]{10,48})["\']?'
-                ),
+                re.compile(r'(?i)slack[_-]?token\s*[:=]\s*["\']?(xox[baprs]-[0-9a-zA-Z]{10,48})["\']?'),
             ],
             "discord_tokens": [
-                re.compile(
-                    r"[MN][a-zA-Z\d]{23}\.[\w-]{6}\.[\w-]{27}"
-                ),  # Discord Bot Token
-                re.compile(
-                    r'(?i)discord[_-]?token\s*[:=]\s*["\']?([MN][a-zA-Z\d]{23}\.[\w-]{6}\.[\w-]{27})["\']?'
-                ),
+                re.compile(r"[MN][a-zA-Z\d]{23}\.[\w-]{6}\.[\w-]{27}"),  # Discord Bot Token
+                re.compile(r'(?i)discord[_-]?token\s*[:=]\s*["\']?([MN][a-zA-Z\d]{23}\.[\w-]{6}\.[\w-]{27})["\']?'),
             ],
             "jwt_tokens": [
-                re.compile(
-                    r"eyJ[a-zA-Z0-9_\-]*\.eyJ[a-zA-Z0-9_\-]*\.[a-zA-Z0-9_\-]*"
-                ),  # JWT Token
+                re.compile(r"eyJ[a-zA-Z0-9_\-]*\.eyJ[a-zA-Z0-9_\-]*\.[a-zA-Z0-9_\-]*"),  # JWT Token
             ],
             "database_urls": [
-                re.compile(
-                    r"(?i)(mysql|postgresql|mongodb|redis)://[^:\s]+:[^@\s]+@[^:\s]+:\d+"
-                ),
-                re.compile(
-                    r'(?i)database[_-]?url\s*[:=]\s*["\']?([a-z]+://[^:\s]+:[^@\s]+@[^:\s/]+[^\s"\']*)["\']?'
-                ),
+                re.compile(r"(?i)(mysql|postgresql|mongodb|redis)://[^:\s]+:[^@\s]+@[^:\s]+:\d+"),
+                re.compile(r'(?i)database[_-]?url\s*[:=]\s*["\']?([a-z]+://[^:\s]+:[^@\s]+@[^:\s/]+[^\s"\']*)["\']?'),
             ],
             "connection_strings": [
-                re.compile(
-                    r"(?i)server\s*=\s*[^;]+;\s*database\s*=\s*[^;]+;\s*uid\s*=\s*[^;]+;\s*pwd\s*=\s*[^;]+"
-                ),
+                re.compile(r"(?i)server\s*=\s*[^;]+;\s*database\s*=\s*[^;]+;\s*uid\s*=\s*[^;]+;\s*pwd\s*=\s*[^;]+"),
                 re.compile(
                     r"(?i)data\s+source\s*=\s*[^;]+;\s*initial\s+catalog\s*=\s*[^;]+;\s*user\s+id\s*=\s*[^;]+;\s*password\s*=\s*[^;]+"
                 ),
@@ -140,12 +113,8 @@ class SecretScanner(BaseScanner):
                 re.compile(r"pk_live_[0-9a-zA-Z]{24}"),  # Stripe Publishable Key
             ],
             "paypal_keys": [
-                re.compile(
-                    r'(?i)paypal.*client[_-]?id\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{80})["\']?'
-                ),
-                re.compile(
-                    r'(?i)paypal.*client[_-]?secret\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{80})["\']?'
-                ),
+                re.compile(r'(?i)paypal.*client[_-]?id\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{80})["\']?'),
+                re.compile(r'(?i)paypal.*client[_-]?secret\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{80})["\']?'),
             ],
             "mailgun_keys": [
                 re.compile(r"key-[0-9a-zA-Z]{32}"),  # Mailgun API Key
@@ -155,40 +124,28 @@ class SecretScanner(BaseScanner):
                 re.compile(r"SK[0-9a-f]{32}"),  # Twilio API Key SID
             ],
             "sendgrid_keys": [
-                re.compile(
-                    r"SG\.[a-zA-Z0-9_\-]{22}\.[a-zA-Z0-9_\-]{43}"
-                ),  # SendGrid API Key
+                re.compile(r"SG\.[a-zA-Z0-9_\-]{22}\.[a-zA-Z0-9_\-]{43}"),  # SendGrid API Key
             ],
             "square_keys": [
                 re.compile(r"sq0atp-[0-9A-Za-z\-_]{22}"),  # Square Access Token
                 re.compile(r"sq0csp-[0-9A-Za-z\-_]{43}"),  # Square Application Secret
             ],
             "facebook_tokens": [
-                re.compile(
-                    r'(?i)facebook.*access[_-]?token\s*[:=]\s*["\']?([a-zA-Z0-9]{32,})["\']?'
-                ),
+                re.compile(r'(?i)facebook.*access[_-]?token\s*[:=]\s*["\']?([a-zA-Z0-9]{32,})["\']?'),
             ],
             "twitter_tokens": [
-                re.compile(
-                    r'(?i)twitter.*api[_-]?key\s*[:=]\s*["\']?([a-zA-Z0-9]{25})["\']?'
-                ),
-                re.compile(
-                    r'(?i)twitter.*api[_-]?secret\s*[:=]\s*["\']?([a-zA-Z0-9]{50})["\']?'
-                ),
+                re.compile(r'(?i)twitter.*api[_-]?key\s*[:=]\s*["\']?([a-zA-Z0-9]{25})["\']?'),
+                re.compile(r'(?i)twitter.*api[_-]?secret\s*[:=]\s*["\']?([a-zA-Z0-9]{50})["\']?'),
             ],
             "heroku_keys": [
-                re.compile(
-                    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-                ),  # Heroku API Key
+                re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),  # Heroku API Key
             ],
             "shopify_tokens": [
                 re.compile(r"shpat_[a-fA-F0-9]{32}"),  # Shopify Private App Token
                 re.compile(r"shpca_[a-fA-F0-9]{32}"),  # Shopify Custom App Token
             ],
             "generic_secrets": [
-                re.compile(
-                    r'(?i)(secret|token|key|password|pwd|pass)\s*[:=]\s*["\']?([a-zA-Z0-9+/=]{20,})["\']?'
-                ),
+                re.compile(r'(?i)(secret|token|key|password|pwd|pass)\s*[:=]\s*["\']?([a-zA-Z0-9+/=]{20,})["\']?'),
             ],
         }
 
@@ -203,9 +160,7 @@ class SecretScanner(BaseScanner):
             re.compile(r"(?i)(<|>|\$\{|\{\{|%\(|%s|%d|\.\.\.)"),  # Template variables
             re.compile(r"^[0-9a-f]{40}$"),  # Git commit hashes
             re.compile(r"^[0-9]+$"),  # Purely numeric strings
-            re.compile(
-                r"^(true|false|null|undefined)$", re.IGNORECASE
-            ),  # Boolean/null values
+            re.compile(r"^(true|false|null|undefined)$", re.IGNORECASE),  # Boolean/null values
             re.compile(r"(localhost|127\.0\.0\.1|0\.0\.0\.0)"),  # Local addresses
         ]
 
@@ -247,9 +202,7 @@ class SecretScanner(BaseScanner):
         except Exception as e:
             error_msg = f"Secret scan failed: {e}"
             self.logger.error(error_msg)
-            summary = self._create_summary(
-                target, started_at, success=False, error_message=error_msg
-            )
+            summary = self._create_summary(target, started_at, success=False, error_message=error_msg)
             return summary, []
 
     def _get_scannable_files(self, target: str, max_file_size: int) -> List[str]:
@@ -301,9 +254,7 @@ class SecretScanner(BaseScanner):
         except Exception:
             return False
 
-    async def _scan_file(
-        self, file_path: str, check_entropy: bool = True
-    ) -> List[ScanResult]:
+    async def _scan_file(self, file_path: str, check_entropy: bool = True) -> List[ScanResult]:
         """Scan individual file for secrets."""
         results = []
 
@@ -315,22 +266,16 @@ class SecretScanner(BaseScanner):
                         continue
 
                     line = line.strip()
-                    if not line or line.startswith(
-                        "#"
-                    ):  # Skip empty lines and comments
+                    if not line or line.startswith("#"):  # Skip empty lines and comments
                         continue
 
                     # Pattern-based detection
-                    pattern_results = self._scan_line_with_patterns(
-                        line, file_path, line_num
-                    )
+                    pattern_results = self._scan_line_with_patterns(line, file_path, line_num)
                     results.extend(pattern_results)
 
                     # Entropy-based detection
                     if check_entropy:
-                        entropy_results = self._scan_line_with_entropy(
-                            line, file_path, line_num
-                        )
+                        entropy_results = self._scan_line_with_entropy(line, file_path, line_num)
                         results.extend(entropy_results)
 
         except Exception as e:
@@ -338,9 +283,7 @@ class SecretScanner(BaseScanner):
 
         return results
 
-    def _scan_line_with_patterns(
-        self, line: str, file_path: str, line_num: int
-    ) -> List[ScanResult]:
+    def _scan_line_with_patterns(self, line: str, file_path: str, line_num: int) -> List[ScanResult]:
         """Scan line using regex patterns."""
         results = []
 
@@ -362,18 +305,14 @@ class SecretScanner(BaseScanner):
                         title=f"Exposed {secret_type.replace('_', ' ').title()}",
                         description=f"Potential {secret_type.replace('_', ' ')} found in {file_path}",
                         severity=self._get_severity_for_secret_type(secret_type),
-                        confidence=self._calculate_pattern_confidence(
-                            secret_type, secret_value
-                        ),
+                        confidence=self._calculate_pattern_confidence(secret_type, secret_value),
                         file_path=file_path,
                         line_number=line_num,
                         code_snippet=self._mask_secret_in_line(line, secret_value),
                         remediation=self._get_remediation_for_secret_type(secret_type),
                         metadata={
                             "secret_type": secret_type,
-                            "secret_hash": hashlib.sha256(
-                                secret_value.encode()
-                            ).hexdigest()[:16],
+                            "secret_hash": hashlib.sha256(secret_value.encode()).hexdigest()[:16],
                             "detection_method": "pattern",
                             "pattern_matched": pattern.pattern[:100],
                         },
@@ -383,9 +322,7 @@ class SecretScanner(BaseScanner):
 
         return results
 
-    def _scan_line_with_entropy(
-        self, line: str, file_path: str, line_num: int
-    ) -> List[ScanResult]:
+    def _scan_line_with_entropy(self, line: str, file_path: str, line_num: int) -> List[ScanResult]:
         """Scan line using entropy analysis for high-entropy strings."""
         results = []
 
@@ -408,9 +345,7 @@ class SecretScanner(BaseScanner):
                 if self._is_likely_secret(secret_candidate):
 
                     confidence = min(0.9, entropy / 6.0)  # Scale entropy to confidence
-                    severity = (
-                        SeverityLevel.MEDIUM if entropy > 4.5 else SeverityLevel.LOW
-                    )
+                    severity = SeverityLevel.MEDIUM if entropy > 4.5 else SeverityLevel.LOW
 
                     result = ScanResult(
                         scanner_type=ScannerType.SECRET,
@@ -428,9 +363,7 @@ class SecretScanner(BaseScanner):
                             "entropy_score": entropy,
                             "detection_method": "entropy",
                             "string_length": len(secret_candidate),
-                            "secret_hash": hashlib.sha256(
-                                secret_candidate.encode()
-                            ).hexdigest()[:16],
+                            "secret_hash": hashlib.sha256(secret_candidate.encode()).hexdigest()[:16],
                         },
                     )
 
@@ -545,9 +478,7 @@ class SecretScanner(BaseScanner):
         else:
             return SeverityLevel.LOW
 
-    def _calculate_pattern_confidence(
-        self, secret_type: str, secret_value: str
-    ) -> float:
+    def _calculate_pattern_confidence(self, secret_type: str, secret_value: str) -> float:
         """Calculate confidence level for pattern-based detection."""
         base_confidence = 0.8
 

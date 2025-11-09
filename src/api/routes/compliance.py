@@ -1,10 +1,10 @@
 """Compliance management routes for SecureOps API."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -87,30 +87,22 @@ async def get_framework_details(
     framework_details = await compliance_service.get_framework_details(db, framework_id)
 
     if not framework_details:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Framework not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Framework not found")
 
     return framework_details
 
 
 @router.get("")
 async def get_compliance(
-    framework: str = Query(
-        None, description="Specific framework to get compliance for"
-    ),
+    framework: str = Query(None, description="Specific framework to get compliance for"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Get compliance data - overview or by framework"""
     if framework:
         # Get compliance for specific framework
-        logger.info(
-            f"Getting compliance for framework {framework} for user {current_user.id}"
-        )
-        framework_compliance = await compliance_service.get_framework_compliance(
-            db, framework, current_user.id
-        )
+        logger.info(f"Getting compliance for framework {framework} for user {current_user.id}")
+        framework_compliance = await compliance_service.get_framework_compliance(db, framework, current_user.id)
         return framework_compliance
     else:
         # Get overall compliance overview
@@ -127,14 +119,10 @@ async def run_compliance_assessment(
 ) -> Dict[str, Any]:
     """Run compliance assessment"""
     framework = assessment_data.get("framework")
-    logger.info(
-        f"Running compliance assessment for framework {framework} for user {current_user.id}"
-    )
+    logger.info(f"Running compliance assessment for framework {framework} for user {current_user.id}")
 
     # Run the assessment using the service
-    result = await compliance_service.run_assessment(
-        db, framework, current_user.id, assessment_data
-    )
+    result = await compliance_service.run_assessment(db, framework, current_user.id, assessment_data)
     return result
 
 
@@ -156,9 +144,7 @@ async def get_compliance_overview(
     }
 
 
-@router.get(
-    "/frameworks/{framework_id}/assessment", response_model=ComplianceAssessmentResponse
-)
+@router.get("/frameworks/{framework_id}/assessment", response_model=ComplianceAssessmentResponse)
 async def get_compliance_by_framework(
     framework_id: int,
     db: AsyncSession = Depends(get_db),
@@ -182,12 +168,12 @@ async def get_compliance_by_framework(
 
 @router.post("/frameworks/{framework_id}/assess")
 @router.post("/frameworks/{framework_id}/assess/")
-async def run_compliance_assessment(
+async def run_framework_assessment(
     framework_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Run compliance assessment"""
+    """Run compliance assessment for specific framework"""
     logger.info(f"Running compliance assessment for framework {framework_id}")
 
     return {
@@ -245,9 +231,7 @@ async def get_control_details(
     logger.info(f"Getting control {control_id} details")
 
     # Use the service function
-    result = await compliance_service.get_control_details(
-        db, "owasp_top_10", control_id, current_user.id
-    )
+    result = await compliance_service.get_control_details(db, "owasp_top_10", control_id, current_user.id)
     return result
 
 
@@ -265,9 +249,7 @@ async def generate_compliance_report_v2(
     logger.info(f"Generating compliance report for framework {framework_id}")
 
     # Use the service function
-    result = await compliance_service.generate_report(
-        db, framework_id, current_user.id, format, include_details
-    )
+    result = await compliance_service.generate_report(db, framework_id, current_user.id, format, include_details)
     return result
 
 
@@ -341,9 +323,7 @@ async def get_compliance_trends(
     logger.info(f"Getting compliance trends for {days} days")
 
     # Use the service function
-    result = await compliance_service.get_compliance_trends(
-        db, framework, current_user.id, days
-    )
+    result = await compliance_service.get_compliance_trends(db, framework, current_user.id, days)
     return result
 
 
@@ -359,9 +339,7 @@ async def configure_automation_v2(
     logger.info("Configuring automated compliance assessment")
 
     # Use the service function
-    result = await compliance_service.configure_automation(
-        db, framework_id, automation_config, current_user.id
-    )
+    result = await compliance_service.configure_automation(db, framework_id, automation_config, current_user.id)
     return result
 
 
@@ -482,7 +460,7 @@ async def validate_control_mapping(
 
 
 @router.post("/sync")
-async def sync_with_external_tools(
+async def sync_compliance_data(
     sync_data: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -493,60 +471,50 @@ async def sync_with_external_tools(
     logger.info(f"Syncing with {len(tool_configs)} external tools")
 
     # Use the service function
-    result = await compliance_service.sync_external_tools(
-        db, current_user.id, tool_configs
-    )
+    result = await compliance_service.sync_external_tools(db, current_user.id, tool_configs)
     return result
 
 
 @router.get("/export")
-async def export_compliance_data(
+async def export_framework_data(
     framework: str = Query(...),
     format: str = Query("json", pattern="^(json|csv|xml)$"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Export compliance data"""
-    logger.info(
-        f"Exporting compliance data for framework {framework} in {format} format"
-    )
+    """Export compliance data for specific framework"""
+    logger.info(f"Exporting compliance data for framework {framework} in {format} format")
 
     # Use the service function
-    result = await compliance_service.export_compliance_data(
-        db, framework, current_user.id, format
-    )
+    result = await compliance_service.export_compliance_data(db, framework, current_user.id, format)
     return result
 
 
 @router.post("/validate")
-async def validate_framework_config(
+async def validate_config_data(
     config_data: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Validate framework configuration"""
+    """Validate framework configuration data"""
     framework_id = config_data.get("framework", "owasp_top_10")
 
     logger.info(f"Validating framework configuration for {framework_id}")
 
     # Use the service function
-    result = await compliance_service.validate_framework_config(
-        db, framework_id, config_data, current_user.id
-    )
+    result = await compliance_service.validate_framework_config(db, framework_id, config_data, current_user.id)
     return result
 
 
 @router.post("/validate-mapping")
-async def validate_control_mapping(
+async def validate_mapping_data(
     mapping_data: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Validate control mapping"""
+    """Validate control mapping data"""
     logger.info("Validating control mapping")
 
     # Use the service function
-    result = await compliance_service.validate_control_mapping(
-        db, mapping_data, current_user.id
-    )
+    result = await compliance_service.validate_control_mapping(db, mapping_data, current_user.id)
     return result

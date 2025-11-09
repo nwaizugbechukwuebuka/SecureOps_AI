@@ -1,4 +1,4 @@
-﻿"""Alert management routes for SecureOps API."""
+"""Alert management routes for SecureOps API."""
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -21,7 +21,7 @@ security = HTTPBearer()
 
 class AlertResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     title: str
     description: str
@@ -37,9 +37,7 @@ class CreateAlertRequest(BaseModel):
     title: str = Field(..., max_length=255)
     description: str = Field(..., max_length=2000)
     severity: str = Field(..., pattern="^(low|medium|high|critical)$")
-    alert_type: str = Field(
-        ..., pattern="^(security|compliance|performance|availability)$"
-    )
+    alert_type: str = Field(..., pattern="^(security|compliance|performance|availability)$")
     source: str = Field(..., max_length=100)
 
 
@@ -78,56 +76,32 @@ async def get_alerts(
                 return default
             # Check if it's a Mock object by trying common Mock attributes
             try:
-                if (
-                    hasattr(value, "_mock_name")
-                    or hasattr(value, "_mock_methods")
-                    or "Mock" in str(type(value))
-                ):
+                if hasattr(value, "_mock_name") or hasattr(value, "_mock_methods") or "Mock" in str(type(value)):
                     return default
                 # Check if it's a string representation of a Mock
                 if isinstance(value, str) and "Mock" in value:
                     return default
                 return value
-            except:
+            except BaseException:
                 return default
 
         serializable_items = []
         for item in alerts_data:
             try:
                 # Check if the item itself is a Mock
-                if (
-                    hasattr(item, "_mock_name")
-                    or hasattr(item, "_mock_methods")
-                    or "Mock" in str(type(item))
-                ):
+                if hasattr(item, "_mock_name") or hasattr(item, "_mock_methods") or "Mock" in str(type(item)):
                     # Convert Mock object to dict with safe values
                     serializable_items.append(
                         {
                             "id": clean_mock_value(getattr(item, "id", None), 1),
-                            "title": clean_mock_value(
-                                getattr(item, "title", None), "Test Alert"
-                            ),
-                            "description": clean_mock_value(
-                                getattr(item, "description", None), "Test Description"
-                            ),
-                            "severity": clean_mock_value(
-                                getattr(item, "severity", None), "medium"
-                            ),
-                            "status": clean_mock_value(
-                                getattr(item, "status", None), "open"
-                            ),
-                            "alert_type": clean_mock_value(
-                                getattr(item, "alert_type", None), "security"
-                            ),
-                            "source": clean_mock_value(
-                                getattr(item, "source", None), "system"
-                            ),
-                            "created_at": clean_mock_value(
-                                getattr(item, "created_at", None), "2024-01-01T00:00:00"
-                            ),
-                            "updated_at": clean_mock_value(
-                                getattr(item, "updated_at", None), "2024-01-01T00:00:00"
-                            ),
+                            "title": clean_mock_value(getattr(item, "title", None), "Test Alert"),
+                            "description": clean_mock_value(getattr(item, "description", None), "Test Description"),
+                            "severity": clean_mock_value(getattr(item, "severity", None), "medium"),
+                            "status": clean_mock_value(getattr(item, "status", None), "open"),
+                            "alert_type": clean_mock_value(getattr(item, "alert_type", None), "security"),
+                            "source": clean_mock_value(getattr(item, "source", None), "system"),
+                            "created_at": clean_mock_value(getattr(item, "created_at", None), "2024-01-01T00:00:00"),
+                            "updated_at": clean_mock_value(getattr(item, "updated_at", None), "2024-01-01T00:00:00"),
                         }
                     )
                 else:
@@ -237,9 +211,7 @@ async def search_alerts(
         from ..services.alert_service import AlertService
 
         alert_service = AlertService(db)
-        results = await alert_service.search_alerts(
-            search=search, user_id=current_user.id
-        )
+        results = await alert_service.search_alerts(search=search, user_id=current_user.id)
 
         # Handle Mock objects or tuple responses
         if hasattr(results, "_mock_name") or hasattr(results, "_mock_methods"):
@@ -283,9 +255,7 @@ async def get_alert(
         alert = await alert_service.get_alert_by_id(alert_id, current_user.id)
 
         if not alert:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
 
         logger.info(f"Retrieved alert {alert_id} for user {current_user.id}")
 
@@ -298,11 +268,7 @@ async def get_alert(
             return value
 
         # Check if alert is a Mock or dictionary
-        if (
-            hasattr(alert, "_mock_name")
-            or hasattr(alert, "_mock_methods")
-            or "Mock" in str(type(alert))
-        ):
+        if hasattr(alert, "_mock_name") or hasattr(alert, "_mock_methods") or "Mock" in str(type(alert)):
             # Handle Mock object
             return AlertResponse(
                 id=get_safe_value(alert, "id", alert_id),
@@ -410,9 +376,7 @@ async def update_alert(
         updated_alert = await alert_service.update_alert(alert_id, alert_data)
 
         if not updated_alert:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
 
         logger.info(f"Updated alert {alert_id} for user {current_user.id}")
 
@@ -434,9 +398,7 @@ async def update_alert(
             return AlertResponse(
                 id=get_safe_value(updated_alert, "id", alert_id),
                 title=get_safe_value(updated_alert, "title", "Updated Alert"),
-                description=get_safe_value(
-                    updated_alert, "description", "Updated Description"
-                ),
+                description=get_safe_value(updated_alert, "description", "Updated Description"),
                 severity=get_safe_value(updated_alert, "severity", "medium"),
                 status=get_safe_value(updated_alert, "status", "open"),
                 alert_type=get_safe_value(updated_alert, "alert_type", "security"),
@@ -479,14 +441,10 @@ async def acknowledge_alert(
         acknowledged_alert = await alert_service.acknowledge_alert(alert_id)
 
         if not acknowledged_alert:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
 
         # Handle Mock objects in response
-        if hasattr(acknowledged_alert, "_mock_name") or hasattr(
-            acknowledged_alert, "_mock_methods"
-        ):
+        if hasattr(acknowledged_alert, "_mock_name") or hasattr(acknowledged_alert, "_mock_methods"):
             response_data = {
                 "id": alert_id,
                 "title": "Test Alert",
@@ -502,21 +460,13 @@ async def acknowledge_alert(
             response_data = {
                 "id": get_safe_value(acknowledged_alert, "id", alert_id),
                 "title": get_safe_value(acknowledged_alert, "title", "Test Alert"),
-                "description": get_safe_value(
-                    acknowledged_alert, "description", "Test Description"
-                ),
+                "description": get_safe_value(acknowledged_alert, "description", "Test Description"),
                 "severity": get_safe_value(acknowledged_alert, "severity", "medium"),
-                "alert_type": get_safe_value(
-                    acknowledged_alert, "alert_type", "security"
-                ),
+                "alert_type": get_safe_value(acknowledged_alert, "alert_type", "security"),
                 "source": get_safe_value(acknowledged_alert, "source", "test_source"),
                 "status": get_safe_value(acknowledged_alert, "status", "acknowledged"),
-                "created_at": get_safe_value(
-                    acknowledged_alert, "created_at", "2024-01-01T00:00:00Z"
-                ),
-                "updated_at": get_safe_value(
-                    acknowledged_alert, "updated_at", "2024-01-01T00:00:00Z"
-                ),
+                "created_at": get_safe_value(acknowledged_alert, "created_at", "2024-01-01T00:00:00Z"),
+                "updated_at": get_safe_value(acknowledged_alert, "updated_at", "2024-01-01T00:00:00Z"),
             }
 
         logger.info(f"Acknowledged alert {alert_id} for user {current_user.id}")
@@ -553,14 +503,10 @@ async def resolve_alert(
         resolved_alert = await alert_service.resolve_alert(alert_id)
 
         if not resolved_alert:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
 
         # Handle Mock objects in response
-        if hasattr(resolved_alert, "_mock_name") or hasattr(
-            resolved_alert, "_mock_methods"
-        ):
+        if hasattr(resolved_alert, "_mock_name") or hasattr(resolved_alert, "_mock_methods"):
             response_data = {
                 "id": alert_id,
                 "title": "Test Alert",
@@ -576,19 +522,13 @@ async def resolve_alert(
             response_data = {
                 "id": get_safe_value(resolved_alert, "id", alert_id),
                 "title": get_safe_value(resolved_alert, "title", "Test Alert"),
-                "description": get_safe_value(
-                    resolved_alert, "description", "Test Description"
-                ),
+                "description": get_safe_value(resolved_alert, "description", "Test Description"),
                 "severity": get_safe_value(resolved_alert, "severity", "medium"),
                 "alert_type": get_safe_value(resolved_alert, "alert_type", "security"),
                 "source": get_safe_value(resolved_alert, "source", "test_source"),
                 "status": get_safe_value(resolved_alert, "status", "resolved"),
-                "created_at": get_safe_value(
-                    resolved_alert, "created_at", "2024-01-01T00:00:00Z"
-                ),
-                "updated_at": get_safe_value(
-                    resolved_alert, "updated_at", "2024-01-01T00:00:00Z"
-                ),
+                "created_at": get_safe_value(resolved_alert, "created_at", "2024-01-01T00:00:00Z"),
+                "updated_at": get_safe_value(resolved_alert, "updated_at", "2024-01-01T00:00:00Z"),
             }
 
         logger.info(f"Resolved alert {alert_id} for user {current_user.id}")
@@ -618,9 +558,7 @@ async def delete_alert(
         deleted = await alert_service.delete_alert(alert_id)
 
         if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
 
         logger.info(f"Deleted alert {alert_id} for user {current_user.id}")
         return None
@@ -706,9 +644,7 @@ async def bulk_action_alerts(
                 "failed_ids": [],
             }
 
-        logger.info(
-            f"Bulk {request.action} performed on {len(request.alert_ids)} alerts for user {current_user.id}"
-        )
+        logger.info(f"Bulk {request.action} performed on {len(request.alert_ids)} alerts for user {current_user.id}")
         return response_data
 
     except HTTPException:

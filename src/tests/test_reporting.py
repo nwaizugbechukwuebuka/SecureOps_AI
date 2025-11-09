@@ -9,6 +9,13 @@ This module tests the reporting functionality including:
 - Export functionality
 """
 
+from utils.reporting import Reporting
+from api.services.report_service import ReportService
+from api.models.vulnerability import Vulnerability
+from api.models.user import User
+from api.models.pipeline import Pipeline, ScanJob
+from api.models.alert import Alert
+from sqlalchemy.ext.asyncio import AsyncSession
 import json
 import os
 import sys
@@ -20,15 +27,6 @@ import pytest
 
 # Add the src directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from api.models.alert import Alert
-from api.models.pipeline import Pipeline, ScanJob
-from api.models.user import User
-from api.models.vulnerability import Vulnerability
-from api.services.report_service import ReportService
-from utils.reporting import Reporting
 
 
 # Basic Reporting Utility Tests
@@ -145,9 +143,7 @@ class TestReportService:
 
             report_config = {"type": "summary", "filters": {}, "date_range": {}}
 
-            result = await report_service.generate_custom_report(
-                user_id=1, report_config=report_config
-            )
+            result = await report_service.generate_custom_report(user_id=1, report_config=report_config)
 
             # Check that the mock was called - the actual result structure may vary
             assert isinstance(result, dict)
@@ -156,9 +152,7 @@ class TestReportService:
     @pytest.mark.asyncio
     async def test_generate_custom_report_vulnerability_type(self, report_service):
         """Test custom report generation with vulnerability type."""
-        with patch.object(
-            report_service, "_generate_vulnerability_summary_report"
-        ) as mock_vuln:
+        with patch.object(report_service, "_generate_vulnerability_summary_report") as mock_vuln:
             mock_vuln.return_value = {
                 "report_type": "vulnerability_summary",
                 "vulnerabilities": [],
@@ -170,9 +164,7 @@ class TestReportService:
                 "date_range": {},
             }
 
-            result = await report_service.generate_custom_report(
-                user_id=1, report_config=report_config
-            )
+            result = await report_service.generate_custom_report(user_id=1, report_config=report_config)
 
             # Check that the mock was called - the actual result structure may vary
             assert isinstance(result, dict)
@@ -199,9 +191,7 @@ class TestReportService:
             },
         }
 
-        csv_result = await report_service.export_report_csv(
-            user_id=1, report_data=report_data
-        )
+        csv_result = await report_service.export_report_csv(user_id=1, report_data=report_data)
 
         assert isinstance(csv_result, str)
         # Check for vulnerability CSV headers
@@ -216,9 +206,7 @@ class TestReportService:
             "data": {"total_alerts": 10, "critical_vulnerabilities": 5},
         }
 
-        csv_result = await report_service.export_report_csv(
-            user_id=1, report_data=report_data
-        )
+        csv_result = await report_service.export_report_csv(user_id=1, report_data=report_data)
 
         assert isinstance(csv_result, str)
         # Check for generic CSV format
@@ -237,9 +225,7 @@ class TestReportService:
             "data": {"alerts_count": 10, "vulnerabilities_count": 5},
         }
 
-        json_result = await report_service.export_report_json(
-            user_id=1, report_data=report_data
-        )
+        json_result = await report_service.export_report_json(user_id=1, report_data=report_data)
 
         assert isinstance(json_result, str)
         # Verify it's valid JSON
@@ -255,9 +241,7 @@ class TestReportService:
             "data": {"vulnerabilities": []},
         }
 
-        csv_result = await report_service.export_report_csv(
-            user_id=1, report_data=report_data
-        )
+        csv_result = await report_service.export_report_csv(user_id=1, report_data=report_data)
 
         assert isinstance(csv_result, str)
         # Should still have headers for vulnerability format
@@ -397,9 +381,7 @@ class TestReportingErrorHandling:
         # Test with missing required fields
         malformed_data = {
             "report_type": "vulnerability_summary",
-            "data": {
-                "vulnerabilities": [{"incomplete": "data"}]  # Missing required fields
-            },
+            "data": {"vulnerabilities": [{"incomplete": "data"}]},  # Missing required fields
         }
 
         # Should not crash, should handle gracefully

@@ -22,8 +22,7 @@ import yaml
 
 from ..utils.config import settings
 from ..utils.logger import get_logger
-from .common import (BaseScanner, ScannerType, ScanResult, ScanSummary,
-                     SeverityLevel, orchestrator)
+from .common import BaseScanner, ScannerType, ScanResult, ScanSummary, SeverityLevel, orchestrator
 
 logger = get_logger(__name__)
 
@@ -106,26 +105,16 @@ class PolicyChecker(BaseScanner):
 
         try:
             # Configuration options
-            frameworks = kwargs.get(
-                "frameworks", [PolicyFramework.OWASP, PolicyFramework.NIST]
-            )
+            frameworks = kwargs.get("frameworks", [PolicyFramework.OWASP, PolicyFramework.NIST])
             if isinstance(frameworks, str):
                 frameworks = [PolicyFramework(frameworks)]
-            elif (
-                isinstance(frameworks, list)
-                and frameworks
-                and isinstance(frameworks[0], str)
-            ):
+            elif isinstance(frameworks, list) and frameworks and isinstance(frameworks[0], str):
                 frameworks = [PolicyFramework(f) for f in frameworks]
 
             # Filter rules by requested frameworks
-            applicable_rules = [
-                rule for rule in self.rules if rule.framework in frameworks
-            ]
+            applicable_rules = [rule for rule in self.rules if rule.framework in frameworks]
 
-            self.logger.info(
-                f"Checking {len(applicable_rules)} policy rules across {len(frameworks)} frameworks"
-            )
+            self.logger.info(f"Checking {len(applicable_rules)} policy rules across {len(frameworks)} frameworks")
 
             # Get files to analyze
             config_files = self._find_configuration_files(target)
@@ -133,9 +122,7 @@ class PolicyChecker(BaseScanner):
             # Run policy checks
             for rule in applicable_rules:
                 try:
-                    rule_results = await self._check_policy_rule(
-                        rule, target, config_files
-                    )
+                    rule_results = await self._check_policy_rule(rule, target, config_files)
                     results.extend(rule_results)
                 except Exception as e:
                     self.logger.warning(f"Failed to check rule {rule.id}: {e}")
@@ -155,9 +142,7 @@ class PolicyChecker(BaseScanner):
         except Exception as e:
             error_msg = f"Policy check failed: {e}"
             self.logger.error(error_msg)
-            summary = self._create_summary(
-                target, started_at, success=False, error_message=error_msg
-            )
+            summary = self._create_summary(target, started_at, success=False, error_message=error_msg)
             return summary, []
 
     def _find_configuration_files(self, target: str) -> Dict[str, List[str]]:
@@ -184,9 +169,7 @@ class PolicyChecker(BaseScanner):
             dirs[:] = [
                 d
                 for d in dirs
-                if not d.startswith(".")
-                and d
-                not in {"node_modules", "__pycache__", "venv", ".venv", "build", "dist"}
+                if not d.startswith(".") and d not in {"node_modules", "__pycache__", "venv", ".venv", "build", "dist"}
             ]
 
             for file in files:
@@ -202,21 +185,16 @@ class PolicyChecker(BaseScanner):
         filename = os.path.basename(file_path).lower()
 
         # Docker files
-        if filename in ["dockerfile", "containerfile"] or filename.startswith(
-            "dockerfile."
-        ):
+        if filename in ["dockerfile", "containerfile"] or filename.startswith("dockerfile."):
             return "docker"
         if filename in ["docker-compose.yml", "docker-compose.yaml"]:
             return "docker"
 
         # Kubernetes files
-        if any(
-            pattern in filename for pattern in ["k8s", "kubernetes", "kustomization"]
-        ):
+        if any(pattern in filename for pattern in ["k8s", "kubernetes", "kustomization"]):
             return "k8s"
         if filename.endswith((".yml", ".yaml")) and any(
-            keyword
-            in open(file_path, "r", encoding="utf-8", errors="ignore").read(500).lower()
+            keyword in open(file_path, "r", encoding="utf-8", errors="ignore").read(500).lower()
             for keyword in ["apiversion:", "kind:", "metadata:", "spec:"]
         ):
             return "k8s"
@@ -292,9 +270,7 @@ class PolicyChecker(BaseScanner):
             # Get the check function
             check_method = getattr(self, rule.check_function, None)
             if not check_method:
-                self.logger.warning(
-                    f"Check function {rule.check_function} not found for rule {rule.id}"
-                )
+                self.logger.warning(f"Check function {rule.check_function} not found for rule {rule.id}")
                 return results
 
             # Execute the check
@@ -376,9 +352,7 @@ class PolicyChecker(BaseScanner):
                 category="Configuration",
                 check_function="_check_security_misconfiguration",
                 remediation="Follow security configuration best practices",
-                references=[
-                    "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
-                ],
+                references=["https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"],
                 tags=["configuration", "hardening"],
             ),
             PolicyRule(
@@ -390,9 +364,7 @@ class PolicyChecker(BaseScanner):
                 category="Logging",
                 check_function="_check_logging_monitoring",
                 remediation="Implement comprehensive logging and monitoring",
-                references=[
-                    "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
-                ],
+                references=["https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"],
                 tags=["logging", "monitoring", "alerting"],
             ),
         ]
@@ -450,9 +422,7 @@ class PolicyChecker(BaseScanner):
                 category="Security",
                 check_function="_check_logical_access_controls",
                 remediation="Implement strong access controls and authentication",
-                references=[
-                    "https://us.aicpa.org/interestareas/frc/assuranceadvisoryservices/sorhome"
-                ],
+                references=["https://us.aicpa.org/interestareas/frc/assuranceadvisoryservices/sorhome"],
                 tags=["access-control", "authentication"],
             ),
             PolicyRule(
@@ -464,9 +434,7 @@ class PolicyChecker(BaseScanner):
                 category="Security",
                 check_function="_check_data_transmission_security",
                 remediation="Use encrypted communication channels",
-                references=[
-                    "https://us.aicpa.org/interestareas/frc/assuranceadvisoryservices/sorhome"
-                ],
+                references=["https://us.aicpa.org/interestareas/frc/assuranceadvisoryservices/sorhome"],
                 tags=["data-transmission", "encryption", "tls"],
             ),
         ]
@@ -512,9 +480,7 @@ class PolicyChecker(BaseScanner):
                 category="Network",
                 check_function="_check_network_security",
                 remediation="Implement network segmentation and firewall rules",
-                references=[
-                    "https://cheatsheetseries.owasp.org/cheatsheets/Network_Segmentation_Cheat_Sheet.html"
-                ],
+                references=["https://cheatsheetseries.owasp.org/cheatsheets/Network_Segmentation_Cheat_Sheet.html"],
                 tags=["network", "firewall", "segmentation"],
             ),
         ]
@@ -555,9 +521,7 @@ class PolicyChecker(BaseScanner):
 
     # Policy check implementation methods
 
-    async def _check_access_control(
-        self, target: str, config_files: Dict[str, List[str]]
-    ) -> List[Dict[str, Any]]:
+    async def _check_access_control(self, target: str, config_files: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         """Check for access control issues."""
         violations = []
 
@@ -566,10 +530,7 @@ class PolicyChecker(BaseScanner):
             try:
                 with open(k8s_file, "r") as f:
                     content = yaml.safe_load(f)
-                    if (
-                        isinstance(content, dict)
-                        and content.get("kind") == "RoleBinding"
-                    ):
+                    if isinstance(content, dict) and content.get("kind") == "RoleBinding":
                         subjects = content.get("subjects", [])
                         for subject in subjects:
                             if subject.get("name") == "system:anonymous":
@@ -676,9 +637,7 @@ class PolicyChecker(BaseScanner):
                     content = f.read().lower()
 
                     # Check for running as root
-                    if "user root" in content or (
-                        "user" not in content and "from" in content
-                    ):
+                    if "user root" in content or ("user" not in content and "from" in content):
                         violations.append(
                             {
                                 "message": "Container may be running as root user",
@@ -702,9 +661,7 @@ class PolicyChecker(BaseScanner):
 
         return violations
 
-    async def _check_logging_monitoring(
-        self, target: str, config_files: Dict[str, List[str]]
-    ) -> List[Dict[str, Any]]:
+    async def _check_logging_monitoring(self, target: str, config_files: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         """Check for logging and monitoring configuration."""
         violations = []
 
@@ -715,9 +672,7 @@ class PolicyChecker(BaseScanner):
             try:
                 with open(config_file, "r") as f:
                     content = f.read().lower()
-                    if any(
-                        keyword in content for keyword in ["log", "audit", "monitor"]
-                    ):
+                    if any(keyword in content for keyword in ["log", "audit", "monitor"]):
                         has_logging_config = True
                         break
             except Exception:
@@ -734,9 +689,7 @@ class PolicyChecker(BaseScanner):
 
         return violations
 
-    async def _check_asset_management(
-        self, target: str, config_files: Dict[str, List[str]]
-    ) -> List[Dict[str, Any]]:
+    async def _check_asset_management(self, target: str, config_files: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         """Check for asset management practices."""
         violations = []
 
@@ -749,10 +702,7 @@ class PolicyChecker(BaseScanner):
             "infrastructure.md",
         ]
 
-        has_inventory = any(
-            os.path.exists(os.path.join(target, inv_file))
-            for inv_file in inventory_files
-        )
+        has_inventory = any(os.path.exists(os.path.join(target, inv_file)) for inv_file in inventory_files)
 
         if not has_inventory:
             violations.append(
@@ -778,10 +728,7 @@ class PolicyChecker(BaseScanner):
             "permissions.json",
         ]
 
-        has_policy = any(
-            os.path.exists(os.path.join(target, policy_file))
-            for policy_file in policy_files
-        )
+        has_policy = any(os.path.exists(os.path.join(target, policy_file)) for policy_file in policy_files)
 
         if not has_policy:
             violations.append(
@@ -832,9 +779,7 @@ class PolicyChecker(BaseScanner):
     ) -> List[Dict[str, Any]]:
         return []
 
-    async def _check_privacy_by_design(
-        self, target: str, config_files: Dict[str, List[str]]
-    ) -> List[Dict[str, Any]]:
+    async def _check_privacy_by_design(self, target: str, config_files: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         return []
 
     async def _check_security_of_processing(
@@ -842,19 +787,13 @@ class PolicyChecker(BaseScanner):
     ) -> List[Dict[str, Any]]:
         return []
 
-    async def _check_network_security(
-        self, target: str, config_files: Dict[str, List[str]]
-    ) -> List[Dict[str, Any]]:
+    async def _check_network_security(self, target: str, config_files: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         return []
 
-    async def _check_cicd_security(
-        self, target: str, config_files: Dict[str, List[str]]
-    ) -> List[Dict[str, Any]]:
+    async def _check_cicd_security(self, target: str, config_files: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         return []
 
-    async def _check_security_headers(
-        self, target: str, config_files: Dict[str, List[str]]
-    ) -> List[Dict[str, Any]]:
+    async def _check_security_headers(self, target: str, config_files: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         return []
 
     def _deduplicate_results(self, results: List[ScanResult]) -> List[ScanResult]:

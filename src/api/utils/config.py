@@ -1,4 +1,4 @@
-﻿"""Application configuration and settings."""
+"""Application configuration and settings."""
 
 import os
 import secrets
@@ -9,9 +9,12 @@ try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except ImportError:
     from pydantic import BaseSettings
+
     # Fallback for older pydantic versions
+
     class SettingsConfigDict(dict):
         pass
+
 
 from pydantic import Field, field_validator
 
@@ -20,11 +23,8 @@ class Settings(BaseSettings):
     """Application settings and configuration."""
 
     try:
-        model_config = SettingsConfigDict(
-            env_file=".env",
-            case_sensitive=False
-        )
-    except:
+        model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    except BaseException:
         # Fallback for older pydantic versions
         class Config:
             env_file = ".env"
@@ -74,12 +74,8 @@ class Settings(BaseSettings):
     log_forward_elk_host: Optional[str] = Field(default=None)
     log_forward_elk_port: Optional[int] = Field(default=9200)
     log_forward_splunk_enabled: bool = Field(default=False)
-    log_forward_splunk_host: Optional[str] = Field(
-        default=None, env="LOG_FORWARD_SPLUNK_HOST"
-    )
-    log_forward_splunk_port: Optional[int] = Field(
-        default=8088, env="LOG_FORWARD_SPLUNK_PORT"
-    )
+    log_forward_splunk_host: Optional[str] = Field(default=None, env="LOG_FORWARD_SPLUNK_HOST")
+    log_forward_splunk_port: Optional[int] = Field(default=8088, env="LOG_FORWARD_SPLUNK_PORT")
     log_forward_splunk_token: Optional[str] = Field(default=None)
 
     # GitHub Integration

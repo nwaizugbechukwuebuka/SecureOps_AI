@@ -21,10 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertType
-from src.api.models.pipeline import (Pipeline, PipelineRun, PipelineStatus,
-                                     PlatformType)
-from src.api.models.vulnerability import (SeverityLevel, Vulnerability,
-                                          VulnerabilityStatus)
+from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
+from src.api.models.vulnerability import SeverityLevel, Vulnerability, VulnerabilityStatus
 from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
 
@@ -114,9 +112,7 @@ class JenkinsIntegration:
             logger.error(f"Failed to handle job build event: {e}")
             raise
 
-    async def _process_build_event(
-        self, db: AsyncSession, build_data: Dict[str, Any]
-    ) -> None:
+    async def _process_build_event(self, db: AsyncSession, build_data: Dict[str, Any]) -> None:
         """Process individual build event."""
         try:
             # Extract build information
@@ -126,12 +122,8 @@ class JenkinsIntegration:
             result = build_data.get("result")
 
             # Try to extract job information
-            job_name = build_data.get("job_name") or build_data.get(
-                "displayName", "Unknown Job"
-            )
-            job_url = build_data.get("job_url") or self._extract_job_url_from_build(
-                build_url
-            )
+            job_name = build_data.get("job_name") or build_data.get("displayName", "Unknown Job")
+            job_url = build_data.get("job_url") or self._extract_job_url_from_build(build_url)
 
             # Extract SCM information if available
             scm_info = self._extract_scm_info(build_data)
@@ -140,20 +132,14 @@ class JenkinsIntegration:
             pipeline_status = self._map_jenkins_status(status, result)
 
             # Create or update pipeline
-            pipeline = await self._create_or_update_pipeline(
-                db, job_name, job_url, scm_info
-            )
+            pipeline = await self._create_or_update_pipeline(db, job_name, job_url, scm_info)
 
             # Create pipeline run
-            pipeline_run = await self._create_pipeline_run(
-                db, pipeline.id, build_number, pipeline_status, build_data
-            )
+            pipeline_run = await self._create_pipeline_run(db, pipeline.id, build_number, pipeline_status, build_data)
 
             # Trigger security analysis if build completed successfully
             if pipeline_status == PipelineStatus.SUCCESS:
-                await self._trigger_security_analysis(
-                    pipeline_run, build_data, scm_info
-                )
+                await self._trigger_security_analysis(pipeline_run, build_data, scm_info)
             elif pipeline_status == PipelineStatus.FAILURE:
                 await self._analyze_build_failure(pipeline_run, build_data)
 
@@ -202,9 +188,7 @@ class JenkinsIntegration:
                 scm_info["branch"] = build_data.get("branch", "main")
 
             if not scm_info["commit_hash"]:
-                scm_info["commit_hash"] = build_data.get(
-                    "commit", build_data.get("revision", "")
-                )
+                scm_info["commit_hash"] = build_data.get("commit", build_data.get("revision", ""))
 
         except Exception as e:
             logger.warning(f"Failed to extract SCM info: {e}")
@@ -249,9 +233,7 @@ class JenkinsIntegration:
         branch = scm_info.get("branch", "main")
 
         # Check if pipeline exists
-        stmt = select(Pipeline).where(
-            Pipeline.name == job_name, Pipeline.platform == PlatformType.JENKINS
-        )
+        stmt = select(Pipeline).where(Pipeline.name == job_name, Pipeline.platform == PlatformType.JENKINS)
 
         # If we have repository info, match on that too
         if repository_url:
@@ -308,9 +290,7 @@ class JenkinsIntegration:
         if existing_run:
             existing_run.status = status
             existing_run.finished_at = (
-                datetime.now(timezone.utc)
-                if status in [PipelineStatus.SUCCESS, PipelineStatus.FAILURE]
-                else None
+                datetime.now(timezone.utc) if status in [PipelineStatus.SUCCESS, PipelineStatus.FAILURE] else None
             )
             return existing_run
 
@@ -329,9 +309,7 @@ class JenkinsIntegration:
             pipeline_id=pipeline_id,
             external_id=str(build_number),
             status=status,
-            commit_hash=build_data.get("scm", {}).get(
-                "commit", build_data.get("commit", "")
-            ),
+            commit_hash=build_data.get("scm", {}).get("commit", build_data.get("commit", "")),
             started_at=started_at or datetime.now(timezone.utc),
             finished_at=finished_at,
             metadata={
@@ -388,16 +366,12 @@ class JenkinsIntegration:
                 ]
             )
 
-            logger.info(
-                f"Scheduled security analysis for build {pipeline_run.external_id}"
-            )
+            logger.info(f"Scheduled security analysis for build {pipeline_run.external_id}")
 
         except Exception as e:
             logger.error(f"Failed to trigger security analysis: {e}")
 
-    async def _analyze_build_failure(
-        self, pipeline_run: PipelineRun, build_data: Dict[str, Any]
-    ) -> None:
+    async def _analyze_build_failure(self, pipeline_run: PipelineRun, build_data: Dict[str, Any]) -> None:
         """Analyze failed build for security implications."""
         try:
             build_number = build_data.get("number")
@@ -410,9 +384,7 @@ class JenkinsIntegration:
             security_issues = self._analyze_console_log_for_security(console_log)
 
             if security_issues:
-                await self._create_build_failure_alert(
-                    pipeline_run, build_data, security_issues
-                )
+                await self._create_build_failure_alert(pipeline_run, build_data, security_issues)
 
         except Exception as e:
             logger.error(f"Failed to analyze build failure: {e}")
@@ -445,9 +417,7 @@ class JenkinsIntegration:
 
         for i, line in enumerate(lines):
             if any(keyword in line for keyword in security_keywords):
-                if any(
-                    error_word in line for error_word in ["error", "fail", "exception"]
-                ):
+                if any(error_word in line for error_word in ["error", "fail", "exception"]):
                     # Context around the security-related error
                     start = max(0, i - 2)
                     end = min(len(lines), i + 3)
@@ -456,9 +426,7 @@ class JenkinsIntegration:
 
         return security_issues
 
-    async def get_build_console_log(
-        self, job_name: str, build_number: int
-    ) -> Optional[str]:
+    async def get_build_console_log(self, job_name: str, build_number: int) -> Optional[str]:
         """Get console log for a specific build."""
         if not self.auth_header:
             logger.warning("Jenkins authentication not configured")
@@ -479,18 +447,14 @@ class JenkinsIntegration:
                 if response.status_code == 200:
                     return response.text
                 else:
-                    logger.warning(
-                        f"Failed to fetch console log: {response.status_code}"
-                    )
+                    logger.warning(f"Failed to fetch console log: {response.status_code}")
                     return None
 
         except Exception as e:
             logger.error(f"Failed to get build console log: {e}")
             return None
 
-    async def get_build_info(
-        self, job_name: str, build_number: int
-    ) -> Optional[Dict[str, Any]]:
+    async def get_build_info(self, job_name: str, build_number: int) -> Optional[Dict[str, Any]]:
         """Get detailed build information from Jenkins API."""
         if not self.auth_header:
             logger.warning("Jenkins authentication not configured")
@@ -511,9 +475,7 @@ class JenkinsIntegration:
                 if response.status_code == 200:
                     return response.json()
                 else:
-                    logger.warning(
-                        f"Failed to fetch build info: {response.status_code}"
-                    )
+                    logger.warning(f"Failed to fetch build info: {response.status_code}")
                     return None
 
         except Exception as e:
@@ -541,9 +503,7 @@ class JenkinsIntegration:
                 if response.status_code == 200:
                     return response.text
                 else:
-                    logger.warning(
-                        f"Failed to fetch job config: {response.status_code}"
-                    )
+                    logger.warning(f"Failed to fetch job config: {response.status_code}")
                     return None
 
         except Exception as e:
@@ -594,10 +554,7 @@ class JenkinsIntegration:
 
         # Find all script elements
         for script_elem in root.iter():
-            if (
-                "script" in script_elem.tag.lower()
-                or "command" in script_elem.tag.lower()
-            ):
+            if "script" in script_elem.tag.lower() or "command" in script_elem.tag.lower():
                 script_content = script_elem.text or ""
 
                 dangerous_patterns = [
@@ -631,15 +588,9 @@ class JenkinsIntegration:
         for elem in root.iter():
             if elem.text:
                 text = elem.text.lower()
-                if any(
-                    keyword in text
-                    for keyword in ["password", "secret", "key", "token"]
-                ):
+                if any(keyword in text for keyword in ["password", "secret", "key", "token"]):
                     # Check if it looks like a hardcoded value (not a variable reference)
-                    if not any(
-                        var_pattern in elem.text
-                        for var_pattern in ["${", "$", "{", "}"]
-                    ):
+                    if not any(var_pattern in elem.text for var_pattern in ["${", "$", "{", "}"]):
                         issues.append(
                             {
                                 "job": job_name,
@@ -709,9 +660,7 @@ class JenkinsIntegration:
 
         return issues
 
-    async def get_build_artifacts(
-        self, job_name: str, build_number: int
-    ) -> List[Dict[str, Any]]:
+    async def get_build_artifacts(self, job_name: str, build_number: int) -> List[Dict[str, Any]]:
         """Get build artifacts from Jenkins."""
         if not self.auth_header:
             logger.warning("Jenkins authentication not configured")
@@ -733,18 +682,14 @@ class JenkinsIntegration:
                     data = response.json()
                     return data.get("artifacts", [])
                 else:
-                    logger.warning(
-                        f"Failed to fetch build artifacts: {response.status_code}"
-                    )
+                    logger.warning(f"Failed to fetch build artifacts: {response.status_code}")
                     return []
 
         except Exception as e:
             logger.error(f"Failed to get build artifacts: {e}")
             return []
 
-    async def download_artifact(
-        self, job_name: str, build_number: int, artifact_path: str
-    ) -> Optional[bytes]:
+    async def download_artifact(self, job_name: str, build_number: int, artifact_path: str) -> Optional[bytes]:
         """Download a specific build artifact."""
         if not self.auth_header:
             logger.warning("Jenkins authentication not configured")
@@ -754,16 +699,12 @@ class JenkinsIntegration:
             url = f"{self.base_url}/job/{job_name}/{build_number}/artifact/{artifact_path}"
 
             async with httpx.AsyncClient(timeout=self.session_timeout) as client:
-                response = await client.get(
-                    url, headers={"Authorization": f"Basic {self.auth_header}"}
-                )
+                response = await client.get(url, headers={"Authorization": f"Basic {self.auth_header}"})
 
                 if response.status_code == 200:
                     return response.content
                 else:
-                    logger.warning(
-                        f"Failed to download artifact: {response.status_code}"
-                    )
+                    logger.warning(f"Failed to download artifact: {response.status_code}")
                     return None
 
         except Exception as e:
@@ -790,9 +731,7 @@ class JenkinsIntegration:
                         "pipeline_run_id": pipeline_run.id,
                         "job_name": build_data.get("job_name"),
                         "build_url": build_data.get("url"),
-                        "security_issues": security_issues[
-                            :5
-                        ],  # Limit to first 5 issues
+                        "security_issues": security_issues[:5],  # Limit to first 5 issues
                         "total_issues": len(security_issues),
                     },
                 )

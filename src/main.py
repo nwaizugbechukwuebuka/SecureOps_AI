@@ -15,6 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from api.database import engine
 from api.models.base import Base
 from api.models.user import User
+
 # Import API routes
 from api.routes.auth import get_current_user
 from api.routes.auth import router as auth_router
@@ -24,6 +25,7 @@ from api.routes.health import router as health_router
 from api.routes.metrics import router as metrics_router
 from api.routes.pipelines import router as pipelines_router
 from api.routes.reports import router as reports_router
+
 # Configuration and utilities
 from api.utils.config import get_settings
 from api.utils.logger import get_logger
@@ -48,20 +50,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if "Referrer-Policy" not in response.headers:
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         if "Strict-Transport-Security" not in response.headers:
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         if "Permissions-Policy" not in response.headers:
-            response.headers["Permissions-Policy"] = (
-                "geolocation=(), microphone=(), camera=()"
-            )
+            response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
 
         # Add CORS headers if they're missing (for OPTIONS requests)
         if request.method == "OPTIONS":
             response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-            )
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "*"
 
         return response
@@ -110,9 +106,7 @@ app.add_middleware(
 app.add_middleware(SecurityHeadersMiddleware)
 
 # Add host validation middleware
-app.add_middleware(
-    TrustedHostMiddleware, allowed_hosts=["*"]  # Configure for production
-)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # Configure for production
 
 # Add compression middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -219,9 +213,7 @@ def get_metrics():
 @app.get("/api/v1/pipelines/", tags=["Legacy"])
 def legacy_pipelines():
     """Legacy pipelines endpoint for backward compatibility"""
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
-    )
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
 
 
 # Root endpoint

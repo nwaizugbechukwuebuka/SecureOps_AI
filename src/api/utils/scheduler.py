@@ -103,9 +103,7 @@ celery_app.conf.beat_schedule = {
     },
     "cleanup-resolved-vulnerabilities": {
         "task": "cleanup_tasks.cleanup_resolved_vulnerabilities",
-        "schedule": crontab(
-            minute=0, hour=3, day_of_week=0
-        ),  # Weekly on Sunday at 3 AM
+        "schedule": crontab(minute=0, hour=3, day_of_week=0),  # Weekly on Sunday at 3 AM
     },
     # Generate reports
     "generate-daily-security-report": {
@@ -114,9 +112,7 @@ celery_app.conf.beat_schedule = {
     },
     "generate-weekly-compliance-report": {
         "task": "monitor_tasks.generate_weekly_compliance_report",
-        "schedule": crontab(
-            minute=0, hour=9, day_of_week=1
-        ),  # Weekly on Monday at 9 AM
+        "schedule": crontab(minute=0, hour=9, day_of_week=1),  # Weekly on Monday at 9 AM
     },
     # Health checks
     "database-health-check": {
@@ -174,9 +170,7 @@ class TaskScheduler:
         task_kwargs = {"pipeline_id": pipeline_id, "scan_type": scan_type, **kwargs}
 
         if delay:
-            result = run_vulnerability_scan.apply_async(
-                kwargs=task_kwargs, queue=queue, countdown=delay
-            )
+            result = run_vulnerability_scan.apply_async(kwargs=task_kwargs, queue=queue, countdown=delay)
         else:
             result = run_vulnerability_scan.apply_async(kwargs=task_kwargs, queue=queue)
 
@@ -191,9 +185,7 @@ class TaskScheduler:
 
         return result.id
 
-    def schedule_compliance_check(
-        self, pipeline_id: int, framework: str, priority: str = "normal", **kwargs
-    ) -> str:
+    def schedule_compliance_check(self, pipeline_id: int, framework: str, priority: str = "normal", **kwargs) -> str:
         """
         Schedule a compliance check for a pipeline.
 
@@ -291,9 +283,7 @@ class TaskScheduler:
         }
 
         if delay:
-            result = send_notification.apply_async(
-                kwargs=task_kwargs, queue="alerts", countdown=delay
-            )
+            result = send_notification.apply_async(kwargs=task_kwargs, queue="alerts", countdown=delay)
         else:
             result = send_notification.apply_async(kwargs=task_kwargs, queue="alerts")
 
@@ -556,9 +546,7 @@ def setup_periodic_tasks():
     # The periodic tasks are already configured in celery_app.conf.beat_schedule
     # This function can be used for any additional dynamic setup
 
-    logger.info(
-        "Periodic tasks configured", scheduled_tasks=len(celery_app.conf.beat_schedule)
-    )
+    logger.info("Periodic tasks configured", scheduled_tasks=len(celery_app.conf.beat_schedule))
 
 
 # Health check for Celery
@@ -600,11 +588,7 @@ def celery_health_check() -> Dict[str, Any]:
                     health["errors"].append(f"Queue {queue_name} error: {e}")
 
         # Determine overall status
-        if (
-            health["broker_connected"]
-            and health["workers_online"] > 0
-            and len(health["queues_available"]) > 0
-        ):
+        if health["broker_connected"] and health["workers_online"] > 0 and len(health["queues_available"]) > 0:
             health["status"] = "healthy"
 
     except Exception as e:

@@ -87,9 +87,7 @@ class TestUserRegistration:
         """Test successful user registration"""
         with patch("src.api.routes.auth.get_db") as mock_get_db, patch(
             "src.api.routes.auth.create_user"
-        ) as mock_create_user, patch(
-            "src.api.routes.auth.send_verification_email"
-        ) as mock_send_email:
+        ) as mock_create_user, patch("src.api.routes.auth.send_verification_email") as mock_send_email:
 
             mock_db = Mock()
             mock_get_db.return_value = mock_db
@@ -106,9 +104,7 @@ class TestUserRegistration:
             mock_create_user.return_value = mock_user
             mock_send_email.return_value = True
 
-            response = await test_client.post(
-                "/api/v1/auth/register", json=sample_user_data
-            )
+            response = await test_client.post("/api/v1/auth/register", json=sample_user_data)
 
             assert response.status_code == status.HTTP_201_CREATED
             data = response.json()
@@ -130,9 +126,7 @@ class TestUserRegistration:
             # Mock existing user
             mock_get_user.return_value = Mock()
 
-            response = await test_client.post(
-                "/api/v1/auth/register", json=sample_user_data
-            )
+            response = await test_client.post("/api/v1/auth/register", json=sample_user_data)
 
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             data = response.json()
@@ -143,9 +137,7 @@ class TestUserRegistration:
         """Test registration with invalid email format"""
         sample_user_data["email"] = "invalid-email"
 
-        response = await test_client.post(
-            "/api/v1/auth/register", json=sample_user_data
-        )
+        response = await test_client.post("/api/v1/auth/register", json=sample_user_data)
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -154,9 +146,7 @@ class TestUserRegistration:
         """Test registration with weak password"""
         sample_user_data["password"] = "123"
 
-        response = await test_client.post(
-            "/api/v1/auth/register", json=sample_user_data
-        )
+        response = await test_client.post("/api/v1/auth/register", json=sample_user_data)
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -169,9 +159,7 @@ class TestUserLogin:
         """Test successful user login"""
         with patch("src.api.routes.auth.authenticate_user") as mock_auth, patch(
             "src.api.routes.auth.create_access_token"
-        ) as mock_create_token, patch(
-            "src.api.routes.auth.create_refresh_token"
-        ) as mock_create_refresh, patch(
+        ) as mock_create_token, patch("src.api.routes.auth.create_refresh_token") as mock_create_refresh, patch(
             "src.api.routes.auth.update_last_login"
         ) as mock_update_login:
 
@@ -239,9 +227,7 @@ class TestTokenManagement:
         """Test successful token refresh"""
         with patch("src.api.routes.auth.verify_refresh_token") as mock_verify, patch(
             "src.api.routes.auth.get_user_by_email"
-        ) as mock_get_user, patch(
-            "src.api.routes.auth.create_access_token"
-        ) as mock_create_token:
+        ) as mock_get_user, patch("src.api.routes.auth.create_access_token") as mock_create_token:
 
             mock_user = Mock()
             mock_user.email = "test@example.com"
@@ -309,18 +295,14 @@ class TestPasswordManagement:
             }
 
             headers = {"Authorization": f"Bearer {valid_token}"}
-            response = await test_client.post(
-                "/api/v1/auth/change-password", json=password_data, headers=headers
-            )
+            response = await test_client.post("/api/v1/auth/change-password", json=password_data, headers=headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["message"] == "Password updated successfully"
 
     @pytest.mark.asyncio
-    async def test_change_password_wrong_current(
-        self, test_client, valid_token, mock_user
-    ):
+    async def test_change_password_wrong_current(self, test_client, valid_token, mock_user):
         """Test password change with wrong current password"""
         with patch("src.api.routes.auth.get_current_user") as mock_get_user, patch(
             "src.api.routes.auth.verify_password"
@@ -335,9 +317,7 @@ class TestPasswordManagement:
             }
 
             headers = {"Authorization": f"Bearer {valid_token}"}
-            response = await test_client.post(
-                "/api/v1/auth/change-password", json=password_data, headers=headers
-            )
+            response = await test_client.post("/api/v1/auth/change-password", json=password_data, headers=headers)
 
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             data = response.json()
@@ -348,9 +328,7 @@ class TestPasswordManagement:
         """Test password reset request"""
         with patch("src.api.routes.auth.get_user_by_email") as mock_get_user, patch(
             "src.api.routes.auth.create_reset_token"
-        ) as mock_create_token, patch(
-            "src.api.routes.auth.send_reset_email"
-        ) as mock_send_email:
+        ) as mock_create_token, patch("src.api.routes.auth.send_reset_email") as mock_send_email:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -358,9 +336,7 @@ class TestPasswordManagement:
             mock_send_email.return_value = True
 
             reset_data = {"email": "test@example.com"}
-            response = await test_client.post(
-                "/api/v1/auth/reset-password", json=reset_data
-            )
+            response = await test_client.post("/api/v1/auth/reset-password", json=reset_data)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -382,9 +358,7 @@ class TestPasswordManagement:
                 "token": "valid_reset_token",
                 "new_password": "NewPassword123!",
             }
-            response = await test_client.post(
-                "/api/v1/auth/reset-password/confirm", json=confirm_data
-            )
+            response = await test_client.post("/api/v1/auth/reset-password/confirm", json=confirm_data)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -408,9 +382,7 @@ class TestEmailVerification:
             mock_activate.return_value = True
 
             verify_data = {"token": "valid_verification_token"}
-            response = await test_client.post(
-                "/api/v1/auth/verify-email", json=verify_data
-            )
+            response = await test_client.post("/api/v1/auth/verify-email", json=verify_data)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -423,9 +395,7 @@ class TestEmailVerification:
             mock_verify.side_effect = Exception("Invalid token")
 
             verify_data = {"token": "invalid_verification_token"}
-            response = await test_client.post(
-                "/api/v1/auth/verify-email", json=verify_data
-            )
+            response = await test_client.post("/api/v1/auth/verify-email", json=verify_data)
 
             assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -442,9 +412,7 @@ class TestEmailVerification:
             mock_send_email.return_value = True
 
             resend_data = {"email": "test@example.com"}
-            response = await test_client.post(
-                "/api/v1/auth/resend-verification", json=resend_data
-            )
+            response = await test_client.post("/api/v1/auth/resend-verification", json=resend_data)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -455,9 +423,7 @@ class TestTokenValidation:
     """Test token validation and security"""
 
     @pytest.mark.asyncio
-    async def test_access_protected_route_valid_token(
-        self, test_client, valid_token, mock_user
-    ):
+    async def test_access_protected_route_valid_token(self, test_client, valid_token, mock_user):
         """Test accessing protected route with valid token"""
         with patch("src.api.routes.auth.get_current_user") as mock_get_user:
             mock_get_user.return_value = mock_user
@@ -483,9 +449,7 @@ class TestTokenValidation:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    async def test_access_protected_route_expired_token(
-        self, test_client, expired_token
-    ):
+    async def test_access_protected_route_expired_token(self, test_client, expired_token):
         """Test accessing protected route with expired token"""
         headers = {"Authorization": f"Bearer {expired_token}"}
         response = await test_client.get("/api/v1/users/me", headers=headers)
@@ -520,15 +484,12 @@ class TestRateLimiting:
         responses = []
         for i in range(6):  # Assuming rate limit is 5 attempts
             sample_user_data["email"] = f"test{i}@example.com"
-            response = await test_client.post(
-                "/api/v1/auth/register", json=sample_user_data
-            )
+            response = await test_client.post("/api/v1/auth/register", json=sample_user_data)
             responses.append(response.status_code)
 
         # Should handle high frequency requests appropriately
         assert any(
-            status_code in [status.HTTP_201_CREATED, status.HTTP_429_TOO_MANY_REQUESTS]
-            for status_code in responses
+            status_code in [status.HTTP_201_CREATED, status.HTTP_429_TOO_MANY_REQUESTS] for status_code in responses
         )
 
 

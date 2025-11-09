@@ -237,9 +237,7 @@ class BaseScanner(ABC):
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(), timeout=timeout
-                )
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
                 return_code = process.returncode
 
                 return (
@@ -286,9 +284,7 @@ class ScannerOrchestrator:
             if scanner.scanner_type == scanner_type and scanner.is_available()
         ]
 
-    async def scan_with_scanner(
-        self, scanner_name: str, target: str, **kwargs
-    ) -> Tuple[ScanSummary, List[ScanResult]]:
+    async def scan_with_scanner(self, scanner_name: str, target: str, **kwargs) -> Tuple[ScanSummary, List[ScanResult]]:
         """Run scan with specific scanner."""
         scanner = self.get_scanner(scanner_name)
         if not scanner:
@@ -353,9 +349,7 @@ class ResultProcessor:
     """Processes and filters scan results."""
 
     @staticmethod
-    def filter_by_severity(
-        results: List[ScanResult], min_severity: SeverityLevel
-    ) -> List[ScanResult]:
+    def filter_by_severity(results: List[ScanResult], min_severity: SeverityLevel) -> List[ScanResult]:
         """Filter results by minimum severity level."""
         severity_order = {
             SeverityLevel.INFO: 0,
@@ -366,14 +360,10 @@ class ResultProcessor:
         }
 
         min_level = severity_order[min_severity]
-        return [
-            result for result in results if severity_order[result.severity] >= min_level
-        ]
+        return [result for result in results if severity_order[result.severity] >= min_level]
 
     @staticmethod
-    def filter_by_confidence(
-        results: List[ScanResult], min_confidence: float
-    ) -> List[ScanResult]:
+    def filter_by_confidence(results: List[ScanResult], min_confidence: float) -> List[ScanResult]:
         """Filter results by minimum confidence level."""
         return [result for result in results if result.confidence >= min_confidence]
 
@@ -511,9 +501,7 @@ class FileTypeDetector:
             return "ruby"
         elif extension in cls.SHELL_EXTENSIONS:
             return "shell"
-        elif filename in cls.CONFIG_FILES or any(
-            cf in filename for cf in cls.CONFIG_FILES
-        ):
+        elif filename in cls.CONFIG_FILES or any(cf in filename for cf in cls.CONFIG_FILES):
             return "config"
 
         return None
@@ -598,20 +586,14 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
     async def register_scanner(self, scanner_type: str, scanner: BaseScanner) -> None:
         """Register scanner with type validation and health checks."""
         if not scanner.is_available():
-            logger.warning(
-                f"Scanner {scanner.name} is not available, skipping registration"
-            )
+            logger.warning(f"Scanner {scanner.name} is not available, skipping registration")
             return
 
         await super().register_scanner(scanner)
 
         # Perform health check
         try:
-            health_status = (
-                await scanner.health_check()
-                if hasattr(scanner, "health_check")
-                else {"status": "unknown"}
-            )
+            health_status = await scanner.health_check() if hasattr(scanner, "health_check") else {"status": "unknown"}
             logger.info(f"Scanner {scanner.name} health status: {health_status}")
         except Exception as e:
             logger.warning(f"Health check failed for {scanner.name}: {e}")
@@ -631,9 +613,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
         scan_id = f"scan_{int(datetime.now(timezone.utc).timestamp())}"
         start_time = datetime.now(timezone.utc)
 
-        logger.info(
-            f"[{scan_id}] Starting comprehensive scan for {repository_url}#{branch}"
-        )
+        logger.info(f"[{scan_id}] Starting comprehensive scan for {repository_url}#{branch}")
 
         if scan_types is None:
             scan_types = ["dependency", "docker", "secret", "threat", "compliance"]
@@ -658,19 +638,13 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
             scan_context["repository_analysis"] = repo_analysis
 
             # Execute scans based on repository content
-            scan_results = await self._execute_targeted_scans(
-                temp_dir, scan_types, repo_analysis, scan_context
-            )
+            scan_results = await self._execute_targeted_scans(temp_dir, scan_types, repo_analysis, scan_context)
 
             # Process and aggregate results
-            processed_results = await self._process_scan_results(
-                scan_results, scan_context
-            )
+            processed_results = await self._process_scan_results(scan_results, scan_context)
 
             # Generate comprehensive report
-            final_report = await self._generate_comprehensive_report(
-                processed_results, scan_context
-            )
+            final_report = await self._generate_comprehensive_report(processed_results, scan_context)
 
             # Store results in database (if enabled)
             await self._store_scan_results(final_report, scan_context)
@@ -681,9 +655,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
             end_time = datetime.now(timezone.utc)
             execution_time = (end_time - start_time).total_seconds()
 
-            logger.info(
-                f"[{scan_id}] Comprehensive scan completed in {execution_time:.2f}s"
-            )
+            logger.info(f"[{scan_id}] Comprehensive scan completed in {execution_time:.2f}s")
 
             return {
                 "scan_id": scan_id,
@@ -696,9 +668,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
                 "results": final_report,
                 "summary": {
                     "total_scanners": len(scan_results),
-                    "total_findings": sum(
-                        len(results[1]) for results in scan_results.values()
-                    ),
+                    "total_findings": sum(len(results[1]) for results in scan_results.values()),
                     "critical_issues": processed_results.get("critical_count", 0),
                     "high_issues": processed_results.get("high_count", 0),
                     "risk_score": processed_results.get("overall_risk_score", 0),
@@ -728,9 +698,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
             if "temp_dir" in locals():
                 await self._cleanup_temp_directory(temp_dir, scan_id)
 
-    async def _prepare_repository(
-        self, repository_url: str, branch: str, scan_id: str
-    ) -> str:
+    async def _prepare_repository(self, repository_url: str, branch: str, scan_id: str) -> str:
         """Prepare repository for scanning by cloning to temporary directory."""
         temp_dir = tempfile.mkdtemp(prefix=f"secureops_scan_{scan_id}_")
 
@@ -834,15 +802,11 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
                     analysis["has_docker_compose"] = True
 
                 # Detect Kubernetes
-                if any(
-                    k in filename for k in ["kubernetes", "k8s"]
-                ) and filename.endswith((".yml", ".yaml")):
+                if any(k in filename for k in ["kubernetes", "k8s"]) and filename.endswith((".yml", ".yaml")):
                     analysis["has_kubernetes"] = True
 
                 # Detect CI/CD configurations
-                if ".github/workflows" in relative_path and filename.endswith(
-                    (".yml", ".yaml")
-                ):
+                if ".github/workflows" in relative_path and filename.endswith((".yml", ".yaml")):
                     analysis["ci_cd_configs"].append(f"GitHub Actions: {relative_path}")
                 elif filename == ".gitlab-ci.yml":
                     analysis["ci_cd_configs"].append("GitLab CI")
@@ -898,9 +862,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
 
             # Check if scan type is applicable to this repository
             if not self._is_scan_applicable(scanner_type, repo_analysis):
-                logger.info(
-                    f"[{scan_id}] Skipping {scan_type_name} scan - not applicable to repository"
-                )
+                logger.info(f"[{scan_id}] Skipping {scan_type_name} scan - not applicable to repository")
                 continue
 
             try:
@@ -910,9 +872,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
                 scanners = self.get_scanners_by_type(scanner_type)
 
                 if not scanners:
-                    logger.warning(
-                        f"[{scan_id}] No available scanners for {scan_type_name}"
-                    )
+                    logger.warning(f"[{scan_id}] No available scanners for {scan_type_name}")
                     continue
 
                 # Execute scans with the available scanners
@@ -924,14 +884,10 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
                             results,
                         )
 
-                        logger.info(
-                            f"[{scan_id}] {scanner.name} scan completed - {len(results)} findings"
-                        )
+                        logger.info(f"[{scan_id}] {scanner.name} scan completed - {len(results)} findings")
 
                     except Exception as e:
-                        logger.error(
-                            f"[{scan_id}] {scanner.name} scan failed: {str(e)}"
-                        )
+                        logger.error(f"[{scan_id}] {scanner.name} scan failed: {str(e)}")
 
                         # Create failed summary
                         failed_summary = ScanSummary(
@@ -950,22 +906,16 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
                         )
 
             except Exception as e:
-                logger.error(
-                    f"[{scan_id}] {scan_type_name} scan execution failed: {str(e)}"
-                )
+                logger.error(f"[{scan_id}] {scan_type_name} scan execution failed: {str(e)}")
 
         return scan_results
 
-    def _is_scan_applicable(
-        self, scanner_type: ScannerType, repo_analysis: Dict[str, Any]
-    ) -> bool:
+    def _is_scan_applicable(self, scanner_type: ScannerType, repo_analysis: Dict[str, Any]) -> bool:
         """Determine if a scan type is applicable based on repository analysis."""
         if scanner_type == ScannerType.DEPENDENCY:
             return bool(repo_analysis.get("package_managers"))
         elif scanner_type == ScannerType.CONTAINER:
-            return repo_analysis.get("has_dockerfile") or repo_analysis.get(
-                "has_docker_compose"
-            )
+            return repo_analysis.get("has_dockerfile") or repo_analysis.get("has_docker_compose")
         elif scanner_type == ScannerType.SECRET:
             return repo_analysis.get("scannable_files", 0) > 0
         elif scanner_type == ScannerType.SAST:
@@ -1036,22 +986,15 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
                 "critical_issues": processed_results["critical_count"],
                 "high_issues": processed_results["high_count"],
                 "overall_risk_score": processed_results["overall_risk_score"],
-                "risk_level": self._determine_risk_level(
-                    processed_results["overall_risk_score"]
-                ),
+                "risk_level": self._determine_risk_level(processed_results["overall_risk_score"]),
                 "recommendation": self._generate_recommendation(processed_results),
             },
             "detailed_findings": {
                 "by_severity": processed_results["results_by_severity"],
                 "by_file": processed_results["results_by_file"],
-                "scanner_summaries": [
-                    summary.to_dict()
-                    for summary in processed_results["scanner_summaries"]
-                ],
+                "scanner_summaries": [summary.to_dict() for summary in processed_results["scanner_summaries"]],
             },
-            "remediation_guidance": self._generate_remediation_guidance(
-                processed_results
-            ),
+            "remediation_guidance": self._generate_remediation_guidance(processed_results),
             "compliance_status": self._assess_compliance_status(processed_results),
         }
 
@@ -1082,9 +1025,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
         else:
             return "NO ISSUES FOUND: No security issues identified in this scan."
 
-    def _generate_remediation_guidance(
-        self, processed_results: Dict[str, Any]
-    ) -> Dict[str, List[str]]:
+    def _generate_remediation_guidance(self, processed_results: Dict[str, Any]) -> Dict[str, List[str]]:
         """Generate remediation guidance for different issue types."""
         guidance = {
             "immediate_actions": [],
@@ -1121,17 +1062,12 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
 
         return guidance
 
-    def _assess_compliance_status(
-        self, processed_results: Dict[str, Any]
-    ) -> Dict[str, str]:
+    def _assess_compliance_status(self, processed_results: Dict[str, Any]) -> Dict[str, str]:
         """Assess compliance status based on scan results."""
         compliance_status = {}
 
         # Basic compliance assessment
-        if (
-            processed_results["critical_count"] == 0
-            and processed_results["high_count"] == 0
-        ):
+        if processed_results["critical_count"] == 0 and processed_results["high_count"] == 0:
             compliance_status["overall"] = "COMPLIANT"
         elif processed_results["critical_count"] == 0:
             compliance_status["overall"] = "PARTIALLY_COMPLIANT"
@@ -1140,9 +1076,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
 
         return compliance_status
 
-    async def _store_scan_results(
-        self, report: Dict[str, Any], scan_context: Dict[str, Any]
-    ) -> None:
+    async def _store_scan_results(self, report: Dict[str, Any], scan_context: Dict[str, Any]) -> None:
         """Store scan results in database."""
         try:
             # This would integrate with the database layer
@@ -1152,9 +1086,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
         except Exception as e:
             logger.error(f"Failed to store scan results: {str(e)}")
 
-    async def _trigger_alerts_if_needed(
-        self, report: Dict[str, Any], scan_context: Dict[str, Any]
-    ) -> None:
+    async def _trigger_alerts_if_needed(self, report: Dict[str, Any], scan_context: Dict[str, Any]) -> None:
         """Trigger alerts for critical findings."""
         try:
             executive_summary = report.get("executive_summary", {})
@@ -1177,9 +1109,7 @@ class EnhancedScannerOrchestrator(ScannerOrchestrator):
                 shutil.rmtree(temp_dir)
                 logger.info(f"[{scan_id}] Cleaned up temporary directory: {temp_dir}")
         except Exception as e:
-            logger.warning(
-                f"[{scan_id}] Failed to cleanup temp directory {temp_dir}: {str(e)}"
-            )
+            logger.warning(f"[{scan_id}] Failed to cleanup temp directory {temp_dir}: {str(e)}")
 
     async def get_health_status(self) -> Dict[str, Any]:
         """Get health status of all registered scanners."""

@@ -18,9 +18,7 @@ class SNSClient:
         self.session = aiobotocore.session.get_session()
         self.region = settings.aws_region
 
-    async def publish(
-        self, topic_arn: str, message: str, subject: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def publish(self, topic_arn: str, message: str, subject: Optional[str] = None) -> Dict[str, Any]:
         """Publish a message to an SNS topic asynchronously."""
         try:
             async with self.session.create_client(

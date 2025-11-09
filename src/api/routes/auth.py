@@ -1,4 +1,4 @@
-﻿"""Authentication routes for SecureOps API."""
+"""Authentication routes for SecureOps API."""
 
 from datetime import datetime, timedelta
 from typing import Optional
@@ -83,9 +83,7 @@ async def send_verification_email(email: str, token: str) -> bool:
     return True
 
 
-async def authenticate_user(
-    db: AsyncSession, username: str, password: str
-) -> Optional[User]:
+async def authenticate_user(db: AsyncSession, username: str, password: str) -> Optional[User]:
     """Authenticate user credentials."""
     global _test_login_call_count
 
@@ -133,9 +131,7 @@ async def authenticate_user(
     )
 
 
-async def create_access_token(
-    data: dict, expires_delta: Optional[timedelta] = None
-) -> str:
+async def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create JWT access token."""
     # For testing compatibility, return specific token based on context
     if data.get("sub") == "test@example.com":
@@ -172,9 +168,7 @@ async def send_password_reset_email(email: str, token: str) -> bool:
 
 
 async def get_current_user_from_token(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
-        HTTPBearer(auto_error=False)
-    ),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
 ) -> User:
     """Get current user from JWT token."""
     # Mock implementation for testing - validate the token
@@ -321,47 +315,16 @@ async def activate_user(user_id: int) -> bool:
     return True
 
 
-async def create_refresh_token(
-    data: dict, expires_delta: Optional[timedelta] = None
-) -> str:
+async def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create JWT refresh token."""
     # Mock implementation for testing
     return "refresh_token"
 
 
-async def invalidate_token(token: str) -> bool:
-    """Invalidate a token."""
-    # Mock implementation for testing
-    return True
-
-
-async def hash_password(password: str) -> str:
-    """Hash a password."""
-    # Mock implementation for testing
-    return f"hashed_{password}"
-
-
-async def verify_reset_token(token: str) -> Optional[dict]:
-    """Verify password reset token."""
-    # Mock implementation for testing
-    return {"email": "test@example.com", "exp": datetime.now() + timedelta(hours=1)}
-
-
-async def send_password_reset_email(email: str, token: str) -> bool:
-    """Send password reset email."""
-    # Mock implementation for testing
-    logger.info(f"Sending password reset email to {email}")
-    return True
-
-
-# Use the helper function for the dependency
-get_current_user = get_current_user_from_token
-
-
 # Pydantic models
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     username: str
     email: str
@@ -461,9 +424,7 @@ async def get_current_user(
 
 # Optional dependency for endpoints that can work without authentication
 async def get_current_user_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
-        HTTPBearer(auto_error=False)
-    ),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
     db: AsyncSession = Depends(get_db),
 ) -> Optional[User]:
     """Get current user from JWT token, returns None if not authenticated."""
@@ -498,9 +459,7 @@ async def login(
         )
 
     if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is inactive"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is inactive")
 
     # Create response user
     response_user = UserResponse(
@@ -514,9 +473,7 @@ async def login(
 
     # Create tokens
     access_token = await create_access_token({"sub": user.username, "user_id": user.id})
-    refresh_token = await create_refresh_token(
-        {"sub": user.username, "user_id": user.id}
-    )
+    refresh_token = await create_refresh_token({"sub": user.username, "user_id": user.id})
 
     return TokenResponse(
         access_token=access_token,
@@ -526,21 +483,13 @@ async def login(
     )
 
 
-@router.post(
-    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
-)
-async def register(
-    request: Request, register_data: RegisterRequest, db: AsyncSession = Depends(get_db)
-):
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def register(request: Request, register_data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """User registration endpoint."""
-    username = (
-        register_data.username or register_data.email
-    )  # Use email as username if not provided
+    username = register_data.username or register_data.email  # Use email as username if not provided
     full_name = None
     if register_data.first_name or register_data.last_name:
-        full_name = (
-            f"{register_data.first_name or ''} {register_data.last_name or ''}".strip()
-        )
+        full_name = f"{register_data.first_name or ''} {register_data.last_name or ''}".strip()
 
     logger.info(f"Registration attempt for email: {register_data.email}")
 
@@ -559,9 +508,7 @@ async def register(
     # Check for duplicate email
     existing_user = await get_user_by_email(register_data.email)
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     # Password strength validation
     if len(register_data.password) < 8:
@@ -649,13 +596,6 @@ async def refresh_token(refresh_data: dict):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 
-@router.post("/logout")
-async def logout(current_user: User = Depends(get_current_user)):
-    """Logout endpoint."""
-    logger.info(f"User {current_user.username} logged out")
-    return {"message": "Successfully logged out"}
-
-
 # Additional models for missing endpoints
 class PasswordChangeRequest(BaseModel):
     current_password: str
@@ -715,27 +655,21 @@ async def change_password(
 
 
 @router.post("/reset-password")
-async def reset_password_request(
-    reset_data: PasswordResetRequest, db: AsyncSession = Depends(get_db)
-):
+async def reset_password_request(reset_data: PasswordResetRequest, db: AsyncSession = Depends(get_db)):
     """Request password reset."""
     # Mock implementation for testing
     return {"message": "Password reset link sent"}
 
 
 @router.post("/reset-password/confirm")
-async def reset_password_confirm(
-    reset_data: PasswordResetConfirm, db: AsyncSession = Depends(get_db)
-):
+async def reset_password_confirm(reset_data: PasswordResetConfirm, db: AsyncSession = Depends(get_db)):
     """Confirm password reset."""
     # Mock implementation for testing
     return {"message": "Password reset successfully"}
 
 
 @router.post("/verify-email")
-async def verify_email(
-    verification_data: EmailVerificationRequest, db: AsyncSession = Depends(get_db)
-):
+async def verify_email(verification_data: EmailVerificationRequest, db: AsyncSession = Depends(get_db)):
     """Verify email address."""
     try:
         # Verify the email token
@@ -749,15 +683,11 @@ async def verify_email(
         # In a real implementation, you would update the user's email verification status
         return {"message": "Email verified successfully"}
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification token"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification token")
 
 
 @router.post("/resend-verification")
-async def resend_verification_email(
-    resend_data: ResendVerificationRequest, db: AsyncSession = Depends(get_db)
-):
+async def resend_verification_email(resend_data: ResendVerificationRequest, db: AsyncSession = Depends(get_db)):
     """Resend verification email."""
     # Mock implementation for testing
     return {"message": "Verification email sent"}

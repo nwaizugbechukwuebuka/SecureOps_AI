@@ -83,13 +83,9 @@ class TestComplianceFrameworks:
     @pytest.mark.asyncio
     async def test_get_frameworks_success(self, test_client, auth_headers):
         """Test successful frameworks retrieval"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.get_available_frameworks"
-        ) as mock_get_frameworks:
+        ) as mock_get_db, patch("src.api.services.compliance_service.get_available_frameworks") as mock_get_frameworks:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -120,9 +116,7 @@ class TestComplianceFrameworks:
 
             mock_get_frameworks.return_value = mock_frameworks
 
-            response = await test_client.get(
-                "/api/v1/compliance/frameworks", headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/compliance/frameworks", headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -134,13 +128,9 @@ class TestComplianceFrameworks:
     @pytest.mark.asyncio
     async def test_get_framework_details(self, test_client, auth_headers):
         """Test framework details retrieval"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.get_framework_details"
-        ) as mock_get_details:
+        ) as mock_get_db, patch("src.api.services.compliance_service.get_framework_details") as mock_get_details:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -172,9 +162,7 @@ class TestComplianceFrameworks:
 
             mock_get_details.return_value = mock_details
 
-            response = await test_client.get(
-                "/api/v1/compliance/frameworks/owasp_top_10", headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/compliance/frameworks/owasp_top_10", headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -186,17 +174,11 @@ class TestComplianceAssessment:
     """Test compliance assessment functionality"""
 
     @pytest.mark.asyncio
-    async def test_get_compliance_overview(
-        self, test_client, sample_compliance_data, auth_headers
-    ):
+    async def test_get_compliance_overview(self, test_client, sample_compliance_data, auth_headers):
         """Test compliance overview retrieval"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.get_compliance_overview"
-        ) as mock_get_overview:
+        ) as mock_get_db, patch("src.api.services.compliance_service.get_compliance_overview") as mock_get_overview:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -244,13 +226,9 @@ class TestComplianceAssessment:
     @pytest.mark.asyncio
     async def test_get_compliance_by_framework(self, test_client, auth_headers):
         """Test compliance data for specific framework"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.get_framework_compliance"
-        ) as mock_get_compliance:
+        ) as mock_get_db, patch("src.api.services.compliance_service.get_framework_compliance") as mock_get_compliance:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -291,9 +269,7 @@ class TestComplianceAssessment:
             mock_get_compliance.return_value = mock_compliance
 
             params = {"framework": "owasp_top_10"}
-            response = await test_client.get(
-                "/api/v1/compliance", params=params, headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/compliance", params=params, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -303,13 +279,9 @@ class TestComplianceAssessment:
     @pytest.mark.asyncio
     async def test_run_compliance_assessment(self, test_client, auth_headers):
         """Test running compliance assessment"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.run_assessment"
-        ) as mock_run_assessment:
+        ) as mock_get_db, patch("src.api.services.compliance_service.run_assessment") as mock_run_assessment:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -328,9 +300,7 @@ class TestComplianceAssessment:
 
             assessment_data = {"framework": "owasp_top_10", "scope": "full"}
 
-            response = await test_client.post(
-                "/api/v1/compliance/assess", json=assessment_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/compliance/assess", json=assessment_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -344,13 +314,9 @@ class TestComplianceControls:
     @pytest.mark.asyncio
     async def test_update_control_status(self, test_client, auth_headers):
         """Test updating control status"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.update_control_status"
-        ) as mock_update:
+        ) as mock_get_db, patch("src.api.services.compliance_service.update_control_status") as mock_update:
 
             mock_user = Mock()
             mock_user.id = 1
@@ -389,13 +355,9 @@ class TestComplianceControls:
     @pytest.mark.asyncio
     async def test_get_control_details(self, test_client, auth_headers):
         """Test getting control details"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.get_control_details"
-        ) as mock_get_control:
+        ) as mock_get_db, patch("src.api.services.compliance_service.get_control_details") as mock_get_control:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -417,16 +379,12 @@ class TestComplianceControls:
                     "Use principle of least privilege",
                     "Regular access reviews",
                 ],
-                "references": [
-                    "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
-                ],
+                "references": ["https://owasp.org/Top10/A01_2021-Broken_Access_Control/"],
             }
 
             mock_get_control.return_value = mock_control
 
-            response = await test_client.get(
-                "/api/v1/compliance/controls/A01", headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/compliance/controls/A01", headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -441,13 +399,9 @@ class TestComplianceReporting:
     @pytest.mark.asyncio
     async def test_generate_compliance_report(self, test_client, auth_headers):
         """Test compliance report generation"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.generate_report"
-        ) as mock_generate:
+        ) as mock_get_db, patch("src.api.services.compliance_service.generate_report") as mock_generate:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -471,9 +425,7 @@ class TestComplianceReporting:
                 "include_trends": True,
             }
 
-            response = await test_client.post(
-                "/api/v1/compliance/report", json=report_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/compliance/report", json=report_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -483,13 +435,9 @@ class TestComplianceReporting:
     @pytest.mark.asyncio
     async def test_download_compliance_report(self, test_client, auth_headers):
         """Test compliance report download"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.get_report_file"
-        ) as mock_get_file:
+        ) as mock_get_db, patch("src.api.services.compliance_service.get_report_file") as mock_get_file:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -505,9 +453,7 @@ class TestComplianceReporting:
                 "content_type": "application/pdf",
             }
 
-            response = await test_client.get(
-                "/api/v1/compliance/report/report_123", headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/compliance/report/report_123", headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             assert response.headers["content-type"] == "application/pdf"
@@ -515,13 +461,9 @@ class TestComplianceReporting:
     @pytest.mark.asyncio
     async def test_get_compliance_trends(self, test_client, auth_headers):
         """Test compliance trends retrieval"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.get_compliance_trends"
-        ) as mock_get_trends:
+        ) as mock_get_db, patch("src.api.services.compliance_service.get_compliance_trends") as mock_get_trends:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -543,9 +485,7 @@ class TestComplianceReporting:
 
             params = {"framework": "owasp_top_10", "period": "30d"}
 
-            response = await test_client.get(
-                "/api/v1/compliance/trends", params=params, headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/compliance/trends", params=params, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -559,13 +499,9 @@ class TestComplianceAutomation:
     @pytest.mark.asyncio
     async def test_configure_automated_assessment(self, test_client, auth_headers):
         """Test configuring automated compliance assessment"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.configure_automation"
-        ) as mock_configure:
+        ) as mock_get_db, patch("src.api.services.compliance_service.configure_automation") as mock_configure:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -605,13 +541,9 @@ class TestComplianceAutomation:
     @pytest.mark.asyncio
     async def test_get_automation_status(self, test_client, auth_headers):
         """Test getting automation status"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.get_automation_status"
-        ) as mock_get_status:
+        ) as mock_get_db, patch("src.api.services.compliance_service.get_automation_status") as mock_get_status:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -645,9 +577,7 @@ class TestComplianceAutomation:
 
             mock_get_status.return_value = mock_status
 
-            response = await test_client.get(
-                "/api/v1/compliance/automation", headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/compliance/automation", headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -661,13 +591,9 @@ class TestComplianceIntegrations:
     @pytest.mark.asyncio
     async def test_sync_with_external_tools(self, test_client, auth_headers):
         """Test syncing compliance data with external tools"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.sync_external_tools"
-        ) as mock_sync:
+        ) as mock_get_db, patch("src.api.services.compliance_service.sync_external_tools") as mock_sync:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -688,9 +614,7 @@ class TestComplianceIntegrations:
                 "framework": "owasp_top_10",
             }
 
-            response = await test_client.post(
-                "/api/v1/compliance/sync", json=sync_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/compliance/sync", json=sync_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -700,13 +624,9 @@ class TestComplianceIntegrations:
     @pytest.mark.asyncio
     async def test_export_compliance_data(self, test_client, auth_headers):
         """Test exporting compliance data"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.routes.compliance.get_db"
-        ) as mock_get_db, patch(
-            "src.api.services.compliance_service.export_compliance_data"
-        ) as mock_export:
+        ) as mock_get_db, patch("src.api.services.compliance_service.export_compliance_data") as mock_export:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -731,9 +651,7 @@ class TestComplianceIntegrations:
 
             params = {"framework": "owasp_top_10", "format": "json"}
 
-            response = await test_client.get(
-                "/api/v1/compliance/export", params=params, headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/compliance/export", params=params, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -747,9 +665,7 @@ class TestComplianceValidation:
     @pytest.mark.asyncio
     async def test_validate_framework_config(self, test_client, auth_headers):
         """Test framework configuration validation"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.services.compliance_service.validate_framework_config"
         ) as mock_validate:
 
@@ -768,9 +684,7 @@ class TestComplianceValidation:
                 "scope": "web_application",
             }
 
-            response = await test_client.post(
-                "/api/v1/compliance/validate", json=config_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/compliance/validate", json=config_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -780,9 +694,7 @@ class TestComplianceValidation:
     @pytest.mark.asyncio
     async def test_validate_control_mapping(self, test_client, auth_headers):
         """Test control mapping validation"""
-        with patch(
-            "src.api.routes.compliance.get_current_user"
-        ) as mock_get_user, patch(
+        with patch("src.api.routes.compliance.get_current_user") as mock_get_user, patch(
             "src.api.services.compliance_service.validate_control_mapping"
         ) as mock_validate:
 
@@ -792,9 +704,7 @@ class TestComplianceValidation:
             mock_validate.return_value = {
                 "valid": False,
                 "errors": ["Control A99 does not exist in OWASP Top 10"],
-                "suggestions": [
-                    "Did you mean A09 (Security Logging and Monitoring Failures)?"
-                ],
+                "suggestions": ["Did you mean A09 (Security Logging and Monitoring Failures)?"],
             }
 
             mapping_data = {

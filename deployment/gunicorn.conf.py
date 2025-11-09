@@ -48,33 +48,41 @@ worker_tmp_dir = "/dev/shm"  # Use memory for worker temp files
 # Application settings
 wsgi_file = "src.api.main:app"
 
+
 def when_ready(server):
     """Called just after the server is started."""
     server.log.info("SecureOps Backend server is ready. Listening on: %s", server.address)
+
 
 def worker_int(worker):
     """Called just after a worker exited on SIGINT or SIGQUIT."""
     worker.log.info("Worker received INT or QUIT signal")
 
+
 def pre_fork(server, worker):
     """Called just before a worker is forked."""
     server.log.info("Worker spawned (pid: %s)", worker.pid)
+
 
 def post_fork(server, worker):
     """Called just after a worker has been forked."""
     server.log.info("Worker spawned (pid: %s)", worker.pid)
 
+
 def worker_abort(worker):
     """Called when a worker received the SIGABRT signal."""
     worker.log.info("Worker received SIGABRT signal")
+
 
 def pre_exec(server):
     """Called just before a new master process is forked."""
     server.log.info("Forked child, re-executing.")
 
+
 def pre_request(worker, req):
     """Called just before a worker processes the request."""
     worker.log.debug("%s %s", req.method, req.path)
+
 
 def post_request(worker, req, environ, resp):
     """Called after a worker processes the request."""

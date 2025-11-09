@@ -2,12 +2,10 @@
 Rate limiting and security middleware for SecureOps API
 """
 
-import json
 import time
-from typing import Dict, Optional
 
 import redis.asyncio as aioredis
-from fastapi import HTTPException, Request, status
+from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -23,9 +21,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def get_redis_client(self):
         if self.redis_client is None:
-            self.redis_client = await aioredis.from_url(
-                self.redis_url, decode_responses=True
-            )
+            self.redis_client = await aioredis.from_url(self.redis_url, decode_responses=True)
         return self.redis_client
 
     async def dispatch(self, request: Request, call_next):
@@ -55,9 +51,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 if current_requests >= self.default_rate_limit:
                     return JSONResponse(
                         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                        content={
-                            "detail": "Rate limit exceeded. Please try again later."
-                        },
+                        content={"detail": "Rate limit exceeded. Please try again later."},
                     )
 
                 # Increment counter
@@ -66,9 +60,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Add rate limit headers to response
             response = await call_next(request)
             response.headers["X-RateLimit-Limit"] = str(self.default_rate_limit)
-            response.headers["X-RateLimit-Remaining"] = str(
-                self.default_rate_limit - current_requests
-            )
+            response.headers["X-RateLimit-Remaining"] = str(self.default_rate_limit - current_requests)
             response.headers["X-RateLimit-Reset"] = str(int(time.time()) + 60)
 
             return response
@@ -90,9 +82,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=63072000; includeSubDomains; preload"
-        )
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
@@ -105,8 +95,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "form-action 'self'"
         )
         response.headers["Permissions-Policy"] = (
-            "geolocation=(), microphone=(), camera=(), "
-            "payment=(), usb=(), magnetometer=(), gyroscope=()"
+            "geolocation=(), microphone=(), camera=(), " "payment=(), usb=(), magnetometer=(), gyroscope=()"
         )
 
         return response

@@ -78,15 +78,11 @@ class TestAlertCreation:
     """Test alert creation functionality"""
 
     @pytest.mark.asyncio
-    async def test_create_alert_success(
-        self, test_client, sample_alert_data, auth_headers
-    ):
+    async def test_create_alert_success(self, test_client, sample_alert_data, auth_headers):
         """Test successful alert creation"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.create_alert"
-        ) as mock_create_alert:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.create_alert") as mock_create_alert:
 
             mock_user = Mock()
             mock_user.id = 1
@@ -104,9 +100,7 @@ class TestAlertCreation:
 
             mock_create_alert.return_value = mock_alert
 
-            response = await test_client.post(
-                "/api/v1/alerts", json=sample_alert_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/alerts", json=sample_alert_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_201_CREATED
             data = response.json()
@@ -116,28 +110,20 @@ class TestAlertCreation:
             assert "id" in data
 
     @pytest.mark.asyncio
-    async def test_create_alert_invalid_severity(
-        self, test_client, sample_alert_data, auth_headers
-    ):
+    async def test_create_alert_invalid_severity(self, test_client, sample_alert_data, auth_headers):
         """Test alert creation with invalid severity"""
         sample_alert_data["severity"] = "invalid_severity"
 
-        response = await test_client.post(
-            "/api/v1/alerts", json=sample_alert_data, headers=auth_headers
-        )
+        response = await test_client.post("/api/v1/alerts", json=sample_alert_data, headers=auth_headers)
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_create_alert_missing_title(
-        self, test_client, sample_alert_data, auth_headers
-    ):
+    async def test_create_alert_missing_title(self, test_client, sample_alert_data, auth_headers):
         """Test alert creation without required title"""
         del sample_alert_data["title"]
 
-        response = await test_client.post(
-            "/api/v1/alerts", json=sample_alert_data, headers=auth_headers
-        )
+        response = await test_client.post("/api/v1/alerts", json=sample_alert_data, headers=auth_headers)
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -157,9 +143,7 @@ class TestAlertRetrieval:
         """Test successful alerts retrieval"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alerts"
-        ) as mock_get_alerts:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alerts") as mock_get_alerts:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -196,9 +180,7 @@ class TestAlertRetrieval:
         """Test alerts retrieval with filters"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alerts"
-        ) as mock_get_alerts:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alerts") as mock_get_alerts:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -216,9 +198,7 @@ class TestAlertRetrieval:
                 "offset": 0,
             }
 
-            response = await test_client.get(
-                "/api/v1/alerts", params=params, headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/alerts", params=params, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             mock_get_alerts.assert_called_once()
@@ -228,9 +208,7 @@ class TestAlertRetrieval:
         """Test successful alert retrieval by ID"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alert_by_id"
-        ) as mock_get_alert:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alert_by_id") as mock_get_alert:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -252,9 +230,7 @@ class TestAlertRetrieval:
         """Test alert retrieval with non-existent ID"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alert_by_id"
-        ) as mock_get_alert:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alert_by_id") as mock_get_alert:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -277,9 +253,7 @@ class TestAlertUpdate:
         """Test successful alert update"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alert_by_id"
-        ) as mock_get_alert, patch(
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alert_by_id") as mock_get_alert, patch(
             "api.services.alert_service.AlertService.update_alert"
         ) as mock_update_alert:
 
@@ -300,24 +274,18 @@ class TestAlertUpdate:
             mock_update_alert.return_value = updated_alert
 
             update_data = {"title": "Updated Alert Title"}
-            response = await test_client.patch(
-                "/api/v1/alerts/1", json=update_data, headers=auth_headers
-            )
+            response = await test_client.patch("/api/v1/alerts/1", json=update_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["title"] == "Updated Alert Title"
 
     @pytest.mark.asyncio
-    async def test_acknowledge_alert_success(
-        self, test_client, mock_alert, auth_headers
-    ):
+    async def test_acknowledge_alert_success(self, test_client, mock_alert, auth_headers):
         """Test successful alert acknowledgment"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alert_by_id"
-        ) as mock_get_alert, patch(
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alert_by_id") as mock_get_alert, patch(
             "api.services.alert_service.AlertService.acknowledge_alert"
         ) as mock_acknowledge:
 
@@ -338,9 +306,7 @@ class TestAlertUpdate:
 
             mock_acknowledge.return_value = acknowledged_alert
 
-            response = await test_client.post(
-                "/api/v1/alerts/1/acknowledge", headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/alerts/1/acknowledge", headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -351,9 +317,7 @@ class TestAlertUpdate:
         """Test successful alert resolution"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alert_by_id"
-        ) as mock_get_alert, patch(
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alert_by_id") as mock_get_alert, patch(
             "api.services.alert_service.AlertService.resolve_alert"
         ) as mock_resolve:
 
@@ -375,9 +339,7 @@ class TestAlertUpdate:
             mock_resolve.return_value = resolved_alert
 
             resolution_data = {"resolution_note": "Fixed vulnerability"}
-            response = await test_client.post(
-                "/api/v1/alerts/1/resolve", json=resolution_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/alerts/1/resolve", json=resolution_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -392,9 +354,7 @@ class TestAlertDeletion:
         """Test successful alert deletion"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alert_by_id"
-        ) as mock_get_alert, patch(
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alert_by_id") as mock_get_alert, patch(
             "api.services.alert_service.AlertService.delete_alert"
         ) as mock_delete:
 
@@ -407,9 +367,7 @@ class TestAlertDeletion:
             mock_get_alert.return_value = mock_alert
             mock_delete.return_value = True
 
-            response = await test_client.delete(
-                "/api/v1/alerts/1", headers=auth_headers
-            )
+            response = await test_client.delete("/api/v1/alerts/1", headers=auth_headers)
 
             assert response.status_code == status.HTTP_204_NO_CONTENT
 
@@ -418,9 +376,7 @@ class TestAlertDeletion:
         """Test deletion of non-existent alert"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alert_by_id"
-        ) as mock_get_alert:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alert_by_id") as mock_get_alert:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -430,9 +386,7 @@ class TestAlertDeletion:
 
             mock_get_alert.return_value = None
 
-            response = await test_client.delete(
-                "/api/v1/alerts/999", headers=auth_headers
-            )
+            response = await test_client.delete("/api/v1/alerts/999", headers=auth_headers)
 
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -445,9 +399,7 @@ class TestAlertBulkOperations:
         """Test successful bulk alert acknowledgment"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.bulk_acknowledge_alerts"
-        ) as mock_bulk_ack:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.bulk_acknowledge_alerts") as mock_bulk_ack:
 
             mock_user = Mock()
             mock_user.id = 1
@@ -460,9 +412,7 @@ class TestAlertBulkOperations:
 
             bulk_data = {"alert_ids": [1, 2, 3], "action": "acknowledge"}
 
-            response = await test_client.post(
-                "/api/v1/alerts/bulk-action", json=bulk_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/alerts/bulk-action", json=bulk_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -474,9 +424,7 @@ class TestAlertBulkOperations:
         """Test successful bulk alert resolution"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.bulk_resolve_alerts"
-        ) as mock_bulk_resolve:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.bulk_resolve_alerts") as mock_bulk_resolve:
 
             mock_user = Mock()
             mock_user.id = 1
@@ -493,9 +441,7 @@ class TestAlertBulkOperations:
                 "resolution_note": "Bulk resolution",
             }
 
-            response = await test_client.post(
-                "/api/v1/alerts/bulk-action", json=bulk_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/alerts/bulk-action", json=bulk_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -507,9 +453,7 @@ class TestAlertBulkOperations:
         """Test successful bulk alert deletion"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.bulk_delete_alerts"
-        ) as mock_bulk_delete:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.bulk_delete_alerts") as mock_bulk_delete:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -521,9 +465,7 @@ class TestAlertBulkOperations:
 
             bulk_data = {"alert_ids": [1, 2, 3, 4, 5], "action": "delete"}
 
-            response = await test_client.post(
-                "/api/v1/alerts/bulk-action", json=bulk_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/alerts/bulk-action", json=bulk_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -539,9 +481,7 @@ class TestAlertStatistics:
         """Test successful alert statistics retrieval"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alert_statistics"
-        ) as mock_get_stats:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alert_statistics") as mock_get_stats:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -561,9 +501,7 @@ class TestAlertStatistics:
 
             mock_get_stats.return_value = mock_stats
 
-            response = await test_client.get(
-                "/api/v1/alerts/stats", headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/alerts/stats", headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -578,9 +516,7 @@ class TestAlertStatistics:
         """Test successful alert trends retrieval"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alert_trends"
-        ) as mock_get_trends:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alert_trends") as mock_get_trends:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -607,9 +543,7 @@ class TestAlertStatistics:
             mock_get_trends.return_value = mock_trends
 
             params = {"period": "30d", "severity": "high"}
-            response = await test_client.get(
-                "/api/v1/alerts/trends", params=params, headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/alerts/trends", params=params, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -621,15 +555,11 @@ class TestAlertNotifications:
     """Test alert notification functionality"""
 
     @pytest.mark.asyncio
-    async def test_alert_webhook_trigger(
-        self, test_client, sample_alert_data, auth_headers
-    ):
+    async def test_alert_webhook_trigger(self, test_client, sample_alert_data, auth_headers):
         """Test alert webhook trigger on creation"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.create_alert"
-        ) as mock_create_alert, patch(
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.create_alert") as mock_create_alert, patch(
             "api.services.alert_service.AlertService.trigger_alert_webhook"
         ) as mock_webhook:
 
@@ -646,24 +576,18 @@ class TestAlertNotifications:
 
             mock_webhook.return_value = True
 
-            response = await test_client.post(
-                "/api/v1/alerts", json=sample_alert_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/alerts", json=sample_alert_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_201_CREATED
             # Webhook should be triggered for high severity alerts
             mock_webhook.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_alert_email_notification(
-        self, test_client, sample_alert_data, auth_headers
-    ):
+    async def test_alert_email_notification(self, test_client, sample_alert_data, auth_headers):
         """Test alert email notification on creation"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.create_alert"
-        ) as mock_create_alert, patch(
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.create_alert") as mock_create_alert, patch(
             "api.services.alert_service.AlertService.send_alert_email"
         ) as mock_email:
 
@@ -681,9 +605,7 @@ class TestAlertNotifications:
             mock_email.return_value = True
 
             sample_alert_data["severity"] = "critical"
-            response = await test_client.post(
-                "/api/v1/alerts", json=sample_alert_data, headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/alerts", json=sample_alert_data, headers=auth_headers)
 
             assert response.status_code == status.HTTP_201_CREATED
             # Email should be sent for critical alerts
@@ -698,9 +620,7 @@ class TestAlertFiltering:
         """Test filtering alerts by date range"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.get_alerts"
-        ) as mock_get_alerts:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alerts") as mock_get_alerts:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -716,9 +636,7 @@ class TestAlertFiltering:
                 "severity": "high",
             }
 
-            response = await test_client.get(
-                "/api/v1/alerts", params=params, headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/alerts", params=params, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             mock_get_alerts.assert_called_once()
@@ -728,9 +646,7 @@ class TestAlertFiltering:
         """Test searching alerts by text content"""
         with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
             "api.routes.alerts.get_db"
-        ) as mock_get_db, patch(
-            "api.services.alert_service.AlertService.search_alerts"
-        ) as mock_search:
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.search_alerts") as mock_search:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -741,9 +657,7 @@ class TestAlertFiltering:
             mock_search.return_value = ([], 0)
 
             params = {"search": "CVE-2023"}
-            response = await test_client.get(
-                "/api/v1/alerts/search", params=params, headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/alerts/search", params=params, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
             mock_search.assert_called_once()

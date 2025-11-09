@@ -49,13 +49,9 @@ class TestHealthEndpoints:
     @pytest.mark.asyncio
     async def test_health_detailed(self, test_client):
         """Test detailed health check endpoint"""
-        with patch(
-            "src.api.routes.health.check_database_connection"
-        ) as mock_db_check, patch(
+        with patch("src.api.routes.health.check_database_connection") as mock_db_check, patch(
             "src.api.routes.health.check_redis_connection"
-        ) as mock_redis_check, patch(
-            "src.api.routes.health.check_external_services"
-        ) as mock_external_check:
+        ) as mock_redis_check, patch("src.api.routes.health.check_external_services") as mock_external_check:
 
             mock_db_check.return_value = {"status": "healthy", "response_time": 0.05}
             mock_redis_check.return_value = {"status": "healthy", "response_time": 0.02}
@@ -184,9 +180,7 @@ class TestErrorHandling:
             "platform": "invalid_platform",
         }
 
-        response = await test_client.post(
-            "/api/v1/pipelines", json=invalid_data, headers=auth_headers
-        )
+        response = await test_client.post("/api/v1/pipelines", json=invalid_data, headers=auth_headers)
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         data = response.json()
@@ -230,9 +224,7 @@ class TestRateLimiting:
             # Authenticated users should have higher rate limits
             responses = []
             for i in range(15):
-                response = await test_client.get(
-                    "/api/v1/users/me", headers=auth_headers
-                )
+                response = await test_client.get("/api/v1/users/me", headers=auth_headers)
                 responses.append(response.status_code)
 
             # Most requests should succeed for authenticated users
@@ -256,10 +248,7 @@ class TestSecurityHeaders:
         ]
 
         for header in headers_to_check:
-            assert (
-                header in response.headers
-                or header.replace("-", "_") in response.headers
-            )
+            assert header in response.headers or header.replace("-", "_") in response.headers
 
     @pytest.mark.asyncio
     async def test_no_server_header_exposure(self, test_client):
@@ -298,9 +287,7 @@ class TestContentNegotiation:
         headers = {**auth_headers, "Content-Type": "application/xml"}
         xml_data = "<pipeline><name>Test</name></pipeline>"
 
-        response = await test_client.post(
-            "/api/v1/pipelines", content=xml_data, headers=headers
-        )
+        response = await test_client.post("/api/v1/pipelines", content=xml_data, headers=headers)
 
         assert response.status_code == status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
 
@@ -319,9 +306,7 @@ class TestRequestValidation:
             "repository_url": "https://github.com/test/repo",
         }
 
-        response = await test_client.post(
-            "/api/v1/pipelines", json=large_data, headers=auth_headers
-        )
+        response = await test_client.post("/api/v1/pipelines", json=large_data, headers=auth_headers)
 
         # Should either accept or reject with appropriate status
         assert response.status_code in [
@@ -359,9 +344,7 @@ class TestPaginationEndpoints:
 
             # Test valid pagination parameters
             params = {"limit": 10, "offset": 0}
-            response = await test_client.get(
-                "/api/v1/pipelines", params=params, headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/pipelines", params=params, headers=auth_headers)
 
             assert response.status_code == status.HTTP_200_OK
 
@@ -373,9 +356,7 @@ class TestPaginationEndpoints:
 
             # Test with limit exceeding maximum
             params = {"limit": 1000, "offset": 0}
-            response = await test_client.get(
-                "/api/v1/pipelines", params=params, headers=auth_headers
-            )
+            response = await test_client.get("/api/v1/pipelines", params=params, headers=auth_headers)
 
             # Should either accept with adjusted limit or reject
             assert response.status_code in [
@@ -457,9 +438,7 @@ class TestMetricsEndpoints:
     @pytest.mark.asyncio
     async def test_prometheus_format(self, test_client):
         """Test Prometheus metrics format"""
-        with patch(
-            "src.api.routes.metrics.generate_prometheus_metrics"
-        ) as mock_prometheus:
+        with patch("src.api.routes.metrics.generate_prometheus_metrics") as mock_prometheus:
             mock_prometheus.return_value = "# Prometheus metrics here"
 
             headers = {"Accept": "text/plain; version=0.0.4"}
@@ -474,17 +453,17 @@ class TestDependencyInjection:
     @pytest.mark.asyncio
     async def test_database_dependency(self, test_client, auth_headers):
         """Test database dependency injection"""
-        # These dependency functions work in FastAPI but testing them requires 
+        # These dependency functions work in FastAPI but testing them requires
         # app dependency overrides rather than simple mocking
         response = await test_client.get("/api/v1/pipelines", headers=auth_headers)
-        
+
         # Verify the endpoint works correctly (dependency was used successfully)
         assert response.status_code == status.HTTP_200_OK
 
     @pytest.mark.asyncio
     async def test_user_dependency(self, test_client, auth_headers):
         """Test current user dependency injection"""
-        # These dependency functions work in FastAPI but testing them requires 
+        # These dependency functions work in FastAPI but testing them requires
         # app dependency overrides rather than simple mocking
         response = await test_client.get("/api/v1/users/me", headers=auth_headers)
 
@@ -525,9 +504,7 @@ class TestAsyncEndpoints:
             mock_get_user.return_value = Mock()
 
             # Test the actual trigger endpoint in main.py (which is simple)
-            response = await test_client.post(
-                "/api/v1/pipelines/1/trigger", headers=auth_headers
-            )
+            response = await test_client.post("/api/v1/pipelines/1/trigger", headers=auth_headers)
 
             # Should handle requests gracefully
             assert response.status_code in [

@@ -8,12 +8,8 @@ Author: Chukwuebuka Tobiloba Nwaizugbe
 Date: 2024
 """
 
-import asyncio
-import json
-import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse
 
 import httpx
 import jwt
@@ -21,11 +17,7 @@ from cryptography.hazmat.primitives import serialization
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.database import AsyncSessionLocal
-from src.api.models.alert import Alert, AlertSeverity, AlertType
-from src.api.models.pipeline import (Pipeline, PipelineRun, PipelineStatus,
-                                     PlatformType)
-from src.api.models.vulnerability import (SeverityLevel, Vulnerability,
-                                          VulnerabilityStatus)
+from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
 from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
 
@@ -50,9 +42,7 @@ class GitHubActionsIntegration:
             import hashlib
             import hmac
 
-            expected_signature = hmac.new(
-                self.webhook_secret.encode("utf-8"), payload, hashlib.sha256
-            ).hexdigest()
+            expected_signature = hmac.new(self.webhook_secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
 
             signature_header = signature.replace("sha256=", "")
             return hmac.compare_digest(expected_signature, signature_header)
@@ -64,9 +54,7 @@ class GitHubActionsIntegration:
     def generate_jwt_token(self, installation_id: Optional[int] = None) -> str:
         """Generate JWT token for GitHub App authentication."""
         try:
-            private_key_obj = serialization.load_pem_private_key(
-                self.private_key.encode(), password=None
-            )
+            private_key_obj = serialization.load_pem_private_key(self.private_key.encode(), password=None)
 
             now = datetime.now(timezone.utc)
             payload = {
@@ -119,9 +107,7 @@ class GitHubActionsIntegration:
                 return
 
             async with AsyncSessionLocal() as db:
-                await self._handle_workflow_run_event(
-                    db, action, workflow_run, repository
-                )
+                await self._handle_workflow_run_event(db, action, workflow_run, repository)
 
         except Exception as e:
             logger.error(f"Failed to process workflow run webhook: {e}")
@@ -151,9 +137,7 @@ class GitHubActionsIntegration:
             pipeline_status = self._map_github_status(status, conclusion)
 
             # Create or update pipeline
-            pipeline = await self._create_or_update_pipeline(
-                db, repo_full_name, repo_url, branch
-            )
+            pipeline = await self._create_or_update_pipeline(db, repo_full_name, repo_url, branch)
 
             # Create pipeline run
             pipeline_run = await self._create_pipeline_run(
@@ -171,9 +155,7 @@ class GitHubActionsIntegration:
                 PipelineStatus.SUCCESS,
                 PipelineStatus.FAILURE,
             ]:
-                await self._trigger_security_analysis(
-                    pipeline_run, repository, workflow_run
-                )
+                await self._trigger_security_analysis(pipeline_run, repository, workflow_run)
 
             await db.commit()
             logger.info(f"Processed workflow run {workflow_id} for {repo_full_name}")
@@ -183,9 +165,7 @@ class GitHubActionsIntegration:
             logger.error(f"Failed to handle workflow run event: {e}")
             raise
 
-    def _map_github_status(
-        self, status: str, conclusion: Optional[str]
-    ) -> PipelineStatus:
+    def _map_github_status(self, status: str, conclusion: Optional[str]) -> PipelineStatus:
         """Map GitHub workflow status to pipeline status."""
         if status == "completed":
             if conclusion == "success":
@@ -259,9 +239,7 @@ class GitHubActionsIntegration:
         if existing_run:
             existing_run.status = status
             existing_run.finished_at = (
-                datetime.now(timezone.utc)
-                if status in [PipelineStatus.SUCCESS, PipelineStatus.FAILURE]
-                else None
+                datetime.now(timezone.utc) if status in [PipelineStatus.SUCCESS, PipelineStatus.FAILURE] else None
             )
             return existing_run
 
@@ -272,18 +250,13 @@ class GitHubActionsIntegration:
             status=status,
             commit_hash=commit_sha,
             started_at=(
-                datetime.fromisoformat(
-                    workflow_run.get("created_at", "").replace("Z", "+00:00")
-                )
+                datetime.fromisoformat(workflow_run.get("created_at", "").replace("Z", "+00:00"))
                 if workflow_run.get("created_at")
                 else datetime.now(timezone.utc)
             ),
             finished_at=(
-                datetime.fromisoformat(
-                    workflow_run.get("updated_at", "").replace("Z", "+00:00")
-                )
-                if status in [PipelineStatus.SUCCESS, PipelineStatus.FAILURE]
-                and workflow_run.get("updated_at")
+                datetime.fromisoformat(workflow_run.get("updated_at", "").replace("Z", "+00:00"))
+                if status in [PipelineStatus.SUCCESS, PipelineStatus.FAILURE] and workflow_run.get("updated_at")
                 else None
             ),
             metadata={
@@ -291,11 +264,7 @@ class GitHubActionsIntegration:
                 "workflow_url": workflow_run.get("html_url"),
                 "actor": workflow_run.get("actor", {}).get("login"),
                 "event": workflow_run.get("event"),
-                "jobs_count": (
-                    workflow_run.get("jobs_url", "").count("/jobs/")
-                    if workflow_run.get("jobs_url")
-                    else 0
-                ),
+                "jobs_count": (workflow_run.get("jobs_url", "").count("/jobs/") if workflow_run.get("jobs_url") else 0),
             },
         )
 
@@ -392,9 +361,7 @@ class GitHubActionsIntegration:
                     data = response.json()
                     return data.get("id")
                 else:
-                    logger.warning(
-                        f"Failed to create check run: {response.status_code}"
-                    )
+                    logger.warning(f"Failed to create check run: {response.status_code}")
                     return None
 
         except Exception as e:
@@ -491,9 +458,7 @@ class GitHubActionsIntegration:
 
                 for workflow_file in workflows:
                     if workflow_file.get("name", "").endswith((".yml", ".yaml")):
-                        issues = await self._analyze_workflow_file(
-                            client, access_token, workflow_file
-                        )
+                        issues = await self._analyze_workflow_file(client, access_token, workflow_file)
                         security_issues.extend(issues)
 
             return security_issues
@@ -540,19 +505,13 @@ class GitHubActionsIntegration:
                 return issues
 
             # Check for security issues
-            issues.extend(
-                self._check_workflow_permissions(workflow_file, workflow_data)
-            )
+            issues.extend(self._check_workflow_permissions(workflow_file, workflow_data))
             issues.extend(self._check_hardcoded_secrets(workflow_file, content))
             issues.extend(self._check_unsafe_actions(workflow_file, workflow_data))
-            issues.extend(
-                self._check_pull_request_security(workflow_file, workflow_data)
-            )
+            issues.extend(self._check_pull_request_security(workflow_file, workflow_data))
 
         except Exception as e:
-            logger.error(
-                f"Failed to analyze workflow file {workflow_file.get('name')}: {e}"
-            )
+            logger.error(f"Failed to analyze workflow file {workflow_file.get('name')}: {e}")
 
         return issues
 
@@ -587,9 +546,7 @@ class GitHubActionsIntegration:
 
         return issues
 
-    def _check_hardcoded_secrets(
-        self, workflow_file: Dict[str, Any], content: str
-    ) -> List[Dict[str, Any]]:
+    def _check_hardcoded_secrets(self, workflow_file: Dict[str, Any], content: str) -> List[Dict[str, Any]]:
         """Check for hardcoded secrets in workflow files."""
         issues = []
 
@@ -648,7 +605,9 @@ class GitHubActionsIntegration:
                                     "file": workflow_file.get("name"),
                                     "issue": f"Potentially unsafe action: {uses}",
                                     "severity": "medium",
-                                    "description": "Consider pinning to specific version or using latest stable version",
+                                    "description": (
+                                        "Consider pinning to specific version " "or using latest stable version"
+                                    ),
                                 }
                             )
 
@@ -666,9 +625,7 @@ class GitHubActionsIntegration:
             if pr_events:
                 # Check if workflow runs on pull_request_target with write permissions
                 permissions = workflow_data.get("permissions", {})
-                if permissions and any(
-                    perm == "write" for perm in permissions.values()
-                ):
+                if permissions and any(perm == "write" for perm in permissions.values()):
                     issues.append(
                         {
                             "file": workflow_file.get("name"),

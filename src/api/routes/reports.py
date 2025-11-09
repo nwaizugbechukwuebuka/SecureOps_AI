@@ -1,10 +1,10 @@
-﻿"""Reports and analytics routes for SecureOps API."""
+"""Reports and analytics routes for SecureOps API."""
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -111,9 +111,7 @@ async def get_dashboard_summary(
 @router.get("/vulnerabilities", response_model=List[VulnerabilityReport])
 async def get_vulnerability_report(
     severity: Optional[str] = Query(None, pattern="^(low|medium|high|critical)$"),
-    status_filter: Optional[str] = Query(
-        None, alias="status", pattern="^(open|triaged|fixed|accepted_risk)$"
-    ),
+    status_filter: Optional[str] = Query(None, alias="status", pattern="^(open|triaged|fixed|accepted_risk)$"),
     limit: int = Query(100, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -157,13 +155,9 @@ async def get_vulnerability_report(
         # Apply filters
         filtered_vulnerabilities = mock_vulnerabilities
         if severity:
-            filtered_vulnerabilities = [
-                v for v in filtered_vulnerabilities if v.severity == severity
-            ]
+            filtered_vulnerabilities = [v for v in filtered_vulnerabilities if v.severity == severity]
         if status_filter:
-            filtered_vulnerabilities = [
-                v for v in filtered_vulnerabilities if v.status == status_filter
-            ]
+            filtered_vulnerabilities = [v for v in filtered_vulnerabilities if v.status == status_filter]
 
         # Apply limit
         filtered_vulnerabilities = filtered_vulnerabilities[:limit]
@@ -231,9 +225,7 @@ async def get_compliance_report(
             "last_assessment": datetime.now() - timedelta(days=1),
         }
 
-        logger.info(
-            f"Compliance report ({framework}) retrieved for user {current_user.id}"
-        )
+        logger.info(f"Compliance report ({framework}) retrieved for user {current_user.id}")
         return compliance_data
 
     except Exception as e:
@@ -254,22 +246,20 @@ async def export_report(
     """Export report in specified format."""
     try:
         if report_type not in ["vulnerabilities", "compliance", "dashboard"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid report type"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid report type")
 
         # Mock export response
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        download_filename = f"{report_type}_{timestamp}.{format}"
         export_data = {
             "message": f"Report export initiated",
             "report_type": report_type,
             "format": format,
-            "download_url": f"/api/v1/reports/download/{report_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{format}",
+            "download_url": f"/api/v1/reports/download/{download_filename}",
             "expires_at": datetime.now() + timedelta(hours=24),
         }
 
-        logger.info(
-            f"Report export ({report_type}/{format}) initiated by user {current_user.id}"
-        )
+        logger.info(f"Report export ({report_type}/{format}) initiated by user {current_user.id}")
         return export_data
 
     except HTTPException:

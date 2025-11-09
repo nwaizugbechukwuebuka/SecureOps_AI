@@ -1,0 +1,22 @@
+[flake8]
+# Maximum allowed line length
+max-line-length = 120
+
+# Ignore rules that are less important or noisy for your project
+ignore = F541,F841,E203,W503,E402
+
+# Exclude files and directories that do not need linting
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    node_modules,
+    src/frontend/node_modules,
+    migrations,
+    tests/temp_data
+
+# Enable warnings for important errors
+select = E,F,W
+
+# Optional: show source code along with errors
+show-source = True

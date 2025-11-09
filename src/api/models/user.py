@@ -1,4 +1,4 @@
-﻿"""User model for authentication and authorization."""
+"""User model for authentication and authorization."""
 
 from datetime import datetime
 from typing import Optional
@@ -30,9 +30,7 @@ class User(Base, IDMixin, TimestampMixin):
     is_superuser = Column(Boolean, default=False, nullable=False)
 
     # Role and Permissions
-    role = Column(
-        String(50), default="user", nullable=False
-    )  # user, admin, security_admin, etc.
+    role = Column(String(50), default="user", nullable=False)  # user, admin, security_admin, etc.
 
     # Account Security
     password_changed_at = Column(DateTime, nullable=True)
@@ -128,20 +126,10 @@ class User(Base, IDMixin, TimestampMixin):
             data.update(
                 {
                     "failed_login_count": self.failed_login_count,
-                    "locked_until": (
-                        self.locked_until.isoformat() if self.locked_until else None
-                    ),
-                    "password_changed_at": (
-                        self.password_changed_at.isoformat()
-                        if self.password_changed_at
-                        else None
-                    ),
+                    "locked_until": (self.locked_until.isoformat() if self.locked_until else None),
+                    "password_changed_at": (self.password_changed_at.isoformat() if self.password_changed_at else None),
                     "api_key": self.api_key,
-                    "api_key_created_at": (
-                        self.api_key_created_at.isoformat()
-                        if self.api_key_created_at
-                        else None
-                    ),
+                    "api_key_created_at": (self.api_key_created_at.isoformat() if self.api_key_created_at else None),
                 }
             )
 

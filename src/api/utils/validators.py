@@ -69,14 +69,10 @@ def validate_username(username: str) -> str:
 
     # Length constraints
     if len(username) < 3:
-        raise ValidationError(
-            "Username must be at least 3 characters", "username", username
-        )
+        raise ValidationError("Username must be at least 3 characters", "username", username)
 
     if len(username) > 50:
-        raise ValidationError(
-            "Username must be at most 50 characters", "username", username
-        )
+        raise ValidationError("Username must be at most 50 characters", "username", username)
 
     # Character constraints
     if not re.match(r"^[a-z0-9_-]+$", username):
@@ -88,9 +84,7 @@ def validate_username(username: str) -> str:
 
     # Must start with letter or number
     if not re.match(r"^[a-z0-9]", username):
-        raise ValidationError(
-            "Username must start with a letter or number", "username", username
-        )
+        raise ValidationError("Username must start with a letter or number", "username", username)
 
     # Reserved usernames
     reserved = {
@@ -106,9 +100,7 @@ def validate_username(username: str) -> str:
         "demo",
     }
     if username in reserved:
-        raise ValidationError(
-            f"Username '{username}' is reserved", "username", username
-        )
+        raise ValidationError(f"Username '{username}' is reserved", "username", username)
 
     return username
 
@@ -134,9 +126,7 @@ def validate_password(password: str) -> str:
         raise ValidationError("Password must be at least 8 characters long", "password")
 
     if len(password) > 128:
-        raise ValidationError(
-            "Password must be at most 128 characters long", "password"
-        )
+        raise ValidationError("Password must be at most 128 characters long", "password")
 
     # Complexity requirements
     checks = [
@@ -256,9 +246,7 @@ def validate_severity(severity: str) -> str:
     valid_severities = ["critical", "high", "medium", "low", "info"]
 
     if severity not in valid_severities:
-        raise ValidationError(
-            f"Severity must be one of {valid_severities}", "severity", severity
-        )
+        raise ValidationError(f"Severity must be one of {valid_severities}", "severity", severity)
 
     return severity
 
@@ -285,9 +273,7 @@ def validate_cve_id(cve_id: str) -> str:
     cve_pattern = r"^CVE-\d{4}-\d{4,}$"
 
     if not re.match(cve_pattern, cve_id):
-        raise ValidationError(
-            "Invalid CVE ID format (expected CVE-YYYY-NNNN)", "cve_id", cve_id
-        )
+        raise ValidationError("Invalid CVE ID format (expected CVE-YYYY-NNNN)", "cve_id", cve_id)
 
     return cve_id
 
@@ -321,9 +307,7 @@ def validate_cwe_id(cwe_id: str) -> str:
     cwe_pattern = r"^CWE-\d{1,5}$"
 
     if not re.match(cwe_pattern, cwe_id):
-        raise ValidationError(
-            "Invalid CWE ID format (expected CWE-NNN)", "cwe_id", cwe_id
-        )
+        raise ValidationError("Invalid CWE ID format (expected CWE-NNN)", "cwe_id", cwe_id)
 
     return cwe_id
 
@@ -348,9 +332,7 @@ def validate_cvss_score(score: float) -> float:
         raise ValidationError("CVSS score must be a number", "cvss_score", score)
 
     if not (0.0 <= score <= 10.0):
-        raise ValidationError(
-            "CVSS score must be between 0.0 and 10.0", "cvss_score", score
-        )
+        raise ValidationError("CVSS score must be between 0.0 and 10.0", "cvss_score", score)
 
     return float(score)
 
@@ -376,9 +358,7 @@ def validate_cvss_vector(vector: str) -> str:
     # Basic CVSS vector format check (simplified)
     # Full validation would be quite complex
     if not vector.startswith("CVSS:"):
-        raise ValidationError(
-            "CVSS vector must start with 'CVSS:'", "cvss_vector", vector
-        )
+        raise ValidationError("CVSS vector must start with 'CVSS:'", "cvss_vector", vector)
 
     # Check for basic components
     required_components = ["AV:", "AC:", "Au:", "C:", "I:", "A:"]  # CVSS v2 example
@@ -396,9 +376,7 @@ def validate_cvss_vector(vector: str) -> str:
 
     for component in required_components:
         if component not in vector:
-            raise ValidationError(
-                f"CVSS vector missing component: {component}", "cvss_vector", vector
-            )
+            raise ValidationError(f"CVSS vector missing component: {component}", "cvss_vector", vector)
 
     return vector
 
@@ -424,17 +402,13 @@ def validate_file_path(file_path: str, max_length: int = 1000) -> str:
 
     # Length check
     if len(file_path) > max_length:
-        raise ValidationError(
-            f"File path too long (max {max_length} characters)", "file_path", file_path
-        )
+        raise ValidationError(f"File path too long (max {max_length} characters)", "file_path", file_path)
 
     # Security checks - prevent path traversal
     dangerous_patterns = ["../", "..\\", "/../", "\\..\\"]
     for pattern in dangerous_patterns:
         if pattern in file_path:
-            raise ValidationError(
-                "File path contains dangerous patterns", "file_path", file_path
-            )
+            raise ValidationError("File path contains dangerous patterns", "file_path", file_path)
 
     # Forbidden characters (basic check)
     forbidden_chars = ["<", ">", "|", "*", "?", '"']
@@ -469,9 +443,7 @@ def validate_package_name(package_name: str) -> str:
 
     # Length check
     if len(package_name) > 255:
-        raise ValidationError(
-            "Package name too long (max 255 characters)", "package_name", package_name
-        )
+        raise ValidationError("Package name too long (max 255 characters)", "package_name", package_name)
 
     # Basic package name pattern (letters, numbers, hyphens, underscores, dots)
     if not re.match(r"^[a-zA-Z0-9._-]+$", package_name):
@@ -512,9 +484,7 @@ def validate_version_string(version: str) -> str:
         raise ValidationError("Invalid version format", "version", version)
 
     if len(version) > 50:
-        raise ValidationError(
-            "Version string too long (max 50 characters)", "version", version
-        )
+        raise ValidationError("Version string too long (max 50 characters)", "version", version)
 
     return version
 
@@ -545,18 +515,14 @@ def validate_json_data(data: Any, max_size: int = 1024 * 1024) -> Dict[str, Any]
 
         json_str = json.dumps(data)
         if len(json_str.encode("utf-8")) > max_size:
-            raise ValidationError(
-                f"JSON data too large (max {max_size} bytes)", "json_data"
-            )
+            raise ValidationError(f"JSON data too large (max {max_size} bytes)", "json_data")
     except (TypeError, ValueError) as e:
         raise ValidationError(f"Invalid JSON data: {e}", "json_data", data)
 
     # Check nesting depth (prevent deeply nested objects)
     def check_depth(obj, current_depth=0, max_depth=10):
         if current_depth > max_depth:
-            raise ValidationError(
-                f"JSON data too deeply nested (max {max_depth} levels)", "json_data"
-            )
+            raise ValidationError(f"JSON data too deeply nested (max {max_depth} levels)", "json_data")
 
         if isinstance(obj, dict):
             for value in obj.values():
@@ -604,14 +570,10 @@ def validate_tag_list(tags: List[str], max_tags: int = 50) -> List[str]:
             continue  # Skip empty tags
 
         if len(tag) > 50:
-            raise ValidationError(
-                f"Tag too long (max 50 characters): {tag}", "tags", tag
-            )
+            raise ValidationError(f"Tag too long (max 50 characters): {tag}", "tags", tag)
 
         if not re.match(r"^[a-z0-9_-]+$", tag):
-            raise ValidationError(
-                f"Tag contains invalid characters: {tag}", "tags", tag
-            )
+            raise ValidationError(f"Tag contains invalid characters: {tag}", "tags", tag)
 
         if tag not in validated_tags:  # Remove duplicates
             validated_tags.append(tag)
@@ -644,9 +606,7 @@ def validate_datetime_range(
 
         range_days = (end_date - start_date).days
         if range_days > max_range_days:
-            raise ValidationError(
-                f"Date range too large (max {max_range_days} days)", "date_range"
-            )
+            raise ValidationError(f"Date range too large (max {max_range_days} days)", "date_range")
 
     return start_date, end_date
 
@@ -666,9 +626,7 @@ class SecureOpsValidator:
             raise ValidationError("Pipeline name cannot be empty", "name", name)
 
         if len(name) > 255:
-            raise ValidationError(
-                "Pipeline name too long (max 255 characters)", "name", name
-            )
+            raise ValidationError("Pipeline name too long (max 255 characters)", "name", name)
 
         return name
 
@@ -694,9 +652,7 @@ class SecureOpsValidator:
         ]
 
         if scanner not in valid_scanners:
-            raise ValidationError(
-                f"Scanner must be one of {valid_scanners}", "scanner", scanner
-            )
+            raise ValidationError(f"Scanner must be one of {valid_scanners}", "scanner", scanner)
 
         return scanner
 
@@ -711,8 +667,6 @@ class SecureOpsValidator:
         valid_platforms = ["github", "gitlab", "jenkins", "azure"]
 
         if platform not in valid_platforms:
-            raise ValidationError(
-                f"Platform must be one of {valid_platforms}", "platform", platform
-            )
+            raise ValidationError(f"Platform must be one of {valid_platforms}", "platform", platform)
 
         return platform

@@ -43,9 +43,7 @@ class ThreatDetectionEngine:
         ]
         return features
 
-    def contextual_risk_score(
-        self, event: Dict[str, Any], anomaly_score: float
-    ) -> float:
+    def contextual_risk_score(self, event: Dict[str, Any], anomaly_score: float) -> float:
         """
         Calculate contextual risk score based on event and anomaly score.
         """
@@ -56,9 +54,7 @@ class ThreatDetectionEngine:
             base += 1.5
         return min(base, 10.0)
 
-    async def analyze_events(
-        self, events: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    async def analyze_events(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Analyze a list of security events and return detected threats with risk scores.
         """
@@ -82,10 +78,7 @@ class ThreatDetectionEngine:
             outliers = self.model.predict(X_np)
         else:
             # Fallback: mark as anomaly if 'suspicious' in description
-            anomaly_scores = [
-                1.0 if "suspicious" in e.get("description", "").lower() else 0.1
-                for e in events
-            ]
+            anomaly_scores = [1.0 if "suspicious" in e.get("description", "").lower() else 0.1 for e in events]
             outliers = [int(score > 0.8) for score in anomaly_scores]
 
         # Build threat objects
@@ -95,9 +88,7 @@ class ThreatDetectionEngine:
                 threats.append(
                     {
                         "event": event,
-                        "threat_level": (
-                            "critical" if risk > 7 else "high" if risk > 4 else "medium"
-                        ),
+                        "threat_level": ("critical" if risk > 7 else "high" if risk > 4 else "medium"),
                         "risk_score": round(risk, 2),
                         "anomaly_score": float(anomaly_scores[idx]),
                         "details": "AI/ML anomaly detected. Contextual risk scoring applied.",

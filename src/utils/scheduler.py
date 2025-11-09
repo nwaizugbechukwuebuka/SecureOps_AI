@@ -443,9 +443,7 @@ class TaskScheduler:
         if not self.celery_app:
             raise ValueError("Celery app not configured")
 
-        task = self.celery_app.send_task(
-            task_name, args=args or [], kwargs=kwargs or {}, eta=eta, **options
-        )
+        task = self.celery_app.send_task(task_name, args=args or [], kwargs=kwargs or {}, eta=eta, **options)
 
         logger.info(f"Scheduled one-time task {task_name} for {eta}")
         return task
@@ -572,9 +570,7 @@ class TaskScheduler:
                 kwargs=task_data.get("kwargs"),
                 enabled=task_data.get("enabled", True),
                 description=task_data.get("description", ""),
-                priority=TaskPriority(
-                    task_data.get("priority", TaskPriority.NORMAL.value)
-                ),
+                priority=TaskPriority(task_data.get("priority", TaskPriority.NORMAL.value)),
                 queue=task_data.get("queue"),
                 max_retries=task_data.get("max_retries", 3),
                 retry_delay=task_data.get("retry_delay", 60),
@@ -608,9 +604,7 @@ def get_beat_schedule() -> Dict[str, Dict[str, Any]]:
 # Convenience functions for common scheduling patterns
 
 
-def schedule_pipeline_scan(
-    pipeline_id: int, delay_minutes: int = 0, scanner_types: List[str] = None
-):
+def schedule_pipeline_scan(pipeline_id: int, delay_minutes: int = 0, scanner_types: List[str] = None):
     """
     Schedule a pipeline scan.
 
@@ -621,8 +615,7 @@ def schedule_pipeline_scan(
     """
     kwargs = {
         "pipeline_id": pipeline_id,
-        "scanner_types": scanner_types
-        or ["dependency", "secret", "container", "policy"],
+        "scanner_types": scanner_types or ["dependency", "secret", "container", "policy"],
     }
 
     if delay_minutes > 0:

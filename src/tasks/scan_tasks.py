@@ -1,4 +1,4 @@
-﻿"""
+"""
 Security Scan Background Tasks
 
 This module contains production-ready Celery tasks for orchestrating comprehensive
@@ -35,10 +35,8 @@ from celery.utils.log import get_task_logger
 
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertStatus, AlertType
-from src.api.models.pipeline import (Pipeline, PipelineRun, PipelineStatus,
-                                     ScanJob, ScanJobStatus)
-from src.api.models.vulnerability import (SeverityLevel, Vulnerability,
-                                          VulnerabilityStatus)
+from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, ScanJob, ScanJobStatus
+from src.api.models.vulnerability import SeverityLevel, Vulnerability, VulnerabilityStatus
 from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
 from src.scanners.common import ScannerType, orchestrator
@@ -62,9 +60,7 @@ RETRY_DELAY_SECONDS = getattr(settings, "RETRY_DELAY_SECONDS", 60)
     autoretry_for=(Exception,),
     retry_kwargs={"countdown": RETRY_DELAY_SECONDS},
 )
-def orchestrate_security_scan(
-    self, pipeline_run_id: int, scan_config: Dict[str, Any]
-) -> Dict[str, Any]:
+def orchestrate_security_scan(self, pipeline_run_id: int, scan_config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Orchestrate a comprehensive security scan workflow with full error handling,
     retry mechanisms, and performance optimization.
@@ -94,11 +90,7 @@ def orchestrate_security_scan(
     )
 
     try:
-        result = asyncio.run(
-            _orchestrate_scan_async(
-                pipeline_run_id, scan_config, scan_id, self.request.retries
-            )
-        )
+        result = asyncio.run(_orchestrate_scan_async(pipeline_run_id, scan_config, scan_id, self.request.retries))
 
         execution_time = time.time() - start_time
 
@@ -131,25 +123,17 @@ def orchestrate_security_scan(
             "attempt": self.request.retries + 1,
         }
 
-        logger.error(
-            f"[{scan_id}] Scan orchestration failed: {str(e)}", extra=error_details
-        )
+        logger.error(f"[{scan_id}] Scan orchestration failed: {str(e)}", extra=error_details)
 
         # Update pipeline run status to failed
         try:
-            asyncio.run(
-                _update_pipeline_run_status(
-                    pipeline_run_id, PipelineStatus.FAILED, error_details
-                )
-            )
+            asyncio.run(_update_pipeline_run_status(pipeline_run_id, PipelineStatus.FAILED, error_details))
         except Exception as status_error:
             logger.error(f"Failed to update pipeline status: {status_error}")
 
         # Retry if we haven't exceeded max attempts
         if self.request.retries < MAX_RETRY_ATTEMPTS:
-            countdown = RETRY_DELAY_SECONDS * (
-                2**self.request.retries
-            )  # Exponential backoff
+            countdown = RETRY_DELAY_SECONDS * (2**self.request.retries)  # Exponential backoff
             logger.warning(
                 f"[{scan_id}] Retrying in {countdown}s (attempt {self.request.retries + 2}/{MAX_RETRY_ATTEMPTS + 1})"
             )
@@ -251,11 +235,7 @@ def execute_scanner(
 
         # Update scan job status
         try:
-            asyncio.run(
-                _update_scan_job_status(
-                    scan_job_id, ScanJobStatus.FAILED, error_details
-                )
-            )
+            asyncio.run(_update_scan_job_status(scan_job_id, ScanJobStatus.FAILED, error_details))
         except Exception as status_error:
             logger.error(f"Failed to update scan job status: {status_error}")
 
@@ -273,12 +253,8 @@ def execute_scanner(
         }
 
 
-@celery_app.task(
-    bind=True, name="secureops.tasks.scan_tasks.process_scan_results", max_retries=2
-)
-def process_scan_results(
-    self, scan_job_id: int, scan_results: Dict[str, Any]
-) -> Dict[str, Any]:
+@celery_app.task(bind=True, name="secureops.tasks.scan_tasks.process_scan_results", max_retries=2)
+def process_scan_results(self, scan_job_id: int, scan_results: Dict[str, Any]) -> Dict[str, Any]:
     """
     Process and store scan results with vulnerability deduplication,
     risk assessment, and alert generation.
@@ -303,9 +279,7 @@ def process_scan_results(
     )
 
     try:
-        result = asyncio.run(
-            _process_scan_results_async(scan_job_id, scan_results, processing_id)
-        )
+        result = asyncio.run(_process_scan_results_async(scan_job_id, scan_results, processing_id))
 
         execution_time = time.time() - start_time
 
@@ -377,11 +351,7 @@ def schedule_repository_scan(
     logger.info(f"Scheduling repository scan for {repository_url}")
 
     try:
-        result = asyncio.run(
-            _schedule_repository_scan_async(
-                pipeline_run_id, repository_url, branch, scan_types or []
-            )
-        )
+        result = asyncio.run(_schedule_repository_scan_async(pipeline_run_id, repository_url, branch, scan_types or []))
 
         logger.info(f"Repository scan scheduled successfully for {repository_url}")
         return result
@@ -419,9 +389,7 @@ def scan_health_check() -> Dict[str, Any]:
         health_data["components"]["celery"] = _check_celery_health()
 
         # Determine overall status
-        component_statuses = [
-            comp.get("status", "unknown") for comp in health_data["components"].values()
-        ]
+        component_statuses = [comp.get("status", "unknown") for comp in health_data["components"].values()]
 
         if "critical" in component_statuses:
             health_data["status"] = "critical"
@@ -482,24 +450,16 @@ async def _orchestrate_scan_async(
             if any(result.get("status") == "failed" for result in scan_results):
                 final_status = PipelineStatus.FAILED
             elif any(result.get("status") == "warning" for result in scan_results):
-                final_status = (
-                    PipelineStatus.COMPLETED
-                )  # Warnings don't fail the pipeline
+                final_status = PipelineStatus.COMPLETED  # Warnings don't fail the pipeline
 
             pipeline_run.status = final_status
             pipeline_run.completed_at = datetime.now(timezone.utc)
             pipeline_run.metadata.update(
                 {
                     "scan_jobs_count": len(scan_jobs),
-                    "successful_scans": len(
-                        [r for r in scan_results if r.get("status") == "completed"]
-                    ),
-                    "failed_scans": len(
-                        [r for r in scan_results if r.get("status") == "failed"]
-                    ),
-                    "total_vulnerabilities": sum(
-                        r.get("vulnerabilities_count", 0) for r in scan_results
-                    ),
+                    "successful_scans": len([r for r in scan_results if r.get("status") == "completed"]),
+                    "failed_scans": len([r for r in scan_results if r.get("status") == "failed"]),
+                    "total_vulnerabilities": sum(r.get("vulnerabilities_count", 0) for r in scan_results),
                 }
             )
 
@@ -579,9 +539,7 @@ async def _execute_scanner_async(
             scan_job.metadata.update(
                 {
                     "vulnerabilities_found": len(scan_results.get("findings", [])),
-                    "scan_duration": (
-                        scan_job.completed_at - scan_job.started_at
-                    ).total_seconds(),
+                    "scan_duration": (scan_job.completed_at - scan_job.started_at).total_seconds(),
                 }
             )
 
@@ -600,9 +558,7 @@ async def _execute_scanner_async(
             scan_job.completed_at = datetime.now(timezone.utc)
             scan_job.metadata["error"] = "Scan timeout exceeded"
             await db.commit()
-            raise RuntimeError(
-                f"Scanner {scanner_type} timed out after {SCAN_TIMEOUT_MINUTES} minutes"
-            )
+            raise RuntimeError(f"Scanner {scanner_type} timed out after {SCAN_TIMEOUT_MINUTES} minutes")
 
         except Exception as e:
             scan_job.status = ScanJobStatus.FAILED
@@ -628,9 +584,7 @@ async def _process_scan_results_async(
 
             for finding in findings:
                 # Create vulnerability record
-                vulnerability = await _create_vulnerability_from_finding(
-                    db, scan_job_id, finding
-                )
+                vulnerability = await _create_vulnerability_from_finding(db, scan_job_id, finding)
                 if vulnerability:
                     vulnerabilities_created += 1
 
@@ -639,9 +593,7 @@ async def _process_scan_results_async(
                         SeverityLevel.HIGH,
                         SeverityLevel.CRITICAL,
                     ]:
-                        alert = await _create_alert_from_vulnerability(
-                            db, vulnerability
-                        )
+                        alert = await _create_alert_from_vulnerability(db, vulnerability)
                         if alert:
                             alerts_created += 1
 
@@ -801,9 +753,7 @@ async def _prepare_scan_target(target_path, scan_config) -> str:
     return target_path
 
 
-async def _create_vulnerability_from_finding(
-    db, scan_job_id, finding
-) -> Optional[Vulnerability]:
+async def _create_vulnerability_from_finding(db, scan_job_id, finding) -> Optional[Vulnerability]:
     """Create vulnerability from scan finding."""
     # Placeholder implementation
     return None
@@ -827,27 +777,6 @@ async def _schedule_repository_scan_async(
         "branch": branch,
         "scan_types": scan_types,
     }
-    try:
-        result = asyncio.run(
-            _execute_scanner_async(scan_job_id, scanner_type, target_path)
-        )
-        return result
-    except Exception as e:
-        logger.error(f"Scanner {scanner_type} failed: {str(e)}")
-        return {"status": "failed", "error": str(e)}
-
-
-async def _execute_scanner_async(
-    scan_job_id: int, scanner_type: str, target_path: str
-) -> Dict[str, Any]:
-    """Async implementation of scanner execution."""
-    async with AsyncSessionLocal() as db:
-        scan_job = await db.get(ScanJob, scan_job_id)
-        if scan_job:
-            scan_job.status = ScanJobStatus.RUNNING
-            await db.commit()
-
-        return {"scan_job_id": scan_job_id, "status": "completed"}
 
 
 @celery_app.task(bind=True, name="secureops.tasks.scan_tasks.health_check")

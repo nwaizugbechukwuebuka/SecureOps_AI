@@ -8,23 +8,16 @@ Author: Chukwuebuka Tobiloba Nwaizugbe
 Date: 2024
 """
 
-import asyncio
 import base64
-import json
-import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from typing import Any, Dict, List, Optional
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertType
-from src.api.models.pipeline import (Pipeline, PipelineRun, PipelineStatus,
-                                     PlatformType)
-from src.api.models.vulnerability import (SeverityLevel, Vulnerability,
-                                          VulnerabilityStatus)
+from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
 from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
 
@@ -62,9 +55,7 @@ class AzureDevOpsIntegration:
                 logger.warning("Webhook secret not configured")
                 return True  # Allow if not configured (development mode)
 
-            expected_signature = hmac.new(
-                self.webhook_secret.encode("utf-8"), payload, hashlib.sha256
-            ).hexdigest()
+            expected_signature = hmac.new(self.webhook_secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
 
             return hmac.compare_digest(expected_signature, signature)
 
@@ -144,9 +135,7 @@ class AzureDevOpsIntegration:
             pipeline_status = self._map_azure_status(status, result)
 
             # Create or update pipeline
-            pipeline = await self._create_or_update_pipeline(
-                db, definition, project, repository
-            )
+            pipeline = await self._create_or_update_pipeline(db, definition, project, repository)
 
             # Create pipeline run
             pipeline_run = await self._create_pipeline_run(
@@ -160,9 +149,7 @@ class AzureDevOpsIntegration:
                 await self._analyze_build_failure(pipeline_run, resource, project)
 
             await db.commit()
-            logger.info(
-                f"Processed build {build_number} ({build_id}) for {definition.get('name')}"
-            )
+            logger.info(f"Processed build {build_number} ({build_id}) for {definition.get('name')}")
 
         except Exception as e:
             await db.rollback()
@@ -188,9 +175,7 @@ class AzureDevOpsIntegration:
             pipeline_status = self._map_azure_pipeline_state(state, result)
 
             # Create or update pipeline
-            pipeline = await self._create_or_update_pipeline_from_run(
-                db, pipeline_info, project, resource
-            )
+            pipeline = await self._create_or_update_pipeline_from_run(db, pipeline_info, project, resource)
 
             # Create pipeline run
             pipeline_run = await self._create_pipeline_run_from_run(
@@ -200,13 +185,9 @@ class AzureDevOpsIntegration:
             # Handle completed runs
             if state == "completed":
                 if pipeline_status == PipelineStatus.SUCCESS:
-                    await self._trigger_security_analysis_for_run(
-                        pipeline_run, resource, project
-                    )
+                    await self._trigger_security_analysis_for_run(pipeline_run, resource, project)
                 elif pipeline_status == PipelineStatus.FAILURE:
-                    await self._analyze_pipeline_run_failure(
-                        pipeline_run, resource, project
-                    )
+                    await self._analyze_pipeline_run_failure(pipeline_run, resource, project)
 
             await db.commit()
             logger.info(f"Processed pipeline run {run_name} ({run_id})")
@@ -234,9 +215,7 @@ class AzureDevOpsIntegration:
         else:
             return PipelineStatus.UNKNOWN
 
-    def _map_azure_pipeline_state(
-        self, state: str, result: Optional[str]
-    ) -> PipelineStatus:
+    def _map_azure_pipeline_state(self, state: str, result: Optional[str]) -> PipelineStatus:
         """Map Azure DevOps pipeline run state to pipeline status."""
         if state == "completed":
             if result == "succeeded":
@@ -502,18 +481,12 @@ class AzureDevOpsIntegration:
         except Exception as e:
             logger.error(f"Failed to handle pull request updated: {e}")
 
-    async def _trigger_pr_security_analysis(
-        self, pr_resource: Dict[str, Any], full_payload: Dict[str, Any]
-    ) -> None:
+    async def _trigger_pr_security_analysis(self, pr_resource: Dict[str, Any], full_payload: Dict[str, Any]) -> None:
         """Trigger security analysis for pull request."""
         try:
             pr_id = pr_resource.get("pullRequestId")
-            source_branch = pr_resource.get("sourceRefName", "").replace(
-                "refs/heads/", ""
-            )
-            target_branch = pr_resource.get("targetRefName", "").replace(
-                "refs/heads/", ""
-            )
+            source_branch = pr_resource.get("sourceRefName", "").replace("refs/heads/", "")
+            target_branch = pr_resource.get("targetRefName", "").replace("refs/heads/", "")
 
             repository = pr_resource.get("repository", {})
             project = repository.get("project", {})
@@ -559,9 +532,7 @@ class AzureDevOpsIntegration:
                 ]
             )
 
-            logger.info(
-                f"Scheduled security analysis for build {resource.get('buildNumber')}"
-            )
+            logger.info(f"Scheduled security analysis for build {resource.get('buildNumber')}")
 
         except Exception as e:
             logger.error(f"Failed to trigger security analysis: {e}")
@@ -586,9 +557,7 @@ class AzureDevOpsIntegration:
                 ]
             )
 
-            logger.info(
-                f"Scheduled security analysis for pipeline run {resource.get('name')}"
-            )
+            logger.info(f"Scheduled security analysis for pipeline run {resource.get('name')}")
 
         except Exception as e:
             logger.error(f"Failed to trigger security analysis for run: {e}")
@@ -641,18 +610,14 @@ class AzureDevOpsIntegration:
             logger.error(f"Failed to get build logs: {e}")
             return None
 
-    async def get_build_artifacts(
-        self, project_id: str, build_id: int
-    ) -> List[Dict[str, Any]]:
+    async def get_build_artifacts(self, project_id: str, build_id: int) -> List[Dict[str, Any]]:
         """Get build artifacts from Azure DevOps."""
         if not self.auth_header:
             logger.warning("Azure DevOps authentication not configured")
             return []
 
         try:
-            url = (
-                f"{self.base_url}/{project_id}/_apis/build/builds/{build_id}/artifacts"
-            )
+            url = f"{self.base_url}/{project_id}/_apis/build/builds/{build_id}/artifacts"
 
             async with httpx.AsyncClient(timeout=self.session_timeout) as client:
                 response = await client.get(
@@ -687,12 +652,13 @@ class AzureDevOpsIntegration:
             return False
 
         try:
-            url = f"{self.base_url}/{project_id}/_apis/git/repositories/{repository_id}/pullRequests/{pull_request_id}/threads"
+            url = (
+                f"{self.base_url}/{project_id}/_apis/git/repositories/{repository_id}/"
+                f"pullRequests/{pull_request_id}/threads"
+            )
 
             payload = {
-                "comments": [
-                    {"parentCommentId": 0, "content": comment_content, "commentType": 1}
-                ],
+                "comments": [{"parentCommentId": 0, "content": comment_content, "commentType": 1}],
                 "status": 1,
             }
 
@@ -713,9 +679,7 @@ class AzureDevOpsIntegration:
             logger.error(f"Failed to create pull request comment: {e}")
             return False
 
-    async def analyze_azure_pipeline_security(
-        self, project_id: str, pipeline_id: int
-    ) -> List[Dict[str, Any]]:
+    async def analyze_azure_pipeline_security(self, project_id: str, pipeline_id: int) -> List[Dict[str, Any]]:
         """Analyze Azure Pipeline for security issues."""
         security_issues = []
 
@@ -730,13 +694,9 @@ class AzureDevOpsIntegration:
             if yaml_content:
                 repo_id = pipeline_def.get("repository", {}).get("id")
                 if repo_id:
-                    yaml_file_content = await self.get_file_content(
-                        project_id, repo_id, yaml_content
-                    )
+                    yaml_file_content = await self.get_file_content(project_id, repo_id, yaml_content)
                     if yaml_file_content:
-                        issues = self._analyze_yaml_security(
-                            yaml_file_content, yaml_content
-                        )
+                        issues = self._analyze_yaml_security(yaml_file_content, yaml_content)
                         security_issues.extend(issues)
 
         except Exception as e:
@@ -744,9 +704,7 @@ class AzureDevOpsIntegration:
 
         return security_issues
 
-    async def get_pipeline_definition(
-        self, project_id: str, pipeline_id: int
-    ) -> Optional[Dict[str, Any]]:
+    async def get_pipeline_definition(self, project_id: str, pipeline_id: int) -> Optional[Dict[str, Any]]:
         """Get Azure Pipeline definition."""
         if not self.auth_header:
             return None
@@ -812,9 +770,7 @@ class AzureDevOpsIntegration:
             logger.error(f"Failed to get file content: {e}")
             return None
 
-    def _analyze_yaml_security(
-        self, yaml_content: str, file_name: str
-    ) -> List[Dict[str, Any]]:
+    def _analyze_yaml_security(self, yaml_content: str, file_name: str) -> List[Dict[str, Any]]:
         """Analyze Azure Pipeline YAML for security issues."""
         issues = []
 
@@ -845,9 +801,7 @@ class AzureDevOpsIntegration:
 
         return issues
 
-    def _check_variable_security_azure(
-        self, pipeline_data: Dict[str, Any], file_name: str
-    ) -> List[Dict[str, Any]]:
+    def _check_variable_security_azure(self, pipeline_data: Dict[str, Any], file_name: str) -> List[Dict[str, Any]]:
         """Check for variable-related security issues."""
         issues = []
 
@@ -893,16 +847,12 @@ class AzureDevOpsIntegration:
         is_secret_name = any(indicator in name_lower for indicator in secret_indicators)
 
         # Check if value looks like a secret (not a variable reference)
-        is_not_variable_ref = not any(
-            pattern in value for pattern in ["$(", "$[", "${"]
-        )
+        is_not_variable_ref = not any(pattern in value for pattern in ["$(", "$[", "${"])
         is_secret_value = len(value) > 16 and is_not_variable_ref
 
         return is_secret_name and is_secret_value
 
-    def _check_script_security_azure(
-        self, pipeline_data: Dict[str, Any], file_name: str
-    ) -> List[Dict[str, Any]]:
+    def _check_script_security_azure(self, pipeline_data: Dict[str, Any], file_name: str) -> List[Dict[str, Any]]:
         """Check for script-related security issues."""
         issues = []
 
@@ -924,9 +874,7 @@ class AzureDevOpsIntegration:
 
         return issues
 
-    def _check_job_scripts_azure(
-        self, job: Dict[str, Any], file_name: str
-    ) -> List[Dict[str, Any]]:
+    def _check_job_scripts_azure(self, job: Dict[str, Any], file_name: str) -> List[Dict[str, Any]]:
         """Check individual job for script security issues."""
         issues = []
 
@@ -948,9 +896,7 @@ class AzureDevOpsIntegration:
 
                 # Check PowerShell tasks
                 if step.get("task") == "PowerShell@2":
-                    script_content = (
-                        step.get("inputs", {}).get("targetType") == "inline"
-                    )
+                    script_content = step.get("inputs", {}).get("targetType") == "inline"
                     if script_content:
                         inline_script = step.get("inputs", {}).get("script", "")
                         if self._has_dangerous_commands_azure(inline_script):
@@ -977,14 +923,9 @@ class AzureDevOpsIntegration:
 
         import re
 
-        return any(
-            re.search(pattern, script_content, re.IGNORECASE)
-            for pattern in dangerous_patterns
-        )
+        return any(re.search(pattern, script_content, re.IGNORECASE) for pattern in dangerous_patterns)
 
-    def _check_resource_security_azure(
-        self, pipeline_data: Dict[str, Any], file_name: str
-    ) -> List[Dict[str, Any]]:
+    def _check_resource_security_azure(self, pipeline_data: Dict[str, Any], file_name: str) -> List[Dict[str, Any]]:
         """Check for resource-related security issues."""
         issues = []
 
@@ -1007,9 +948,7 @@ class AzureDevOpsIntegration:
 
         return issues
 
-    def _check_trigger_security_azure(
-        self, pipeline_data: Dict[str, Any], file_name: str
-    ) -> List[Dict[str, Any]]:
+    def _check_trigger_security_azure(self, pipeline_data: Dict[str, Any], file_name: str) -> List[Dict[str, Any]]:
         """Check for trigger-related security issues."""
         issues = []
 
@@ -1057,9 +996,7 @@ class AzureDevOpsIntegration:
             if logs:
                 security_issues = self._analyze_logs_for_security_azure(logs)
                 if security_issues:
-                    await self._create_build_failure_alert_azure(
-                        pipeline_run, resource, security_issues
-                    )
+                    await self._create_build_failure_alert_azure(pipeline_run, resource, security_issues)
 
         except Exception as e:
             logger.error(f"Failed to analyze build failure: {e}")
@@ -1074,9 +1011,7 @@ class AzureDevOpsIntegration:
         try:
             # For pipeline runs, we might need to get additional information
             # This is a placeholder for more sophisticated analysis
-            logger.info(
-                f"Analyzing pipeline run failure for run {pipeline_run.external_id}"
-            )
+            logger.info(f"Analyzing pipeline run failure for run {pipeline_run.external_id}")
 
             # Could fetch pipeline run details, logs, etc.
 
@@ -1106,9 +1041,7 @@ class AzureDevOpsIntegration:
 
         for i, line in enumerate(lines):
             if any(keyword in line for keyword in security_keywords):
-                if any(
-                    error_word in line for error_word in ["error", "fail", "warning"]
-                ):
+                if any(error_word in line for error_word in ["error", "fail", "warning"]):
                     # Get context around the security-related issue
                     start = max(0, i - 2)
                     end = min(len(lines), i + 3)
@@ -1138,9 +1071,7 @@ class AzureDevOpsIntegration:
                         "build_number": resource.get("buildNumber"),
                         "build_url": resource.get("url"),
                         "definition_name": resource.get("definition", {}).get("name"),
-                        "security_issues": security_issues[
-                            :3
-                        ],  # Limit to first 3 issues
+                        "security_issues": security_issues[:3],  # Limit to first 3 issues
                         "total_issues": len(security_issues),
                     },
                 )

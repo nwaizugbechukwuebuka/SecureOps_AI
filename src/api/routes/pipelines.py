@@ -1,4 +1,4 @@
-﻿"""Pipeline management routes for SecureOps API."""
+"""Pipeline management routes for SecureOps API."""
 
 from datetime import datetime
 from typing import List, Optional
@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..models.pipeline import Pipeline, PipelineRun
 from ..models.user import User
 from ..utils.logger import get_logger
 from .auth import get_current_user
@@ -23,7 +22,7 @@ def validate_content_type(request: Request):
     if content_type and "application/xml" in content_type:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Unsupported Media Type. Only application/json is supported."
+            detail="Unsupported Media Type. Only application/json is supported.",
         )
     return True
 
@@ -34,7 +33,7 @@ def validate_json_content_type(request: Request):
     if content_type and "application/xml" in content_type:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Unsupported Media Type. Only application/json is supported."
+            detail="Unsupported Media Type. Only application/json is supported.",
         )
     return True
 
@@ -61,7 +60,7 @@ def get_pipelines_service(user_id: int, skip: int = 0, limit: int = 100, active_
 # Pydantic models
 class PipelineResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     name: str
     description: Optional[str]
@@ -83,7 +82,7 @@ class CreatePipelineRequest(BaseModel):
 
 class PipelineRunResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     pipeline_id: int
     run_number: int
@@ -108,18 +107,13 @@ async def get_pipelines(
     try:
         # Call service function that can be mocked in tests
         pipelines_data, total_count = get_pipelines_service(
-            user_id=current_user.id,
-            skip=skip,
-            limit=limit,
-            active_only=active_only
+            user_id=current_user.id, skip=skip, limit=limit, active_only=active_only
         )
-        
+
         # Convert to response models
         pipelines = [PipelineResponse(**pipeline) for pipeline in pipelines_data]
 
-        logger.info(
-            f"Retrieved {len(pipelines)} pipelines for user {current_user.id}"
-        )
+        logger.info(f"Retrieved {len(pipelines)} pipelines for user {current_user.id}")
         return pipelines
 
     except Exception as e:
@@ -157,9 +151,7 @@ async def get_pipeline(
                 last_run_status="success",
             )
         else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Pipeline not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pipeline not found")
 
     except HTTPException:
         raise
@@ -171,8 +163,18 @@ async def get_pipeline(
         )
 
 
-@router.post("/", response_model=PipelineResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(validate_content_type)])
-@router.post("", response_model=PipelineResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(validate_content_type)])
+@router.post(
+    "/",
+    response_model=PipelineResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(validate_content_type)],
+)
+@router.post(
+    "",
+    response_model=PipelineResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(validate_content_type)],
+)
 async def create_pipeline(
     pipeline_data: CreatePipelineRequest,
     db: AsyncSession = Depends(get_db),

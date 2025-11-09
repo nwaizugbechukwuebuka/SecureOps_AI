@@ -1,6 +1,7 @@
 """
 Unified logging configuration for SecureOps.
 """
+
 import logging
 import sys
 from config.settings import settings

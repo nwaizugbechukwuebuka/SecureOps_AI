@@ -1,6 +1,7 @@
 """
 Simple FastAPI server for SecureOps AI
 """
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
@@ -31,7 +32,7 @@ users_db = {
         "is_admin": True,
         "is_active": True,
         "created_at": datetime.utcnow(),
-        "hashed_password": "$2b$12$5/K8S7oRjQqE9X2qHv3k5efKlYiK6UgKR1FN9UqP7yXf2yZz6JgYm"  # admin123
+        "hashed_password": "$2b$12$5/K8S7oRjQqE9X2qHv3k5efKlYiK6UgKR1FN9UqP7yXf2yZz6JgYm",  # admin123
     }
 }
 
@@ -59,17 +60,23 @@ security_analytics_data = {
         {"country": "CN", "threats": 67},
         {"country": "RU", "threats": 45},
         {"country": "DE", "threats": 23},
-    ]
+    ],
 }
 
 # Mock authentication (for development only)
+
+
 def verify_token(token: str = None):
     return users_db["admin"]  # Always return admin for development
 
+
 # Root route to redirect to docs
+
+
 @app.get("/", response_class=RedirectResponse)
 async def root():
     return RedirectResponse(url="/docs")
+
 
 @app.get("/api", response_class=HTMLResponse)
 async def api_info():
@@ -92,38 +99,43 @@ async def api_info():
     </html>
     """
 
+
 # Health check endpoint
+
+
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
 
+
 # Authentication endpoints
+
+
 @app.post("/api/auth/login")
 async def login(credentials: dict):
     username = credentials.get("username")
     password = credentials.get("password")
-    
+
     if username == "admin" and password == "admin123":
-        return {
-            "access_token": "dev-token-12345",
-            "token_type": "bearer"
-        }
+        return {"access_token": "dev-token-12345", "token_type": "bearer"}
     elif username == "demo" and password == "demo123":
-        return {
-            "access_token": "dev-token-67890",
-            "token_type": "bearer"
-        }
+        return {"access_token": "dev-token-67890", "token_type": "bearer"}
     else:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
 
 @app.get("/api/auth/me")
 async def get_current_user():
     return users_db["admin"]
 
+
 # Security Analytics endpoints
+
+
 @app.get("/api/analytics/security")
 async def get_security_analytics():
     return security_analytics_data
+
 
 @app.get("/api/security-events")
 async def get_security_events():
@@ -135,7 +147,7 @@ async def get_security_events():
             "source_ip": "192.168.1.100",
             "target_ip": "10.0.0.1",
             "description": "Multiple failed login attempts detected",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         },
         {
             "id": 2,
@@ -144,38 +156,46 @@ async def get_security_events():
             "source_ip": "203.0.113.45",
             "target_ip": "10.0.0.5",
             "description": "Port scanning activity detected",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.utcnow().isoformat(),
+        },
     ]
 
+
 # System Health endpoints
+
+
 @app.get("/api/system/health")
 async def get_system_health():
     import psutil
+
     return {
         "cpu_usage": psutil.cpu_percent(interval=0.1),
         "memory_usage": psutil.virtual_memory().percent,
-        "disk_usage": psutil.disk_usage('/').percent if os.name != 'nt' else psutil.disk_usage('C:').percent,
-        "network_io": {
-            "bytes_sent": 1024000,
-            "bytes_recv": 2048000
-        },
+        "disk_usage": psutil.disk_usage("/").percent if os.name != "nt" else psutil.disk_usage("C:").percent,
+        "network_io": {"bytes_sent": 1024000, "bytes_recv": 2048000},
         "active_connections": 12,
         "redis_status": "healthy",
         "celery_status": "healthy",
-        "database_status": "healthy"
+        "database_status": "healthy",
     }
 
+
 # User management endpoints
+
+
 @app.get("/api/users")
 async def get_users():
     return [users_db["admin"]]
+
 
 @app.post("/api/users")
 async def create_user(user_data: dict):
     return {"message": "User created successfully", "id": len(users_db) + 1}
 
+
 # Automation endpoints
+
+
 @app.get("/api/automation/tasks")
 async def get_automation_tasks():
     return [
@@ -186,9 +206,10 @@ async def get_automation_tasks():
             "status": "completed",
             "created_at": datetime.utcnow().isoformat(),
             "completed_at": datetime.utcnow().isoformat(),
-            "result": {"vulnerabilities_found": 3, "status": "success"}
+            "result": {"vulnerabilities_found": 3, "status": "success"},
         }
     ]
+
 
 @app.post("/api/automation/tasks")
 async def create_automation_task(task_data: dict):
@@ -197,10 +218,13 @@ async def create_automation_task(task_data: dict):
         "task_name": task_data.get("task_name", "New Task"),
         "task_type": task_data.get("task_type", "generic"),
         "status": "pending",
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat(),
     }
 
+
 # Notifications endpoints
+
+
 @app.get("/api/notifications")
 async def get_notifications():
     return [
@@ -210,11 +234,14 @@ async def get_notifications():
             "message": "Unusual login activity detected",
             "type": "warning",
             "is_read": False,
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
         }
     ]
 
+
 # Logs endpoints
+
+
 @app.get("/api/logs")
 async def get_logs():
     return [
@@ -222,25 +249,24 @@ async def get_logs():
             "timestamp": datetime.utcnow().isoformat(),
             "level": "INFO",
             "source": "auth.py",
-            "message": "User admin logged in successfully"
+            "message": "User admin logged in successfully",
         },
         {
             "timestamp": datetime.utcnow().isoformat(),
             "level": "WARNING",
             "source": "security.py",
-            "message": "Failed login attempt detected"
-        }
+            "message": "Failed login attempt detected",
+        },
     ]
 
+
 # Additional service status endpoints
+
+
 @app.get("/api/celery/status")
 async def get_celery_status():
-    return {
-        "active_workers": 3,
-        "pending_tasks": 5,
-        "completed_tasks": 142,
-        "failed_tasks": 2
-    }
+    return {"active_workers": 3, "pending_tasks": 5, "completed_tasks": 142, "failed_tasks": 2}
+
 
 @app.get("/api/redis/data")
 async def get_redis_data():
@@ -249,8 +275,9 @@ async def get_redis_data():
         "used_memory_human": "2.5MB",
         "total_commands_processed": 1547,
         "keyspace_hits": 892,
-        "keyspace_misses": 34
+        "keyspace_misses": 34,
     }
+
 
 @app.get("/api/prometheus/metrics")
 async def get_prometheus_metrics():
@@ -259,18 +286,13 @@ async def get_prometheus_metrics():
         "http_request_duration_seconds": 0.245,
         "database_connections_active": 12,
         "memory_usage_bytes": 256000000,
-        "cpu_usage_percent": 23.4
+        "cpu_usage_percent": 23.4,
     }
+
 
 if __name__ == "__main__":
     print("🚀 Starting SecureOps AI Development Backend...")
     print("🌐 Backend API will be available at http://localhost:8010")
     print("📚 API Documentation at http://localhost:8010/docs")
-    
-    uvicorn.run(
-        "simple_backend:app",
-        host="0.0.0.0",
-        port=8010,
-        reload=True,
-        log_level="info"
-    )
+
+    uvicorn.run("simple_backend:app", host="0.0.0.0", port=8010, reload=True, log_level="info")

@@ -64,19 +64,13 @@ class AlertService:
                     {
                         "id": getattr(alert, "id", 1),
                         "title": getattr(alert, "title", "Test Alert"),
-                        "description": getattr(
-                            alert, "description", "Test Description"
-                        ),
+                        "description": getattr(alert, "description", "Test Description"),
                         "severity": getattr(alert, "severity", "medium"),
                         "status": getattr(alert, "status", "open"),
                         "alert_type": getattr(alert, "alert_type", "security"),
                         "source": getattr(alert, "source", "system"),
-                        "created_at": getattr(
-                            alert, "created_at", "2024-01-01T00:00:00"
-                        ),
-                        "updated_at": getattr(
-                            alert, "updated_at", "2024-01-01T00:00:00"
-                        ),
+                        "created_at": getattr(alert, "created_at", "2024-01-01T00:00:00"),
+                        "updated_at": getattr(alert, "updated_at", "2024-01-01T00:00:00"),
                     }
                 )
 
@@ -157,9 +151,7 @@ class AlertService:
             "total": alert_count,
             "successful": alert_count,
             "failed": 0,
-            "successful_ids": (
-                alert_ids if not hasattr(alert_ids, "_mock_name") else [1, 2, 3]
-            ),
+            "successful_ids": (alert_ids if not hasattr(alert_ids, "_mock_name") else [1, 2, 3]),
             "failed_ids": [],
         }
 
@@ -174,9 +166,7 @@ class AlertService:
             "total": alert_count,
             "successful": alert_count,
             "failed": 0,
-            "successful_ids": (
-                alert_ids if not hasattr(alert_ids, "_mock_name") else [1, 2]
-            ),
+            "successful_ids": (alert_ids if not hasattr(alert_ids, "_mock_name") else [1, 2]),
             "failed_ids": [],
         }
 
@@ -191,9 +181,7 @@ class AlertService:
             "total": alert_count,
             "successful": alert_count,
             "failed": 0,
-            "successful_ids": (
-                alert_ids if not hasattr(alert_ids, "_mock_name") else [1, 2, 3, 4, 5]
-            ),
+            "successful_ids": (alert_ids if not hasattr(alert_ids, "_mock_name") else [1, 2, 3, 4, 5]),
             "failed_ids": [],
         }
 

@@ -16,9 +16,7 @@ Base = declarative_base()
 class TimestampMixin:
     """Mixin to add created_at and updated_at timestamps to models."""
 
-    created_at = Column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -50,9 +48,7 @@ class PaginationParams(BaseModel):
     skip: int = 0
     limit: int = 100
 
-    model_config = ConfigDict(
-        json_schema_extra={"example": {"skip": 0, "limit": 20}}
-    )
+    model_config = ConfigDict(json_schema_extra={"example": {"skip": 0, "limit": 20}})
 
 
 class PaginatedResponse(BaseModel):
@@ -66,9 +62,7 @@ class PaginatedResponse(BaseModel):
     has_prev: bool
 
     @classmethod
-    def create(
-        cls, items: list, total: int, skip: int, limit: int
-    ) -> "PaginatedResponse":
+    def create(cls, items: list, total: int, skip: int, limit: int) -> "PaginatedResponse":
         """Create a paginated response."""
         return cls(
             items=items,
@@ -89,16 +83,12 @@ class APIResponse(BaseModel):
     errors: Optional[list[str]] = None
 
     @classmethod
-    def success_response(
-        cls, data: Any = None, message: str = "Success"
-    ) -> "APIResponse":
+    def success_response(cls, data: Any = None, message: str = "Success") -> "APIResponse":
         """Create a success response."""
         return cls(success=True, message=message, data=data)
 
     @classmethod
-    def error_response(
-        cls, message: str, errors: Optional[list[str]] = None
-    ) -> "APIResponse":
+    def error_response(cls, message: str, errors: Optional[list[str]] = None) -> "APIResponse":
         """Create an error response."""
         return cls(success=False, message=message, errors=errors or [])
 

@@ -6,14 +6,14 @@ import os
 from typing import AsyncGenerator, Generator
 
 from sqlalchemy import MetaData, create_engine
-from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
-                                    create_async_engine)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
 from .models.alert import Alert
 from .models.base import Base
 from .models.pipeline import Pipeline, PipelineRun, ScanJob
+
 # Import all models to ensure they are registered with Base.metadata
 from .models.user import User
 from .models.vulnerability import Vulnerability
@@ -44,9 +44,7 @@ async_engine = create_async_engine(
 )
 
 # Session makers
-SessionLocal = sessionmaker(
-    bind=engine, autocommit=False, autoflush=False, expire_on_commit=False
-)
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, expire_on_commit=False)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=async_engine,
@@ -292,11 +290,6 @@ class DatabaseManager:
 
             async with self.get_async_session() as session:
                 # Table row counts
-                from .models.alert import Alert
-                from .models.pipeline import Pipeline, PipelineRun
-                from .models.user import User
-                from .models.vulnerability import Vulnerability
-
                 tables = [
                     ("users", User),
                     ("pipelines", Pipeline),
@@ -312,20 +305,16 @@ class DatabaseManager:
 
                 # Database size (PostgreSQL specific)
                 try:
-                    result = await session.execute(
-                        "SELECT pg_size_pretty(pg_database_size(current_database()))"
-                    )
+                    result = await session.execute("SELECT pg_size_pretty(pg_database_size(current_database()))")
                     stats["database_size"] = result.scalar()
-                except:
+                except BaseException:
                     stats["database_size"] = "Unknown"
 
                 # Active connections
                 try:
-                    result = await session.execute(
-                        "SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"
-                    )
+                    result = await session.execute("SELECT count(*) FROM pg_stat_activity WHERE state = 'active'")
                     stats["active_connections"] = result.scalar()
-                except:
+                except BaseException:
                     stats["active_connections"] = 0
 
             return stats
@@ -366,7 +355,7 @@ async def health_check() -> dict:
                     await session.execute("SELECT 1 FROM users LIMIT 1")
                     health["tables_exist"] = True
                     health["can_read"] = True
-                except:
+                except BaseException:
                     health["tables_exist"] = False
 
                 # Check write capability (if tables exist)
@@ -376,7 +365,7 @@ async def health_check() -> dict:
                         result = await session.execute("SELECT current_timestamp")
                         if result:
                             health["can_write"] = True
-                    except:
+                    except BaseException:
                         health["can_write"] = False
 
             # Get database statistics
@@ -397,8 +386,6 @@ def init_database():
 
         # Create default admin user if it doesn't exist
         with SessionLocal() as session:
-            from .models.user import User
-
             admin_user = session.query(User).filter(User.username == "admin").first()
             if not admin_user:
                 admin_user = User(
@@ -434,10 +421,10 @@ async def cleanup_database():
             # Clean up old pipeline runs (keep last 1000 per pipeline)
             await session.execute(
                 """
-                DELETE FROM pipeline_runs 
+                DELETE FROM pipeline_runs
                 WHERE id NOT IN (
                     SELECT id FROM (
-                        SELECT id, 
+                        SELECT id,
                                ROW_NUMBER() OVER (PARTITION BY pipeline_id ORDER BY created_at DESC) as rn
                         FROM pipeline_runs
                     ) t WHERE t.rn <= 1000
@@ -448,8 +435,8 @@ async def cleanup_database():
             # Clean up resolved vulnerabilities older than 6 months
             await session.execute(
                 """
-                DELETE FROM vulnerabilities 
-                WHERE status = 'resolved' 
+                DELETE FROM vulnerabilities
+                WHERE status = 'resolved'
                 AND resolved_at < NOW() - INTERVAL '6 months'
             """
             )
@@ -457,8 +444,8 @@ async def cleanup_database():
             # Clean up closed alerts older than 3 months
             await session.execute(
                 """
-                DELETE FROM alerts 
-                WHERE status IN ('closed', 'resolved') 
+                DELETE FROM alerts
+                WHERE status IN ('closed', 'resolved')
                 AND resolved_at < NOW() - INTERVAL '3 months'
             """
             )

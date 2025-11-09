@@ -8,22 +8,15 @@ Author: Chukwuebuka Tobiloba Nwaizugbe
 Date: 2024
 """
 
-import asyncio
-import json
-import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertType
-from src.api.models.pipeline import (Pipeline, PipelineRun, PipelineStatus,
-                                     PlatformType)
-from src.api.models.vulnerability import (SeverityLevel, Vulnerability,
-                                          VulnerabilityStatus)
+from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
 from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
 
@@ -79,9 +72,7 @@ class GitLabCIIntegration:
                 return
 
             async with AsyncSessionLocal() as db:
-                await self._process_pipeline_event(
-                    db, object_attributes, project, payload
-                )
+                await self._process_pipeline_event(db, object_attributes, project, payload)
 
         except Exception as e:
             logger.error(f"Failed to handle pipeline event: {e}")
@@ -109,9 +100,7 @@ class GitLabCIIntegration:
             pipeline_status = self._map_gitlab_status(status)
 
             # Create or update pipeline
-            pipeline = await self._create_or_update_pipeline(
-                db, project_path, project_url, ref, project
-            )
+            pipeline = await self._create_or_update_pipeline(db, project_path, project_url, ref, project)
 
             # Create pipeline run
             pipeline_run = await self._create_pipeline_run(
@@ -120,13 +109,9 @@ class GitLabCIIntegration:
 
             # Trigger security analysis if pipeline completed
             if status == "success":
-                await self._trigger_security_analysis(
-                    pipeline_run, project, pipeline_data
-                )
+                await self._trigger_security_analysis(pipeline_run, project, pipeline_data)
             elif status == "failed":
-                await self._analyze_pipeline_failure(
-                    pipeline_run, project, pipeline_data
-                )
+                await self._analyze_pipeline_failure(pipeline_run, project, pipeline_data)
 
             await db.commit()
             logger.info(f"Processed pipeline {pipeline_id} for {project_path}")
@@ -220,9 +205,7 @@ class GitLabCIIntegration:
         if existing_run:
             existing_run.status = status
             existing_run.finished_at = (
-                datetime.now(timezone.utc)
-                if status in [PipelineStatus.SUCCESS, PipelineStatus.FAILURE]
-                else None
+                datetime.now(timezone.utc) if status in [PipelineStatus.SUCCESS, PipelineStatus.FAILURE] else None
             )
             return existing_run
 
@@ -236,15 +219,9 @@ class GitLabCIIntegration:
             status=status,
             commit_hash=sha,
             started_at=(
-                datetime.fromisoformat(started_at.replace("Z", "+00:00"))
-                if started_at
-                else datetime.now(timezone.utc)
+                datetime.fromisoformat(started_at.replace("Z", "+00:00")) if started_at else datetime.now(timezone.utc)
             ),
-            finished_at=(
-                datetime.fromisoformat(finished_at.replace("Z", "+00:00"))
-                if finished_at
-                else None
-            ),
+            finished_at=(datetime.fromisoformat(finished_at.replace("Z", "+00:00")) if finished_at else None),
             metadata={
                 "pipeline_url": pipeline_data.get("url"),
                 "source": pipeline_data.get("source"),
@@ -284,9 +261,7 @@ class GitLabCIIntegration:
         except Exception as e:
             logger.error(f"Failed to handle job event: {e}")
 
-    async def _handle_security_job(
-        self, job_data: Dict[str, Any], project: Dict[str, Any]
-    ) -> None:
+    async def _handle_security_job(self, job_data: Dict[str, Any], project: Dict[str, Any]) -> None:
         """Handle security-related job completion."""
         try:
             job_status = job_data.get("status")
@@ -318,9 +293,7 @@ class GitLabCIIntegration:
         except Exception as e:
             logger.error(f"Failed to handle merge request event: {e}")
 
-    async def _trigger_mr_security_scan(
-        self, mr_data: Dict[str, Any], project: Dict[str, Any]
-    ) -> None:
+    async def _trigger_mr_security_scan(self, mr_data: Dict[str, Any], project: Dict[str, Any]) -> None:
         """Trigger security scan for merge request."""
         try:
             mr_iid = mr_data.get("iid")
@@ -380,31 +353,22 @@ class GitLabCIIntegration:
         """Analyze failed pipeline for security implications."""
         try:
             # Fetch pipeline jobs to understand failure
-            jobs = await self.get_pipeline_jobs(
-                project.get("id"), pipeline_data.get("id")
-            )
+            jobs = await self.get_pipeline_jobs(project.get("id"), pipeline_data.get("id"))
 
             security_failures = []
             for job in jobs:
                 if job.get("status") == "failed":
                     job_name = job.get("name", "").lower()
-                    if any(
-                        keyword in job_name
-                        for keyword in ["security", "scan", "test", "lint"]
-                    ):
+                    if any(keyword in job_name for keyword in ["security", "scan", "test", "lint"]):
                         security_failures.append(job)
 
             if security_failures:
-                await self._create_pipeline_failure_alert(
-                    pipeline_run, project, security_failures
-                )
+                await self._create_pipeline_failure_alert(pipeline_run, project, security_failures)
 
         except Exception as e:
             logger.error(f"Failed to analyze pipeline failure: {e}")
 
-    async def get_pipeline_jobs(
-        self, project_id: int, pipeline_id: int
-    ) -> List[Dict[str, Any]]:
+    async def get_pipeline_jobs(self, project_id: int, pipeline_id: int) -> List[Dict[str, Any]]:
         """Get jobs for a specific pipeline."""
         try:
             async with httpx.AsyncClient(timeout=self.session_timeout) as client:
@@ -419,9 +383,7 @@ class GitLabCIIntegration:
                 if response.status_code == 200:
                     return response.json()
                 else:
-                    logger.warning(
-                        f"Failed to fetch pipeline jobs: {response.status_code}"
-                    )
+                    logger.warning(f"Failed to fetch pipeline jobs: {response.status_code}")
                     return []
 
         except Exception as e:
@@ -446,9 +408,7 @@ class GitLabCIIntegration:
             logger.error(f"Failed to get job artifacts: {e}")
             return None
 
-    async def create_merge_request_note(
-        self, project_id: int, merge_request_iid: int, note_body: str
-    ) -> bool:
+    async def create_merge_request_note(self, project_id: int, merge_request_iid: int, note_body: str) -> bool:
         """Create a note on a merge request."""
         try:
             payload = {"body": note_body}
@@ -484,9 +444,7 @@ class GitLabCIIntegration:
                 if response.status_code == 200:
                     return response.json()
                 else:
-                    logger.warning(
-                        f"Failed to fetch project variables: {response.status_code}"
-                    )
+                    logger.warning(f"Failed to fetch project variables: {response.status_code}")
                     return []
 
         except Exception as e:
@@ -532,9 +490,7 @@ class GitLabCIIntegration:
 
         return security_issues
 
-    async def get_file_content(
-        self, project_id: int, file_path: str, ref: str = "main"
-    ) -> Optional[str]:
+    async def get_file_content(self, project_id: int, file_path: str, ref: str = "main") -> Optional[str]:
         """Get file content from GitLab repository."""
         try:
             import urllib.parse
@@ -685,9 +641,7 @@ class GitLabCIIntegration:
                     )
 
                 # Check for overly broad artifact paths
-                paths = (
-                    artifacts.get("paths", []) if isinstance(artifacts, dict) else []
-                )
+                paths = artifacts.get("paths", []) if isinstance(artifacts, dict) else []
                 for path in paths:
                     if path in ["*", "**/*", "."]:
                         issues.append(
@@ -701,9 +655,7 @@ class GitLabCIIntegration:
 
         return issues
 
-    async def _fetch_security_artifacts(
-        self, job_data: Dict[str, Any], project: Dict[str, Any]
-    ) -> None:
+    async def _fetch_security_artifacts(self, job_data: Dict[str, Any], project: Dict[str, Any]) -> None:
         """Fetch and process security scan artifacts."""
         try:
             job_id = job_data.get("id")
@@ -724,33 +676,29 @@ class GitLabCIIntegration:
         try:
             # This would typically parse SAST/DAST reports
             # For now, we'll log the processing
-            logger.info(
-                f"Processing security artifacts from job {job_data.get('name')}"
-            )
+            logger.info(f"Processing security artifacts from job {job_data.get('name')}")
 
             # TODO: Implement actual artifact parsing for common formats:
             # - GitLab SAST reports (JSON)
             # - Container scanning reports
             # - Dependency scanning reports
             # - DAST reports
-            raise NotImplementedError(
-                "Artifact parsing for common formats is not yet implemented."
-            )
+            raise NotImplementedError("Artifact parsing for common formats is not yet implemented.")
 
         except Exception as e:
             logger.error(f"Failed to process security artifacts: {e}")
 
-    async def _create_security_job_alert(
-        self, job_data: Dict[str, Any], project: Dict[str, Any]
-    ) -> None:
+    async def _create_security_job_alert(self, job_data: Dict[str, Any], project: Dict[str, Any]) -> None:
         """Create alert for failed security job."""
         try:
             async with AsyncSessionLocal() as db:
+                job_name = job_data.get("name")
+                project_path = project.get("path_with_namespace")
                 alert = Alert(
                     type=AlertType.PIPELINE_FAILURE,
                     severity=AlertSeverity.HIGH,
-                    title=f"Security job failed: {job_data.get('name')}",
-                    description=f"Security job {job_data.get('name')} failed in project {project.get('path_with_namespace')}",
+                    title=f"Security job failed: {job_name}",
+                    description=f"Security job {job_name} failed in project {project_path}",
                     source_type="gitlab_ci",
                     source_id=str(job_data.get("id")),
                     metadata={
@@ -765,9 +713,7 @@ class GitLabCIIntegration:
                 db.add(alert)
                 await db.commit()
 
-                logger.info(
-                    f"Created alert for failed security job {job_data.get('id')}"
-                )
+                logger.info(f"Created alert for failed security job {job_data.get('id')}")
 
         except Exception as e:
             logger.error(f"Failed to create security job alert: {e}")
@@ -782,12 +728,16 @@ class GitLabCIIntegration:
         try:
             async with AsyncSessionLocal() as db:
                 failed_job_names = [job.get("name") for job in failed_jobs]
+                failed_job_list = ", ".join(failed_job_names)
 
                 alert = Alert(
                     type=AlertType.PIPELINE_FAILURE,
                     severity=AlertSeverity.MEDIUM,
                     title=f"Security-related pipeline failures in {project.get('path_with_namespace')}",
-                    description=f"Pipeline {pipeline_run.external_id} failed with security-related job failures: {', '.join(failed_job_names)}",
+                    description=(
+                        f"Pipeline {pipeline_run.external_id} failed with "
+                        f"security-related job failures: {failed_job_list}"
+                    ),
                     source_type="gitlab_ci",
                     source_id=pipeline_run.external_id,
                     metadata={

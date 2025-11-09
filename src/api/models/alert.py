@@ -1,12 +1,8 @@
-﻿"""Alert model for security notifications and incidents."""
+"""Alert model for security notifications and incidents."""
 
-import json
 from datetime import datetime
-from typing import Any, Dict, Optional
 
-from sqlalchemy import (JSON, Boolean, Column, DateTime, ForeignKey, Integer,
-                        String, Text)
-from sqlalchemy.orm import relationship
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 
 from .base import Base, IDMixin, TimestampMixin
 
@@ -19,18 +15,12 @@ class Alert(Base, IDMixin, TimestampMixin):
     # Basic Information
     title = Column(String(255), nullable=False, index=True)
     description = Column(Text, nullable=True)
-    severity = Column(
-        String(20), nullable=False, index=True
-    )  # low, medium, high, critical
+    severity = Column(String(20), nullable=False, index=True)  # low, medium, high, critical
     status = Column(
         String(20), default="open", nullable=False, index=True
     )  # open, acknowledged, investigating, resolved, closed
-    alert_type = Column(
-        String(50), nullable=False, index=True
-    )  # security, compliance, performance, availability
-    source = Column(
-        String(100), nullable=False, index=True
-    )  # scanner name, integration, etc.
+    alert_type = Column(String(50), nullable=False, index=True)  # security, compliance, performance, availability
+    source = Column(String(100), nullable=False, index=True)  # scanner name, integration, etc.
 
     # Relationships
     pipeline_id = Column(Integer, ForeignKey("pipelines.id"), nullable=True, index=True)
@@ -43,23 +33,17 @@ class Alert(Base, IDMixin, TimestampMixin):
     acknowledged_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Metadata and Context
-    alert_metadata = Column(
-        JSON, nullable=True
-    )  # Additional context data (renamed from metadata)
+    alert_metadata = Column(JSON, nullable=True)  # Additional context data (renamed from metadata)
     tags = Column(String(500), nullable=True)  # Comma-separated tags
     priority = Column(Integer, default=3, nullable=False)  # 1=highest, 5=lowest
 
     # External References
-    external_id = Column(
-        String(255), nullable=True, index=True
-    )  # ID from external system
+    external_id = Column(String(255), nullable=True, index=True)  # ID from external system
     external_url = Column(String(500), nullable=True)  # Link to external system
 
     # Notification Status
     notification_sent = Column(Boolean, default=False, nullable=False)
-    notification_channels = Column(
-        String(200), nullable=True
-    )  # JSON array of channel IDs
+    notification_channels = Column(String(200), nullable=True)  # JSON array of channel IDs
 
     def acknowledge(self, user_id: int, note: str = None) -> None:
         """Acknowledge the alert."""
@@ -140,9 +124,7 @@ class Alert(Base, IDMixin, TimestampMixin):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
-            "acknowledged_at": (
-                self.acknowledged_at.isoformat() if self.acknowledged_at else None
-            ),
+            "acknowledged_at": (self.acknowledged_at.isoformat() if self.acknowledged_at else None),
             "created_by": self.created_by,
             "resolved_by": self.resolved_by,
             "acknowledged_by": self.acknowledged_by,
@@ -180,9 +162,7 @@ class AlertRule(Base, IDMixin, TimestampMixin):
     notification_channels = Column(JSON, nullable=True)  # Array of channel IDs
 
     # Rate Limiting
-    cooldown_minutes = Column(
-        Integer, default=60, nullable=False
-    )  # Minimum time between alerts
+    cooldown_minutes = Column(Integer, default=60, nullable=False)  # Minimum time between alerts
     last_triggered = Column(DateTime, nullable=True)
 
     def can_trigger(self) -> bool:
@@ -215,9 +195,7 @@ class AlertRule(Base, IDMixin, TimestampMixin):
             "pipeline_id": self.pipeline_id,
             "notification_channels": self.notification_channels,
             "cooldown_minutes": self.cooldown_minutes,
-            "last_triggered": (
-                self.last_triggered.isoformat() if self.last_triggered else None
-            ),
+            "last_triggered": (self.last_triggered.isoformat() if self.last_triggered else None),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -230,9 +208,7 @@ class NotificationChannel(Base, IDMixin, TimestampMixin):
 
     # Basic Information
     name = Column(String(255), nullable=False, index=True)
-    channel_type = Column(
-        String(50), nullable=False, index=True
-    )  # email, slack, webhook, msteams, sms
+    channel_type = Column(String(50), nullable=False, index=True)  # email, slack, webhook, msteams, sms
     enabled = Column(Boolean, default=True, nullable=False)
 
     # Configuration

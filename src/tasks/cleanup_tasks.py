@@ -18,7 +18,6 @@ Date: 2024
 """
 
 import asyncio
-import concurrent.futures
 import os
 import shutil
 import tempfile
@@ -27,18 +26,15 @@ import traceback
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List
 
-import psutil
-from celery import group
 from celery.utils.log import get_task_logger
 
 from src.api.database import AsyncSessionLocal
-from src.api.models.alert import Alert, AlertStatus
-from src.api.models.pipeline import Pipeline, PipelineRun, ScanJob
-from src.api.models.vulnerability import Vulnerability, VulnerabilityStatus
+from src.api.models.pipeline import ScanJob
+from src.api.models.vulnerability import Vulnerability
 from src.api.utils.config import get_settings
-from src.api.utils.logger import get_logger
+
 # Use the centralized Celery app
 from src.tasks.celery_app import app as celery_app
 
@@ -47,9 +43,7 @@ logger = get_task_logger(__name__)
 
 # Configuration constants
 DEFAULT_RETENTION_DAYS = getattr(settings, "DEFAULT_RETENTION_DAYS", 30)
-DATABASE_MAINTENANCE_INTERVAL_HOURS = getattr(
-    settings, "DATABASE_MAINTENANCE_INTERVAL_HOURS", 24
-)
+DATABASE_MAINTENANCE_INTERVAL_HOURS = getattr(settings, "DATABASE_MAINTENANCE_INTERVAL_HOURS", 24)
 MAX_CLEANUP_BATCH_SIZE = getattr(settings, "MAX_CLEANUP_BATCH_SIZE", 1000)
 TEMP_FILE_MAX_AGE_HOURS = getattr(settings, "TEMP_FILE_MAX_AGE_HOURS", 24)
 LOG_RETENTION_DAYS = getattr(settings, "LOG_RETENTION_DAYS", 7)
@@ -124,9 +118,7 @@ def comprehensive_system_cleanup(self) -> Dict[str, Any]:
         }
 
 
-@celery_app.task(
-    bind=True, name="secureops.tasks.cleanup_tasks.cleanup_old_scan_jobs", max_retries=2
-)
+@celery_app.task(bind=True, name="secureops.tasks.cleanup_tasks.cleanup_old_scan_jobs", max_retries=2)
 def cleanup_old_scan_jobs(
     self,
     retention_days: int = DEFAULT_RETENTION_DAYS,
@@ -155,14 +147,13 @@ def cleanup_old_scan_jobs(
     )
 
     try:
-        result = asyncio.run(
-            _cleanup_old_scan_jobs_async(retention_days, batch_size, cleanup_id)
-        )
+        result = asyncio.run(_cleanup_old_scan_jobs_async(retention_days, batch_size, cleanup_id))
 
         execution_time = time.time() - start_time
 
         logger.info(
-            f"[{cleanup_id}] Scan job cleanup completed - deleted {result.get('deleted_count', 0)} jobs in {execution_time:.2f}s",
+            f"[{cleanup_id}] Scan job cleanup completed - "
+            f"deleted {result.get('deleted_count', 0)} jobs in {execution_time:.2f}s",
             extra={
                 "cleanup_id": cleanup_id,
                 "execution_time": execution_time,
@@ -186,9 +177,7 @@ def cleanup_old_scan_jobs(
             "execution_time": execution_time,
         }
 
-        logger.error(
-            f"[{cleanup_id}] Scan job cleanup failed: {str(e)}", extra=error_details
-        )
+        logger.error(f"[{cleanup_id}] Scan job cleanup failed: {str(e)}", extra=error_details)
 
         if self.request.retries < 2:
             raise self.retry(countdown=60, exc=e)
@@ -206,9 +195,7 @@ def cleanup_old_scan_jobs(
     name="secureops.tasks.cleanup_tasks.cleanup_temporary_files",
     max_retries=2,
 )
-def cleanup_temporary_files(
-    self, max_age_hours: int = TEMP_FILE_MAX_AGE_HOURS
-) -> Dict[str, Any]:
+def cleanup_temporary_files(self, max_age_hours: int = TEMP_FILE_MAX_AGE_HOURS) -> Dict[str, Any]:
     """
     Clean up temporary files and directories older than specified age.
 
@@ -304,9 +291,7 @@ def archive_old_vulnerabilities(
     )
 
     try:
-        result = asyncio.run(
-            _archive_old_vulnerabilities_async(retention_days, batch_size, cleanup_id)
-        )
+        result = asyncio.run(_archive_old_vulnerabilities_async(retention_days, batch_size, cleanup_id))
 
         execution_time = time.time() - start_time
 
@@ -351,9 +336,7 @@ def archive_old_vulnerabilities(
         }
 
 
-@celery_app.task(
-    bind=True, name="secureops.tasks.cleanup_tasks.cleanup_log_files", max_retries=2
-)
+@celery_app.task(bind=True, name="secureops.tasks.cleanup_tasks.cleanup_log_files", max_retries=2)
 def cleanup_log_files(self, retention_days: int = LOG_RETENTION_DAYS) -> Dict[str, Any]:
     """
     Clean up old log files to prevent disk space issues.
@@ -403,9 +386,7 @@ def cleanup_log_files(self, retention_days: int = LOG_RETENTION_DAYS) -> Dict[st
             "execution_time": execution_time,
         }
 
-        logger.error(
-            f"[{cleanup_id}] Log file cleanup failed: {str(e)}", extra=error_details
-        )
+        logger.error(f"[{cleanup_id}] Log file cleanup failed: {str(e)}", extra=error_details)
 
         if self.request.retries < 2:
             raise self.retry(countdown=60, exc=e)
@@ -418,9 +399,7 @@ def cleanup_log_files(self, retention_days: int = LOG_RETENTION_DAYS) -> Dict[st
         }
 
 
-@celery_app.task(
-    bind=True, name="secureops.tasks.cleanup_tasks.database_maintenance", max_retries=1
-)
+@celery_app.task(bind=True, name="secureops.tasks.cleanup_tasks.database_maintenance", max_retries=1)
 def database_maintenance(self) -> Dict[str, Any]:
     """
     Perform comprehensive database maintenance operations.
@@ -532,9 +511,7 @@ def cleanup_docker_resources(self) -> Dict[str, Any]:
             "execution_time": execution_time,
         }
 
-        logger.error(
-            f"[{cleanup_id}] Docker cleanup failed: {str(e)}", extra=error_details
-        )
+        logger.error(f"[{cleanup_id}] Docker cleanup failed: {str(e)}", extra=error_details)
 
         if self.request.retries < 2:
             raise self.retry(countdown=120, exc=e)
@@ -575,9 +552,7 @@ def cleanup_health_check() -> Dict[str, Any]:
         health_data["components"]["permissions"] = _check_cleanup_permissions()
 
         # Determine overall status
-        component_statuses = [
-            comp.get("status", "unknown") for comp in health_data["components"].values()
-        ]
+        component_statuses = [comp.get("status", "unknown") for comp in health_data["components"].values()]
 
         if "critical" in component_statuses:
             health_data["status"] = "critical"
@@ -613,9 +588,7 @@ async def _comprehensive_cleanup_async(cleanup_id: str) -> Dict[str, Any]:
         cleanup_tasks = [
             (
                 "scan_jobs",
-                _cleanup_old_scan_jobs_async(
-                    DEFAULT_RETENTION_DAYS, MAX_CLEANUP_BATCH_SIZE, cleanup_id
-                ),
+                _cleanup_old_scan_jobs_async(DEFAULT_RETENTION_DAYS, MAX_CLEANUP_BATCH_SIZE, cleanup_id),
             ),
             (
                 "temp_files",
@@ -623,9 +596,7 @@ async def _comprehensive_cleanup_async(cleanup_id: str) -> Dict[str, Any]:
             ),
             (
                 "vulnerabilities",
-                _archive_old_vulnerabilities_async(
-                    90, MAX_CLEANUP_BATCH_SIZE, cleanup_id
-                ),
+                _archive_old_vulnerabilities_async(90, MAX_CLEANUP_BATCH_SIZE, cleanup_id),
             ),
             ("log_files", _cleanup_log_files_async(LOG_RETENTION_DAYS, cleanup_id)),
             ("database", _database_maintenance_async(cleanup_id)),
@@ -635,14 +606,12 @@ async def _comprehensive_cleanup_async(cleanup_id: str) -> Dict[str, Any]:
         for task_name, task_coro in cleanup_tasks:
             try:
                 task_result = await task_coro
-                results["tasks_executed"].append(
-                    {"name": task_name, "status": "completed", "result": task_result}
-                )
+                results["tasks_executed"].append({"name": task_name, "status": "completed", "result": task_result})
 
                 # Aggregate metrics
-                results["total_items_cleaned"] += task_result.get(
-                    "deleted_count", 0
-                ) + task_result.get("archived_count", 0)
+                results["total_items_cleaned"] += task_result.get("deleted_count", 0) + task_result.get(
+                    "archived_count", 0
+                )
                 results["total_space_freed_mb"] += task_result.get("space_freed_mb", 0)
 
             except Exception as e:
@@ -652,20 +621,14 @@ async def _comprehensive_cleanup_async(cleanup_id: str) -> Dict[str, Any]:
                     "error_type": type(e).__name__,
                 }
                 results["errors"].append(error_info)
-                results["tasks_executed"].append(
-                    {"name": task_name, "status": "failed", "error": error_info}
-                )
+                results["tasks_executed"].append({"name": task_name, "status": "failed", "error": error_info})
 
                 logger.error(f"Cleanup task {task_name} failed: {str(e)}")
 
         # Calculate success rate
         total_tasks = len(cleanup_tasks)
-        successful_tasks = len(
-            [t for t in results["tasks_executed"] if t["status"] == "completed"]
-        )
-        results["success_rate"] = (
-            (successful_tasks / total_tasks) * 100 if total_tasks > 0 else 0
-        )
+        successful_tasks = len([t for t in results["tasks_executed"] if t["status"] == "completed"])
+        results["success_rate"] = (successful_tasks / total_tasks) * 100 if total_tasks > 0 else 0
 
         return results
 
@@ -681,9 +644,7 @@ async def _comprehensive_cleanup_async(cleanup_id: str) -> Dict[str, Any]:
         return results
 
 
-async def _cleanup_old_scan_jobs_async(
-    retention_days: int, batch_size: int, cleanup_id: str
-) -> Dict[str, Any]:
+async def _cleanup_old_scan_jobs_async(retention_days: int, batch_size: int, cleanup_id: str) -> Dict[str, Any]:
     """
     Clean up old scan jobs with batched processing.
     """
@@ -699,7 +660,7 @@ async def _cleanup_old_scan_jobs_async(
             # Get count of jobs to delete
             count_query = text(
                 """
-                SELECT COUNT(*) FROM scan_jobs 
+                SELECT COUNT(*) FROM scan_jobs
                 WHERE created_at < :cutoff_date
             """
             )
@@ -723,7 +684,7 @@ async def _cleanup_old_scan_jobs_async(
                     # Get batch of scan job IDs
                     batch_query = text(
                         """
-                        SELECT id FROM scan_jobs 
+                        SELECT id FROM scan_jobs
                         WHERE created_at < :cutoff_date
                         ORDER BY created_at ASC
                         LIMIT :batch_size
@@ -743,7 +704,7 @@ async def _cleanup_old_scan_jobs_async(
                     # Delete vulnerabilities associated with these jobs
                     vuln_delete = text(
                         """
-                        DELETE FROM vulnerabilities 
+                        DELETE FROM vulnerabilities
                         WHERE scan_job_id IN :job_ids
                     """
                     )
@@ -752,7 +713,7 @@ async def _cleanup_old_scan_jobs_async(
                     # Delete alerts associated with these jobs
                     alert_delete = text(
                         """
-                        DELETE FROM alerts 
+                        DELETE FROM alerts
                         WHERE scan_job_id IN :job_ids
                     """
                     )
@@ -761,13 +722,11 @@ async def _cleanup_old_scan_jobs_async(
                     # Delete the scan jobs
                     job_delete = text(
                         """
-                        DELETE FROM scan_jobs 
+                        DELETE FROM scan_jobs
                         WHERE id IN :job_ids
                     """
                     )
-                    delete_result = await session.execute(
-                        job_delete, {"job_ids": tuple(job_ids)}
-                    )
+                    delete_result = await session.execute(job_delete, {"job_ids": tuple(job_ids)})
 
                     batch_deleted = delete_result.rowcount
                     deleted_count += batch_deleted
@@ -783,9 +742,7 @@ async def _cleanup_old_scan_jobs_async(
                 except Exception as batch_error:
                     await session.rollback()
                     error_count += 1
-                    logger.error(
-                        f"[{cleanup_id}] Error deleting batch: {str(batch_error)}"
-                    )
+                    logger.error(f"[{cleanup_id}] Error deleting batch: {str(batch_error)}")
                     # Continue with next batch
                     processed += batch_size
 
@@ -802,9 +759,7 @@ async def _cleanup_old_scan_jobs_async(
             raise
 
 
-async def _cleanup_temporary_files_async(
-    max_age_hours: int, cleanup_id: str
-) -> Dict[str, Any]:
+async def _cleanup_temporary_files_async(max_age_hours: int, cleanup_id: str) -> Dict[str, Any]:
     """
     Clean up temporary files and directories.
     """
@@ -850,9 +805,7 @@ async def _cleanup_temporary_files_async(
                         # Remove file or directory
                         if item.is_file():
                             item.unlink()
-                        elif item.is_dir() and not any(
-                            item.iterdir()
-                        ):  # Empty directory
+                        elif item.is_dir() and not any(item.iterdir()):  # Empty directory
                             item.rmdir()
                         else:
                             continue  # Non-empty directory, skip
@@ -868,16 +821,12 @@ async def _cleanup_temporary_files_async(
 
                 except Exception as file_error:
                     error_count += 1
-                    logger.warning(
-                        f"[{cleanup_id}] Could not delete {item}: {str(file_error)}"
-                    )
+                    logger.warning(f"[{cleanup_id}] Could not delete {item}: {str(file_error)}")
                     continue
 
         except Exception as dir_error:
             error_count += 1
-            logger.error(
-                f"[{cleanup_id}] Error processing directory {temp_dir}: {str(dir_error)}"
-            )
+            logger.error(f"[{cleanup_id}] Error processing directory {temp_dir}: {str(dir_error)}")
             continue
 
     return {
@@ -888,9 +837,7 @@ async def _cleanup_temporary_files_async(
     }
 
 
-async def _archive_old_vulnerabilities_async(
-    retention_days: int, batch_size: int, cleanup_id: str
-) -> Dict[str, Any]:
+async def _archive_old_vulnerabilities_async(retention_days: int, batch_size: int, cleanup_id: str) -> Dict[str, Any]:
     """
     Archive old resolved vulnerabilities.
     """
@@ -905,7 +852,7 @@ async def _archive_old_vulnerabilities_async(
             # Count vulnerabilities to archive
             count_query = text(
                 """
-                SELECT COUNT(*) FROM vulnerabilities 
+                SELECT COUNT(*) FROM vulnerabilities
                 WHERE status IN ('resolved', 'fixed', 'false_positive')
                 AND updated_at < :cutoff_date
                 AND archived = false
@@ -914,9 +861,7 @@ async def _archive_old_vulnerabilities_async(
             result = await session.execute(count_query, {"cutoff_date": cutoff_date})
             total_to_archive = result.scalar() or 0
 
-            logger.info(
-                f"[{cleanup_id}] Found {total_to_archive} vulnerabilities to archive"
-            )
+            logger.info(f"[{cleanup_id}] Found {total_to_archive} vulnerabilities to archive")
 
             if total_to_archive == 0:
                 return {"archived_count": 0, "error_count": 0, "total_processed": 0}
@@ -928,10 +873,10 @@ async def _archive_old_vulnerabilities_async(
                     # Archive batch
                     archive_query = text(
                         """
-                        UPDATE vulnerabilities 
+                        UPDATE vulnerabilities
                         SET archived = true, archived_at = :archive_time
                         WHERE id IN (
-                            SELECT id FROM vulnerabilities 
+                            SELECT id FROM vulnerabilities
                             WHERE status IN ('resolved', 'fixed', 'false_positive')
                             AND updated_at < :cutoff_date
                             AND archived = false
@@ -966,9 +911,7 @@ async def _archive_old_vulnerabilities_async(
                 except Exception as batch_error:
                     await session.rollback()
                     error_count += 1
-                    logger.error(
-                        f"[{cleanup_id}] Error archiving batch: {str(batch_error)}"
-                    )
+                    logger.error(f"[{cleanup_id}] Error archiving batch: {str(batch_error)}")
                     break
 
             return {
@@ -983,9 +926,7 @@ async def _archive_old_vulnerabilities_async(
             raise
 
 
-async def _cleanup_log_files_async(
-    retention_days: int, cleanup_id: str
-) -> Dict[str, Any]:
+async def _cleanup_log_files_async(retention_days: int, cleanup_id: str) -> Dict[str, Any]:
     """
     Clean up old log files.
     """
@@ -1038,16 +979,12 @@ async def _cleanup_log_files_async(
 
                     except Exception as file_error:
                         error_count += 1
-                        logger.warning(
-                            f"[{cleanup_id}] Could not delete log file {log_file}: {str(file_error)}"
-                        )
+                        logger.warning(f"[{cleanup_id}] Could not delete log file {log_file}: {str(file_error)}")
                         continue
 
         except Exception as dir_error:
             error_count += 1
-            logger.error(
-                f"[{cleanup_id}] Error processing log directory {log_dir}: {str(dir_error)}"
-            )
+            logger.error(f"[{cleanup_id}] Error processing log directory {log_dir}: {str(dir_error)}")
             continue
 
     return {
@@ -1095,9 +1032,7 @@ async def _database_maintenance_async(maintenance_id: str) -> Dict[str, Any]:
 
             await session.commit()
 
-            logger.info(
-                f"[{maintenance_id}] Database maintenance completed: {operations_performed}"
-            )
+            logger.info(f"[{maintenance_id}] Database maintenance completed: {operations_performed}")
 
             return {"operations_performed": operations_performed, "status": "completed"}
 
@@ -1115,9 +1050,7 @@ async def _cleanup_docker_resources_async(cleanup_id: str) -> Dict[str, Any]:
 
     try:
         # Check if Docker is available
-        result = subprocess.run(
-            ["docker", "--version"], capture_output=True, text=True, timeout=10
-        )
+        result = subprocess.run(["docker", "--version"], capture_output=True, text=True, timeout=10)
 
         if result.returncode != 0:
             return {
@@ -1169,9 +1102,7 @@ async def _cleanup_docker_resources_async(cleanup_id: str) -> Dict[str, Any]:
 
         # Get system info for space calculation
         try:
-            result = subprocess.run(
-                ["docker", "system", "df"], capture_output=True, text=True, timeout=30
-            )
+            result = subprocess.run(["docker", "system", "df"], capture_output=True, text=True, timeout=30)
             # Note: This doesn't give exact space freed, but confirms cleanup
         except subprocess.TimeoutExpired:
             pass
@@ -1319,28 +1250,7 @@ def _is_file_in_use(filepath: Path) -> bool:
         raise
 
 
-@celery_app.task(
-    bind=True, name="secureops.tasks.cleanup_tasks.cleanup_docker_resources"
-)
-def cleanup_docker_resources(self):
-    """
-    Clean up unused Docker containers, images, and volumes.
-    """
-    logger.info("Starting Docker resource cleanup")
-
-    try:
-        import asyncio
-
-        result = asyncio.run(_cleanup_docker_resources_async())
-
-        logger.info(
-            f"Docker cleanup completed - removed {result.get('containers_removed', 0)} containers, {result.get('images_removed', 0)} images"
-        )
-        return result
-
-    except Exception as e:
-        logger.error(f"Docker cleanup failed: {str(e)}")
-        raise
+# Helper async functions (continued below)
 
 
 @celery_app.task(bind=True, name="secureops.tasks.cleanup_tasks.rotate_encryption_keys")
@@ -1389,349 +1299,6 @@ def cleanup_cache_data(self, max_age_hours: int = 48):
 # Implementation functions
 
 
-async def _cleanup_old_scan_jobs_async(retention_days: int) -> Dict[str, Any]:
-    """Clean up old scan jobs and associated data."""
-    cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
-
-    try:
-        async with AsyncSessionLocal() as db:
-            from sqlalchemy import and_, delete, select
-
-            # First, get the scan jobs to be deleted
-            jobs_query = select(ScanJob).where(
-                and_(
-                    ScanJob.created_at < cutoff_date,
-                    ScanJob.status.in_(["completed", "failed"]),
-                )
-            )
-
-            result = await db.execute(jobs_query)
-            jobs_to_delete = result.scalars().all()
-
-            deleted_jobs = len(jobs_to_delete)
-            deleted_vulnerabilities = 0
-
-            # Delete associated vulnerabilities first
-            for job in jobs_to_delete:
-                vuln_delete_query = delete(Vulnerability).where(
-                    Vulnerability.scan_job_id == job.id
-                )
-                vuln_result = await db.execute(vuln_delete_query)
-                deleted_vulnerabilities += vuln_result.rowcount
-
-            # Delete the scan jobs
-            jobs_delete_query = delete(ScanJob).where(
-                and_(
-                    ScanJob.created_at < cutoff_date,
-                    ScanJob.status.in_(["completed", "failed"]),
-                )
-            )
-
-            await db.execute(jobs_delete_query)
-            await db.commit()
-
-            # Clean up associated temporary files
-            temp_files_cleaned = await _cleanup_scan_temp_files(jobs_to_delete)
-
-            return {
-                "status": "completed",
-                "deleted_jobs": deleted_jobs,
-                "deleted_vulnerabilities": deleted_vulnerabilities,
-                "temp_files_cleaned": temp_files_cleaned,
-                "cutoff_date": cutoff_date.isoformat(),
-            }
-
-    except Exception as e:
-        logger.error(f"Error cleaning up old scan jobs: {str(e)}")
-        raise
-
-
-async def _cleanup_temporary_files_async(max_age_hours: int) -> Dict[str, Any]:
-    """Clean up temporary files."""
-    cutoff_time = datetime.now() - timedelta(hours=max_age_hours)
-
-    files_deleted = 0
-    space_freed = 0
-
-    try:
-        # Define directories to clean
-        temp_directories = [
-            tempfile.gettempdir(),
-            "/tmp/secureops" if os.path.exists("/tmp/secureops") else None,
-            (
-                settings.TEMP_DIR
-                if hasattr(settings, "TEMP_DIR") and settings.TEMP_DIR
-                else None
-            ),
-        ]
-
-        temp_directories = [d for d in temp_directories if d and os.path.exists(d)]
-
-        for temp_dir in temp_directories:
-            for root, dirs, files in os.walk(temp_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-
-                    try:
-                        # Check if file is old enough to delete
-                        if os.path.getmtime(file_path) < cutoff_time.timestamp():
-                            # Check if it's a SecureOps temporary file
-                            if _is_secureops_temp_file(file_path):
-                                file_size = os.path.getsize(file_path)
-                                os.remove(file_path)
-                                files_deleted += 1
-                                space_freed += file_size
-
-                    except (OSError, IOError) as e:
-                        logger.warning(
-                            f"Could not delete temporary file {file_path}: {str(e)}"
-                        )
-                        continue
-
-        return {
-            "status": "completed",
-            "files_deleted": files_deleted,
-            "space_freed_mb": space_freed / (1024 * 1024),
-            "cutoff_time": cutoff_time.isoformat(),
-        }
-
-    except Exception as e:
-        logger.error(f"Error cleaning up temporary files: {str(e)}")
-        raise
-
-
-async def _archive_old_vulnerabilities_async(retention_days: int) -> Dict[str, Any]:
-    """Archive old resolved vulnerabilities."""
-    cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
-
-    try:
-        async with AsyncSessionLocal() as db:
-            from sqlalchemy import and_, select, update
-
-            # Find vulnerabilities to archive
-            vulns_query = select(Vulnerability).where(
-                and_(
-                    Vulnerability.status.in_(
-                        ["resolved", "false_positive", "accepted_risk"]
-                    ),
-                    Vulnerability.resolved_at < cutoff_date,
-                    Vulnerability.archived == False,
-                )
-            )
-
-            result = await db.execute(vulns_query)
-            vulnerabilities_to_archive = result.scalars().all()
-
-            archived_count = 0
-
-            # Create archive records
-            for vuln in vulnerabilities_to_archive:
-                # Export vulnerability data for archival
-                archive_data = await _create_vulnerability_archive(vuln)
-
-                # Store in archive storage (could be file system, S3, etc.)
-                await _store_vulnerability_archive(vuln.id, archive_data)
-
-                # Mark as archived in database
-                vuln.archived = True
-                vuln.archived_at = datetime.now(timezone.utc)
-                archived_count += 1
-
-            await db.commit()
-
-            return {
-                "status": "completed",
-                "archived_count": archived_count,
-                "cutoff_date": cutoff_date.isoformat(),
-            }
-
-    except Exception as e:
-        logger.error(f"Error archiving vulnerabilities: {str(e)}")
-        raise
-
-
-async def _cleanup_log_files_async(retention_days: int) -> Dict[str, Any]:
-    """Clean up old log files."""
-    cutoff_time = datetime.now() - timedelta(days=retention_days)
-
-    files_deleted = 0
-    space_freed = 0
-
-    try:
-        # Define log directories
-        log_directories = [
-            "/var/log/secureops" if os.path.exists("/var/log/secureops") else None,
-            (
-                settings.LOG_DIR
-                if hasattr(settings, "LOG_DIR") and settings.LOG_DIR
-                else None
-            ),
-            "./logs" if os.path.exists("./logs") else None,
-        ]
-
-        log_directories = [d for d in log_directories if d and os.path.exists(d)]
-
-        for log_dir in log_directories:
-            for root, dirs, files in os.walk(log_dir):
-                for file in files:
-                    if file.endswith((".log", ".log.gz", ".log.bz2")):
-                        file_path = os.path.join(root, file)
-
-                        try:
-                            if os.path.getmtime(file_path) < cutoff_time.timestamp():
-                                file_size = os.path.getsize(file_path)
-                                os.remove(file_path)
-                                files_deleted += 1
-                                space_freed += file_size
-
-                        except (OSError, IOError) as e:
-                            logger.warning(
-                                f"Could not delete log file {file_path}: {str(e)}"
-                            )
-                            continue
-
-        return {
-            "status": "completed",
-            "files_deleted": files_deleted,
-            "space_freed_mb": space_freed / (1024 * 1024),
-            "cutoff_time": cutoff_time.isoformat(),
-        }
-
-    except Exception as e:
-        logger.error(f"Error cleaning up log files: {str(e)}")
-        raise
-
-
-async def _database_maintenance_async() -> Dict[str, Any]:
-    """Perform database maintenance operations."""
-    try:
-        async with AsyncSessionLocal() as db:
-            from sqlalchemy import text
-
-            operations_performed = []
-
-            # PostgreSQL specific operations
-            if db.bind.dialect.name == "postgresql":
-                # VACUUM to reclaim storage
-                await db.execute(text("VACUUM"))
-                operations_performed.append("vacuum")
-
-                # ANALYZE to update statistics
-                await db.execute(text("ANALYZE"))
-                operations_performed.append("analyze")
-
-                # REINDEX critical tables
-                critical_tables = [
-                    "vulnerabilities",
-                    "scan_jobs",
-                    "pipelines",
-                    "alerts",
-                ]
-                for table in critical_tables:
-                    try:
-                        await db.execute(text(f"REINDEX TABLE {table}"))
-                        operations_performed.append(f"reindex_{table}")
-                    except Exception as e:
-                        logger.warning(f"Could not reindex table {table}: {str(e)}")
-
-            # SQLite specific operations
-            elif db.bind.dialect.name == "sqlite":
-                await db.execute(text("VACUUM"))
-                operations_performed.append("vacuum")
-
-                await db.execute(text("ANALYZE"))
-                operations_performed.append("analyze")
-
-            await db.commit()
-
-            return {
-                "status": "completed",
-                "operations_performed": operations_performed,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-
-    except Exception as e:
-        logger.error(f"Error performing database maintenance: {str(e)}")
-        raise
-
-
-async def _cleanup_docker_resources_async() -> Dict[str, Any]:
-    """Clean up unused Docker resources."""
-    try:
-        import subprocess
-
-        results = {
-            "status": "completed",
-            "containers_removed": 0,
-            "images_removed": 0,
-            "volumes_removed": 0,
-            "space_reclaimed": 0,
-        }
-
-        # Remove stopped containers older than 24 hours
-        try:
-            cmd = ["docker", "container", "prune", "-f", "--filter", "until=24h"]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-
-            if result.returncode == 0:
-                # Parse output to get count
-                output_lines = result.stdout.split("\n")
-                for line in output_lines:
-                    if "Total reclaimed space" in line:
-                        # Extract space information
-                        pass
-                results["containers_removed"] = _parse_docker_prune_output(
-                    result.stdout, "containers"
-                )
-
-        except (
-            subprocess.TimeoutExpired,
-            subprocess.CalledProcessError,
-            FileNotFoundError,
-        ) as e:
-            logger.warning(f"Could not prune Docker containers: {str(e)}")
-
-        # Remove unused images
-        try:
-            cmd = ["docker", "image", "prune", "-f", "--filter", "until=24h"]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-
-            if result.returncode == 0:
-                results["images_removed"] = _parse_docker_prune_output(
-                    result.stdout, "images"
-                )
-
-        except (
-            subprocess.TimeoutExpired,
-            subprocess.CalledProcessError,
-            FileNotFoundError,
-        ) as e:
-            logger.warning(f"Could not prune Docker images: {str(e)}")
-
-        # Remove unused volumes
-        try:
-            cmd = ["docker", "volume", "prune", "-f"]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-
-            if result.returncode == 0:
-                results["volumes_removed"] = _parse_docker_prune_output(
-                    result.stdout, "volumes"
-                )
-
-        except (
-            subprocess.TimeoutExpired,
-            subprocess.CalledProcessError,
-            FileNotFoundError,
-        ) as e:
-            logger.warning(f"Could not prune Docker volumes: {str(e)}")
-
-        return results
-
-    except Exception as e:
-        logger.error(f"Error cleaning up Docker resources: {str(e)}")
-        raise
-
-
 async def _rotate_encryption_keys_async() -> Dict[str, Any]:
     """Rotate encryption keys."""
     try:
@@ -1763,11 +1330,7 @@ async def _cleanup_cache_data_async(max_age_hours: int) -> Dict[str, Any]:
         # Clean up file-based cache
         cache_directories = [
             "/tmp/secureops_cache" if os.path.exists("/tmp/secureops_cache") else None,
-            (
-                settings.CACHE_DIR
-                if hasattr(settings, "CACHE_DIR") and settings.CACHE_DIR
-                else None
-            ),
+            (settings.CACHE_DIR if hasattr(settings, "CACHE_DIR") and settings.CACHE_DIR else None),
         ]
 
         cache_directories = [d for d in cache_directories if d and os.path.exists(d)]
@@ -1783,9 +1346,7 @@ async def _cleanup_cache_data_async(max_age_hours: int) -> Dict[str, Any]:
                             entries_deleted += 1
 
                     except (OSError, IOError) as e:
-                        logger.warning(
-                            f"Could not delete cache file {file_path}: {str(e)}"
-                        )
+                        logger.warning(f"Could not delete cache file {file_path}: {str(e)}")
 
         # Clean up Redis cache if configured
         if hasattr(settings, "REDIS_URL") and settings.REDIS_URL:
@@ -1891,34 +1452,21 @@ async def _create_vulnerability_archive(vulnerability: Vulnerability) -> Dict[st
         "cvss_score": vulnerability.cvss_score,
         "remediation": vulnerability.remediation,
         "status": vulnerability.status,
-        "created_at": (
-            vulnerability.created_at.isoformat() if vulnerability.created_at else None
-        ),
-        "resolved_at": (
-            vulnerability.resolved_at.isoformat() if vulnerability.resolved_at else None
-        ),
+        "created_at": (vulnerability.created_at.isoformat() if vulnerability.created_at else None),
+        "resolved_at": (vulnerability.resolved_at.isoformat() if vulnerability.resolved_at else None),
         "archived_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
-async def _store_vulnerability_archive(
-    vulnerability_id: int, archive_data: Dict[str, Any]
-):
+async def _store_vulnerability_archive(vulnerability_id: int, archive_data: Dict[str, Any]):
     """Store vulnerability archive data."""
     try:
         # Create archive directory if it doesn't exist
-        archive_dir = Path(
-            settings.ARCHIVE_DIR
-            if hasattr(settings, "ARCHIVE_DIR")
-            else "/tmp/secureops_archive"
-        )
+        archive_dir = Path(settings.ARCHIVE_DIR if hasattr(settings, "ARCHIVE_DIR") else "/tmp/secureops_archive")
         archive_dir.mkdir(parents=True, exist_ok=True)
 
         # Store as JSON file
-        archive_file = (
-            archive_dir
-            / f"vulnerability_{vulnerability_id}_{datetime.now().strftime('%Y%m%d')}.json"
-        )
+        archive_file = archive_dir / f"vulnerability_{vulnerability_id}_{datetime.now().strftime('%Y%m%d')}.json"
 
         import json
 

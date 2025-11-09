@@ -52,9 +52,7 @@ app.conf.update(
     # Timing
     result_expires=getattr(settings, "celery_result_expires", 7200),  # 2 hours
     task_time_limit=getattr(settings, "celery_task_time_limit", 3600),  # 1 hour
-    task_soft_time_limit=getattr(
-        settings, "celery_task_soft_time_limit", 3300
-    ),  # 55 minutes
+    task_soft_time_limit=getattr(settings, "celery_task_soft_time_limit", 3300),  # 55 minutes
     # Timezone
     timezone="UTC",
     enable_utc=True,
@@ -141,9 +139,7 @@ app.Task = SecureOpsTask
 @after_setup_logger.connect
 def setup_loggers(logger, *args, **kwargs):
     """Configure logging for Celery."""
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # Add handler for file logging if configured
     if hasattr(settings, "celery_log_file"):
@@ -169,8 +165,7 @@ def autodiscover_tasks():
     """Auto-discover tasks from all modules."""
     try:
         # Import all task modules to register them
-        from . import (alert_tasks, background_tasks, cleanup_tasks,
-                       monitor_tasks, scan_tasks, workflow_executor)
+        from . import alert_tasks, background_tasks, cleanup_tasks, monitor_tasks, scan_tasks, workflow_executor
 
         logger.info("All task modules imported successfully")
 

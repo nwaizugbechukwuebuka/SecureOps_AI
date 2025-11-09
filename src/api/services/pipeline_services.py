@@ -115,9 +115,7 @@ class PipelineService:
             logger.error(f"Error getting user pipelines: {str(e)}")
             raise
 
-    async def get_pipeline_by_id(
-        self, pipeline_id: int, user_id: int
-    ) -> Optional[Dict[str, Any]]:
+    async def get_pipeline_by_id(self, pipeline_id: int, user_id: int) -> Optional[Dict[str, Any]]:
         """
         Get specific pipeline by ID with detailed information.
 
@@ -129,9 +127,7 @@ class PipelineService:
             Pipeline data with vulnerability counts or None if not found
         """
         try:
-            query = select(Pipeline).where(
-                and_(Pipeline.id == pipeline_id, Pipeline.owner_id == user_id)
-            )
+            query = select(Pipeline).where(and_(Pipeline.id == pipeline_id, Pipeline.owner_id == user_id))
 
             result = await self.db.execute(query)
             pipeline = result.scalar_one_or_none()
@@ -165,9 +161,7 @@ class PipelineService:
             logger.error(f"Error getting pipeline {pipeline_id}: {str(e)}")
             raise
 
-    async def get_pipeline_by_repo(
-        self, repository_url: str, user_id: int
-    ) -> Optional[Pipeline]:
+    async def get_pipeline_by_repo(self, repository_url: str, user_id: int) -> Optional[Pipeline]:
         """
         Get pipeline by repository URL for duplicate checking.
 
@@ -306,16 +300,12 @@ class PipelineService:
             )
 
             # Update pipeline
-            query = (
-                update(Pipeline).where(Pipeline.id == pipeline_id).values(update_data)
-            )
+            query = update(Pipeline).where(Pipeline.id == pipeline_id).values(update_data)
             await self.db.execute(query)
             await self.db.commit()
 
             # Return updated pipeline
-            return await self.get_pipeline_by_id(
-                pipeline_id, None
-            )  # Skip user check for internal use
+            return await self.get_pipeline_by_id(pipeline_id, None)  # Skip user check for internal use
 
         except Exception as e:
             await self.db.rollback()
@@ -331,9 +321,7 @@ class PipelineService:
         """
         try:
             # Delete associated vulnerabilities
-            vuln_query = delete(Vulnerability).where(
-                Vulnerability.pipeline_id == pipeline_id
-            )
+            vuln_query = delete(Vulnerability).where(Vulnerability.pipeline_id == pipeline_id)
             await self.db.execute(vuln_query)
 
             # Delete associated scan jobs
@@ -447,9 +435,7 @@ class PipelineService:
             for job in scan_jobs:
                 duration_seconds = None
                 if job.started_at and job.completed_at:
-                    duration_seconds = int(
-                        (job.completed_at - job.started_at).total_seconds()
-                    )
+                    duration_seconds = int((job.completed_at - job.started_at).total_seconds())
 
                 # Get vulnerability counts for this scan
                 vuln_counts = await self._get_scan_vulnerability_counts(job.id)
@@ -540,9 +526,7 @@ class PipelineService:
             List of vulnerability data
         """
         try:
-            query = select(Vulnerability).where(
-                Vulnerability.pipeline_id == pipeline_id
-            )
+            query = select(Vulnerability).where(Vulnerability.pipeline_id == pipeline_id)
 
             if severity:
                 query = query.where(Vulnerability.severity == severity)
@@ -551,9 +535,7 @@ class PipelineService:
             if scanner_type:
                 query = query.where(Vulnerability.scanner_type == scanner_type)
 
-            query = (
-                query.order_by(desc(Vulnerability.created_at)).offset(skip).limit(limit)
-            )
+            query = query.order_by(desc(Vulnerability.created_at)).offset(skip).limit(limit)
 
             result = await self.db.execute(query)
             vulnerabilities = result.scalars().all()
@@ -589,9 +571,7 @@ class PipelineService:
             logger.error(f"Error getting pipeline vulnerabilities: {str(e)}")
             raise
 
-    async def process_webhook_event(
-        self, pipeline_id: int, event_type: str, event_data: Dict[str, Any]
-    ) -> bool:
+    async def process_webhook_event(self, pipeline_id: int, event_type: str, event_data: Dict[str, Any]) -> bool:
         """
         Process CI/CD webhook event and trigger scan if needed.
 
@@ -617,9 +597,7 @@ class PipelineService:
             webhook_config = config.get("webhook", {})
 
             # Default trigger events
-            trigger_events = webhook_config.get(
-                "trigger_events", ["push", "pull_request", "merge"]
-            )
+            trigger_events = webhook_config.get("trigger_events", ["push", "pull_request", "merge"])
 
             if event_type not in trigger_events:
                 return False
@@ -632,9 +610,7 @@ class PipelineService:
                 return False
 
             # Create and queue scan job
-            scanner_types = webhook_config.get(
-                "scanners", ["dependency", "secret", "container"]
-            )
+            scanner_types = webhook_config.get("scanners", ["dependency", "secret", "container"])
 
             scan_job = await self.create_scan_job(
                 pipeline_id=pipeline_id,
@@ -645,9 +621,7 @@ class PipelineService:
             )
 
             # Queue scan execution (would be handled by Celery in production)
-            logger.info(
-                f"Queued scan job {scan_job.id} from webhook event {event_type}"
-            )
+            logger.info(f"Queued scan job {scan_job.id} from webhook event {event_type}")
 
             return True
 
@@ -655,9 +629,7 @@ class PipelineService:
             logger.error(f"Error processing webhook event: {str(e)}")
             raise
 
-    async def get_pipeline_statistics(
-        self, pipeline_id: int, days_back: int = 30
-    ) -> Dict[str, Any]:
+    async def get_pipeline_statistics(self, pipeline_id: int, days_back: int = 30) -> Dict[str, Any]:
         """
         Get comprehensive pipeline statistics and metrics.
 
@@ -722,10 +694,7 @@ class PipelineService:
 
             # Get latest scan info
             latest_scan_query = (
-                select(ScanJob)
-                .where(ScanJob.pipeline_id == pipeline_id)
-                .order_by(desc(ScanJob.created_at))
-                .limit(1)
+                select(ScanJob).where(ScanJob.pipeline_id == pipeline_id).order_by(desc(ScanJob.created_at)).limit(1)
             )
 
             latest_scan_result = await self.db.execute(latest_scan_query)
@@ -738,18 +707,12 @@ class PipelineService:
                     "total_scans": total_scans,
                     "scans_by_status": scan_stats,
                     "avg_scans_per_day": round(avg_scans_per_day, 2),
-                    "success_rate": (
-                        (scan_stats.get("completed", 0) / total_scans * 100)
-                        if total_scans > 0
-                        else 0
-                    ),
+                    "success_rate": ((scan_stats.get("completed", 0) / total_scans * 100) if total_scans > 0 else 0),
                 },
                 "vulnerability_statistics": {
                     "current_counts": current_vulns,
                     "trends_by_day": vuln_trends,
-                    "total_found_period": sum(
-                        sum(day_data.values()) for day_data in vuln_trends.values()
-                    ),
+                    "total_found_period": sum(sum(day_data.values()) for day_data in vuln_trends.values()),
                 },
                 "latest_scan": {
                     "id": latest_scan.id if latest_scan else None,
@@ -854,9 +817,7 @@ class PipelineService:
         """Get vulnerability counts by severity for pipeline."""
         try:
             query = (
-                select(
-                    func.count(Vulnerability.id).label("count"), Vulnerability.severity
-                )
+                select(func.count(Vulnerability.id).label("count"), Vulnerability.severity)
                 .where(
                     and_(
                         Vulnerability.pipeline_id == pipeline_id,
@@ -885,9 +846,7 @@ class PipelineService:
         """Get vulnerability counts for specific scan job."""
         try:
             query = (
-                select(
-                    func.count(Vulnerability.id).label("count"), Vulnerability.severity
-                )
+                select(func.count(Vulnerability.id).label("count"), Vulnerability.severity)
                 .where(Vulnerability.scan_job_id == scan_job_id)
                 .group_by(Vulnerability.severity)
             )

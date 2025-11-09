@@ -29,8 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertStatus, AlertType
-from src.api.models.pipeline import (Pipeline, PipelineRun, PipelineStatus,
-                                     ScanJob, ScanJobStatus)
+from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, ScanJob, ScanJobStatus
 from src.api.models.vulnerability import Vulnerability
 from src.api.services.alert_service import AlertService, NotificationChannel
 from src.api.utils.config import get_settings
@@ -43,9 +42,7 @@ logger = get_task_logger(__name__)
 # Configuration constants
 MONITORING_INTERVAL_SECONDS = getattr(settings, "MONITORING_INTERVAL_SECONDS", 300)
 HEALTH_CHECK_INTERVAL_SECONDS = getattr(settings, "HEALTH_CHECK_INTERVAL_SECONDS", 60)
-SYSTEM_METRICS_INTERVAL_SECONDS = getattr(
-    settings, "SYSTEM_METRICS_INTERVAL_SECONDS", 120
-)
+SYSTEM_METRICS_INTERVAL_SECONDS = getattr(settings, "SYSTEM_METRICS_INTERVAL_SECONDS", 120)
 CRITICAL_CPU_THRESHOLD = getattr(settings, "CRITICAL_CPU_THRESHOLD", 90.0)
 CRITICAL_MEMORY_THRESHOLD = getattr(settings, "CRITICAL_MEMORY_THRESHOLD", 85.0)
 CRITICAL_DISK_THRESHOLD = getattr(settings, "CRITICAL_DISK_THRESHOLD", 90.0)
@@ -118,31 +115,20 @@ async def _monitor_pipeline_executions_async(monitoring_id: str) -> Dict[str, An
 
             # Get active pipeline runs
             active_runs_query = select(PipelineRun).where(
-                PipelineRun.status.in_(
-                    [PipelineStatus.RUNNING, PipelineStatus.SCANNING]
-                )
+                PipelineRun.status.in_([PipelineStatus.RUNNING, PipelineStatus.SCANNING])
             )
             active_runs = (await db.execute(active_runs_query)).scalars().all()
             results["pipelines_checked"] = len(active_runs)
 
-            timeout_threshold = datetime.now(timezone.utc) - timedelta(
-                minutes=PIPELINE_TIMEOUT_MINUTES
-            )
+            timeout_threshold = datetime.now(timezone.utc) - timedelta(minutes=PIPELINE_TIMEOUT_MINUTES)
             alert_service = AlertService(db)
 
             for pipeline_run in active_runs:
                 # Check for timeouts
-                if (
-                    pipeline_run.started_at
-                    and pipeline_run.started_at < timeout_threshold
-                ):
-                    await _handle_pipeline_timeout(
-                        db, alert_service, pipeline_run, monitoring_id
-                    )
+                if pipeline_run.started_at and pipeline_run.started_at < timeout_threshold:
+                    await _handle_pipeline_timeout(db, alert_service, pipeline_run, monitoring_id)
                     results["issues_detected"] += 1
-                    results["actions_taken"].append(
-                        f"Handled timeout for pipeline run {pipeline_run.id}"
-                    )
+                    results["actions_taken"].append(f"Handled timeout for pipeline run {pipeline_run.id}")
 
             await db.commit()
 

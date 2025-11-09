@@ -38,23 +38,17 @@ def generate_prometheus_metrics():
 def metrics_endpoint(request: Request):
     """Get application metrics in Prometheus format"""
     accept_header = request.headers.get("Accept", "")
-    
+
     if "text/plain" in accept_header:
         metrics_text = generate_prometheus_metrics()
     else:
         metrics_text = generate_metrics()
-    
-    return PlainTextResponse(
-        content=metrics_text,
-        media_type="text/plain; version=0.0.4"
-    )
+
+    return PlainTextResponse(content=metrics_text, media_type="text/plain; version=0.0.4")
 
 
 @router.get("/metrics/prometheus", tags=["Metrics"])
 def prometheus_metrics():
     """Get metrics in Prometheus format"""
     metrics_text = generate_prometheus_metrics()
-    return PlainTextResponse(
-        content=metrics_text,
-        media_type="text/plain; version=0.0.4"
-    )
+    return PlainTextResponse(content=metrics_text, media_type="text/plain; version=0.0.4")
