@@ -411,6 +411,7 @@ def init_database():
                 )
                 # Set a simple hashed password temporarily
                 import hashlib
+
                 simple_hash = hashlib.sha256("admin123".encode()).hexdigest()
                 admin_user.hashed_password = simple_hash
                 session.add(admin_user)

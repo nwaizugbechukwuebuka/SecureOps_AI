@@ -37,35 +37,44 @@ def configure_logging():
             # Import ELK logging handler only when needed
             import elasticsearch_logging
             from elasticsearch import Elasticsearch
-            
+
             # Create Elasticsearch client and handler
-            es_client = Elasticsearch([{'host': settings.log_forward_elk_host or 'localhost', 'port': settings.log_forward_elk_port or 9200}])
-            
+            es_client = Elasticsearch(
+                [
+                    {
+                        "host": settings.log_forward_elk_host or "localhost",
+                        "port": settings.log_forward_elk_port or 9200,
+                    }
+                ]
+            )
+
             class ElasticsearchHandler(logging.Handler):
                 def __init__(self, es_client):
                     super().__init__()
                     self.es_client = es_client
-                    
+
                 def emit(self, record):
                     try:
                         log_entry = {
-                            'timestamp': record.created,
-                            'level': record.levelname,
-                            'message': self.format(record),
-                            'logger': record.name,
-                            'module': record.module,
-                            'function': record.funcName,
-                            'line': record.lineno
+                            "timestamp": record.created,
+                            "level": record.levelname,
+                            "message": self.format(record),
+                            "logger": record.name,
+                            "module": record.module,
+                            "function": record.funcName,
+                            "line": record.lineno,
                         }
                         self.es_client.index(index="secureops-logs", body=log_entry)
                     except Exception:
                         pass
-            
+
             elk_handler = ElasticsearchHandler(es_client)
             handlers.append(elk_handler)
             logging.getLogger().info("ELK/Elasticsearch log forwarding enabled.")
         except ImportError:
-            logging.getLogger().warning("ELK log forwarding requested but elasticsearch-logging package not installed. Install with: pip install elasticsearch-logging")
+            logging.getLogger().warning(
+                "ELK log forwarding requested but elasticsearch-logging package not installed. Install with: pip install elasticsearch-logging"
+            )
         except Exception as e:
             logging.getLogger().error(f"Failed to enable ELK log forwarding: {e}")
 
@@ -75,38 +84,41 @@ def configure_logging():
             # Import datadog only when needed
             from datadog_api_client.v1 import ApiClient, Configuration
             from datadog_api_client.v1.api.logs_api import LogsApi
-            
+
             # Initialize Datadog API client
             configuration = Configuration()
-            configuration.api_key['apiKeyAuth'] = settings.log_forward_datadog_api_key
-            
+            configuration.api_key["apiKeyAuth"] = settings.log_forward_datadog_api_key
+
             # Create a custom handler that sends logs to Datadog via HTTP
             class DatadogHandler(logging.Handler):
                 def __init__(self, api_client):
                     super().__init__()
                     self.logs_api = LogsApi(api_client)
-                    
+
                 def emit(self, record):
                     try:
                         log_entry = {
-                            'ddsource': 'secureops',
-                            'ddtags': f'level:{record.levelname.lower()},source:secureops',
-                            'message': self.format(record),
-                            'level': record.levelname,
-                            'timestamp': record.created * 1000  # Convert to milliseconds
+                            "ddsource": "secureops",
+                            "ddtags": f"level:{record.levelname.lower()},source:secureops",
+                            "message": self.format(record),
+                            "level": record.levelname,
+                            "timestamp": record.created
+                            * 1000,  # Convert to milliseconds
                         }
                         # Send log to Datadog Logs API (this would need proper implementation)
                         pass  # Placeholder for actual Datadog logs submission
                     except Exception:
                         # Silently fail to avoid log loops
                         pass
-            
+
             with ApiClient(configuration) as api_client:
                 dd_handler = DatadogHandler(api_client)
                 handlers.append(dd_handler)
             logging.getLogger().info("Datadog log forwarding enabled.")
         except ImportError:
-            logging.getLogger().warning("Datadog log forwarding requested but datadog-api-client package not installed. Install with: pip install datadog-api-client")
+            logging.getLogger().warning(
+                "Datadog log forwarding requested but datadog-api-client package not installed. Install with: pip install datadog-api-client"
+            )
         except Exception as e:
             logging.getLogger().error(f"Failed to enable Datadog log forwarding: {e}")
 
@@ -114,17 +126,19 @@ def configure_logging():
     if getattr(settings, "log_forward_splunk_enabled", False):
         try:
             import splunk_handler
-            
+
             splunk_handler_instance = splunk_handler.SplunkHandler(
-                host=settings.log_forward_splunk_host or 'localhost',
+                host=settings.log_forward_splunk_host or "localhost",
                 port=settings.log_forward_splunk_port or 8088,
                 token=settings.log_forward_splunk_token,
-                index=settings.log_forward_splunk_index or 'secureops'
+                index=settings.log_forward_splunk_index or "secureops",
             )
             handlers.append(splunk_handler_instance)
             logging.getLogger().info("Splunk log forwarding enabled.")
         except ImportError:
-            logging.getLogger().warning("Splunk log forwarding requested but splunk-handler package not installed. Install with: pip install splunk-handler")
+            logging.getLogger().warning(
+                "Splunk log forwarding requested but splunk-handler package not installed. Install with: pip install splunk-handler"
+            )
         except Exception as e:
             logging.getLogger().error(f"Failed to enable Splunk log forwarding: {e}")
 
@@ -132,8 +146,11 @@ def configure_logging():
     if getattr(settings, "log_forward_syslog_enabled", False):
         try:
             from logging.handlers import SysLogHandler
-            
-            syslog_address = (settings.log_forward_syslog_host or 'localhost', settings.log_forward_syslog_port or 514)
+
+            syslog_address = (
+                settings.log_forward_syslog_host or "localhost",
+                settings.log_forward_syslog_port or 514,
+            )
             syslog_handler = SysLogHandler(address=syslog_address)
             handlers.append(syslog_handler)
             logging.getLogger().info("Syslog log forwarding enabled.")
@@ -179,27 +196,28 @@ def configure_logging():
 
 def setup_sentry():
     """Set up Sentry error tracking if configured."""
-    if hasattr(settings, 'sentry_dsn') and settings.sentry_dsn:
+    if hasattr(settings, "sentry_dsn") and settings.sentry_dsn:
         try:
             import sentry_sdk
             from sentry_sdk.integrations.logging import LoggingIntegration
-            
+
             sentry_logging = LoggingIntegration(
-                level=logging.INFO,
-                event_level=logging.ERROR
+                level=logging.INFO, event_level=logging.ERROR
             )
-            
+
             sentry_sdk.init(
                 dsn=settings.sentry_dsn,
                 integrations=[sentry_logging],
                 traces_sample_rate=0.1,
-                release=getattr(settings, 'app_version', 'unknown'),
+                release=getattr(settings, "app_version", "unknown"),
                 environment=settings.environment,
             )
-            
+
             logging.getLogger().info("Sentry error tracking initialized.")
         except ImportError:
-            logging.getLogger().warning("Sentry DSN configured but sentry-sdk not installed. Install with: pip install sentry-sdk")
+            logging.getLogger().warning(
+                "Sentry DSN configured but sentry-sdk not installed. Install with: pip install sentry-sdk"
+            )
         except Exception as e:
             logging.getLogger().error(f"Failed to initialize Sentry: {e}")
 
@@ -216,7 +234,7 @@ def log_performance(func_name: str, execution_time: float, **kwargs):
         "Performance metric recorded",
         function=func_name,
         execution_time_ms=round(execution_time * 1000, 2),
-        **kwargs
+        **kwargs,
     )
 
 
@@ -228,7 +246,7 @@ def log_security_event(event_type: str, severity: str, details: Dict[str, Any]):
         event_type=event_type,
         severity=severity,
         timestamp=datetime.utcnow().isoformat(),
-        **details
+        **details,
     )
 
 
@@ -241,11 +259,13 @@ def log_audit_trail(action: str, user_id: Optional[str], resource: str, **kwargs
         user_id=user_id,
         resource=resource,
         timestamp=datetime.utcnow().isoformat(),
-        **kwargs
+        **kwargs,
     )
 
 
-def log_api_request(method: str, path: str, status_code: int, response_time: float, **kwargs):
+def log_api_request(
+    method: str, path: str, status_code: int, response_time: float, **kwargs
+):
     """Log API requests with consistent format."""
     logger = get_logger("api")
     logger.info(
@@ -254,13 +274,13 @@ def log_api_request(method: str, path: str, status_code: int, response_time: flo
         path=path,
         status_code=status_code,
         response_time_ms=round(response_time * 1000, 2),
-        **kwargs
+        **kwargs,
     )
 
 
 class SecurityFilter(logging.Filter):
     """Filter to prevent logging of sensitive information."""
-    
+
     SENSITIVE_PATTERNS = [
         "password",
         "token",
@@ -269,16 +289,15 @@ class SecurityFilter(logging.Filter):
         "authorization",
         "x-api-key",
     ]
-    
+
     def filter(self, record):
-        if hasattr(record, 'getMessage'):
+        if hasattr(record, "getMessage"):
             message = record.getMessage()
             for pattern in self.SENSITIVE_PATTERNS:
                 if pattern.lower() in message.lower():
                     # Replace sensitive data with placeholder
                     record.msg = record.msg.replace(
-                        record.args[0] if record.args else "",
-                        "[REDACTED]"
+                        record.args[0] if record.args else "", "[REDACTED]"
                     )
                     break
         return True

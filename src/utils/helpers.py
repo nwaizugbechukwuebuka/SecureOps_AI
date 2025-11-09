@@ -1,13 +1,16 @@
 """
 General helper utilities for SecureOps.
 """
+
 from typing import Any, Dict, List
 import datetime
+
 
 class Helpers:
     """
     Common helper functions for data formatting, time, etc.
     """
+
     @staticmethod
     def current_utc_time() -> str:
         return datetime.datetime.utcnow().isoformat() + "Z"

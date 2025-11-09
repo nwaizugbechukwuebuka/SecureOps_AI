@@ -703,28 +703,28 @@ class ReportService:
 
         # 1. Audit logging
         # Assume audit logs are stored in a table or file (simulate check)
-        evidence['audit_logging'] = True  # TODO: check actual logs
+        evidence["audit_logging"] = True  # TODO: check actual logs
         score += 1
 
         # 2. Access control (RBAC)
         # Check if RBAC is enabled (simulate check)
-        evidence['rbac_enabled'] = True  # TODO: check actual RBAC config
+        evidence["rbac_enabled"] = True  # TODO: check actual RBAC config
         score += 1
 
         # 3. Encryption at rest
         # Check if DB connection string uses SSL (simulate check)
-        evidence['encryption_at_rest'] = True  # TODO: check DB config
+        evidence["encryption_at_rest"] = True  # TODO: check DB config
         score += 1
 
         # 4. Incident response plan (simulate presence)
-        evidence['incident_response_plan'] = True  # TODO: check documentation
+        evidence["incident_response_plan"] = True  # TODO: check documentation
         score += 1
 
         percent = (score / total_controls) * 100
         return {
             "score": round(percent, 1),
             "status": "compliant" if percent >= 80 else "non_compliant",
-            "evidence": evidence
+            "evidence": evidence,
         }
 
     async def _calculate_gdpr_compliance(self, user_id: int) -> Dict[str, Any]:
@@ -735,26 +735,26 @@ class ReportService:
         total_controls = 4
 
         # 1. Data minimization (simulate check)
-        evidence['data_minimization'] = True  # TODO: check data schemas
+        evidence["data_minimization"] = True  # TODO: check data schemas
         score += 1
 
         # 2. User consent (simulate check)
-        evidence['user_consent'] = True  # TODO: check consent records
+        evidence["user_consent"] = True  # TODO: check consent records
         score += 1
 
         # 3. Right to be forgotten (simulate check)
-        evidence['right_to_be_forgotten'] = True  # TODO: check deletion endpoints
+        evidence["right_to_be_forgotten"] = True  # TODO: check deletion endpoints
         score += 1
 
         # 4. Data encryption (simulate check)
-        evidence['data_encryption'] = True  # TODO: check encryption config
+        evidence["data_encryption"] = True  # TODO: check encryption config
         score += 1
 
         percent = (score / total_controls) * 100
         return {
             "score": round(percent, 1),
             "status": "compliant" if percent >= 80 else "non_compliant",
-            "evidence": evidence
+            "evidence": evidence,
         }
 
     async def _calculate_pci_compliance(self, user_id: int) -> Dict[str, Any]:
@@ -765,26 +765,26 @@ class ReportService:
         total_controls = 4
 
         # 1. Network segmentation (simulate check)
-        evidence['network_segmentation'] = True  # TODO: check network policies
+        evidence["network_segmentation"] = True  # TODO: check network policies
         score += 1
 
         # 2. Vulnerability management (simulate check)
-        evidence['vulnerability_management'] = True  # TODO: check scan history
+        evidence["vulnerability_management"] = True  # TODO: check scan history
         score += 1
 
         # 3. Access control (simulate check)
-        evidence['access_control'] = True  # TODO: check user roles
+        evidence["access_control"] = True  # TODO: check user roles
         score += 1
 
         # 4. Encryption (simulate check)
-        evidence['encryption'] = True  # TODO: check encryption config
+        evidence["encryption"] = True  # TODO: check encryption config
         score += 1
 
         percent = (score / total_controls) * 100
         return {
             "score": round(percent, 1),
             "status": "compliant" if percent >= 80 else "non_compliant",
-            "evidence": evidence
+            "evidence": evidence,
         }
 
     async def _is_pipeline_compliant(self, pipeline_id: int) -> bool:

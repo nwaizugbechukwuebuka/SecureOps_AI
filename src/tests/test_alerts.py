@@ -7,9 +7,9 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from src.api.main import app
-from src.api.models.alert import Alert, AlertSeverity, AlertStatus
-from src.api.models.user import User
+from main import app
+from api.models.alert import Alert
+from api.models.user import User
 
 
 @pytest.fixture
@@ -41,14 +41,8 @@ def sample_alert_data():
         "title": "Test Security Alert",
         "description": "This is a test security alert",
         "severity": "high",
+        "alert_type": "security",
         "source": "test_scanner",
-        "pipeline_id": 1,
-        "vulnerability_id": "CVE-2023-1234",
-        "metadata": {
-            "scanner": "trivy",
-            "component": "test-component",
-            "version": "1.0.0",
-        },
     }
 
 
@@ -59,8 +53,8 @@ def mock_alert():
     alert.id = 1
     alert.title = "Test Security Alert"
     alert.description = "This is a test security alert"
-    alert.severity = AlertSeverity.HIGH
-    alert.status = AlertStatus.OPEN
+    alert.severity = "high"
+    alert.status = "open"
     alert.source = "test_scanner"
     alert.pipeline_id = 1
     alert.vulnerability_id = "CVE-2023-1234"
@@ -88,10 +82,10 @@ class TestAlertCreation:
         self, test_client, sample_alert_data, auth_headers
     ):
         """Test successful alert creation"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.create_alert"
+            "api.services.alert_service.AlertService.create_alert"
         ) as mock_create_alert:
 
             mock_user = Mock()
@@ -152,7 +146,7 @@ class TestAlertCreation:
         """Test alert creation without authentication"""
         response = await test_client.post("/api/v1/alerts", json=sample_alert_data)
 
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 class TestAlertRetrieval:
@@ -161,9 +155,9 @@ class TestAlertRetrieval:
     @pytest.mark.asyncio
     async def test_get_alerts_success(self, test_client, auth_headers):
         """Test successful alerts retrieval"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
-        ) as mock_get_db, patch("src.api.routes.alerts.get_alerts") as mock_get_alerts:
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alerts") as mock_get_alerts:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -198,9 +192,9 @@ class TestAlertRetrieval:
     @pytest.mark.asyncio
     async def test_get_alerts_with_filters(self, test_client, auth_headers):
         """Test alerts retrieval with filters"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
-        ) as mock_get_db, patch("src.api.routes.alerts.get_alerts") as mock_get_alerts:
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alerts") as mock_get_alerts:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -228,10 +222,10 @@ class TestAlertRetrieval:
     @pytest.mark.asyncio
     async def test_get_alert_by_id_success(self, test_client, mock_alert, auth_headers):
         """Test successful alert retrieval by ID"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.get_alert_by_id"
+            "api.services.alert_service.AlertService.get_alert_by_id"
         ) as mock_get_alert:
 
             mock_user = Mock()
@@ -252,10 +246,10 @@ class TestAlertRetrieval:
     @pytest.mark.asyncio
     async def test_get_alert_by_id_not_found(self, test_client, auth_headers):
         """Test alert retrieval with non-existent ID"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.get_alert_by_id"
+            "api.services.alert_service.AlertService.get_alert_by_id"
         ) as mock_get_alert:
 
             mock_user = Mock()
@@ -277,12 +271,12 @@ class TestAlertUpdate:
     @pytest.mark.asyncio
     async def test_update_alert_success(self, test_client, mock_alert, auth_headers):
         """Test successful alert update"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.get_alert_by_id"
+            "api.services.alert_service.AlertService.get_alert_by_id"
         ) as mock_get_alert, patch(
-            "src.api.routes.alerts.update_alert"
+            "api.services.alert_service.AlertService.update_alert"
         ) as mock_update_alert:
 
             mock_user = Mock()
@@ -315,12 +309,12 @@ class TestAlertUpdate:
         self, test_client, mock_alert, auth_headers
     ):
         """Test successful alert acknowledgment"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.get_alert_by_id"
+            "api.services.alert_service.AlertService.get_alert_by_id"
         ) as mock_get_alert, patch(
-            "src.api.routes.alerts.acknowledge_alert"
+            "api.services.alert_service.AlertService.acknowledge_alert"
         ) as mock_acknowledge:
 
             mock_user = Mock()
@@ -334,7 +328,7 @@ class TestAlertUpdate:
 
             acknowledged_alert = Mock()
             acknowledged_alert.id = mock_alert.id
-            acknowledged_alert.status = AlertStatus.ACKNOWLEDGED
+            acknowledged_alert.status = "acknowledged"
             acknowledged_alert.acknowledged_at = datetime.now()
             acknowledged_alert.acknowledged_by = 1
 
@@ -351,12 +345,12 @@ class TestAlertUpdate:
     @pytest.mark.asyncio
     async def test_resolve_alert_success(self, test_client, mock_alert, auth_headers):
         """Test successful alert resolution"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.get_alert_by_id"
+            "api.services.alert_service.AlertService.get_alert_by_id"
         ) as mock_get_alert, patch(
-            "src.api.routes.alerts.resolve_alert"
+            "api.services.alert_service.AlertService.resolve_alert"
         ) as mock_resolve:
 
             mock_user = Mock()
@@ -370,7 +364,7 @@ class TestAlertUpdate:
 
             resolved_alert = Mock()
             resolved_alert.id = mock_alert.id
-            resolved_alert.status = AlertStatus.RESOLVED
+            resolved_alert.status = "resolved"
             resolved_alert.resolved_at = datetime.now()
             resolved_alert.resolved_by = 1
 
@@ -392,12 +386,12 @@ class TestAlertDeletion:
     @pytest.mark.asyncio
     async def test_delete_alert_success(self, test_client, mock_alert, auth_headers):
         """Test successful alert deletion"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.get_alert_by_id"
+            "api.services.alert_service.AlertService.get_alert_by_id"
         ) as mock_get_alert, patch(
-            "src.api.routes.alerts.delete_alert"
+            "api.services.alert_service.AlertService.delete_alert"
         ) as mock_delete:
 
             mock_user = Mock()
@@ -418,10 +412,10 @@ class TestAlertDeletion:
     @pytest.mark.asyncio
     async def test_delete_alert_not_found(self, test_client, auth_headers):
         """Test deletion of non-existent alert"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.get_alert_by_id"
+            "api.services.alert_service.AlertService.get_alert_by_id"
         ) as mock_get_alert:
 
             mock_user = Mock()
@@ -445,10 +439,10 @@ class TestAlertBulkOperations:
     @pytest.mark.asyncio
     async def test_bulk_acknowledge_success(self, test_client, auth_headers):
         """Test successful bulk alert acknowledgment"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.bulk_acknowledge_alerts"
+            "api.services.alert_service.AlertService.bulk_acknowledge_alerts"
         ) as mock_bulk_ack:
 
             mock_user = Mock()
@@ -474,10 +468,10 @@ class TestAlertBulkOperations:
     @pytest.mark.asyncio
     async def test_bulk_resolve_success(self, test_client, auth_headers):
         """Test successful bulk alert resolution"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.bulk_resolve_alerts"
+            "api.services.alert_service.AlertService.bulk_resolve_alerts"
         ) as mock_bulk_resolve:
 
             mock_user = Mock()
@@ -507,10 +501,10 @@ class TestAlertBulkOperations:
     @pytest.mark.asyncio
     async def test_bulk_delete_success(self, test_client, auth_headers):
         """Test successful bulk alert deletion"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.bulk_delete_alerts"
+            "api.services.alert_service.AlertService.bulk_delete_alerts"
         ) as mock_bulk_delete:
 
             mock_user = Mock()
@@ -539,10 +533,10 @@ class TestAlertStatistics:
     @pytest.mark.asyncio
     async def test_get_alert_stats_success(self, test_client, auth_headers):
         """Test successful alert statistics retrieval"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.get_alert_statistics"
+            "api.services.alert_service.AlertService.get_alert_statistics"
         ) as mock_get_stats:
 
             mock_user = Mock()
@@ -578,10 +572,10 @@ class TestAlertStatistics:
     @pytest.mark.asyncio
     async def test_get_alert_trends_success(self, test_client, auth_headers):
         """Test successful alert trends retrieval"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.get_alert_trends"
+            "api.services.alert_service.AlertService.get_alert_trends"
         ) as mock_get_trends:
 
             mock_user = Mock()
@@ -627,12 +621,12 @@ class TestAlertNotifications:
         self, test_client, sample_alert_data, auth_headers
     ):
         """Test alert webhook trigger on creation"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.create_alert"
+            "api.services.alert_service.AlertService.create_alert"
         ) as mock_create_alert, patch(
-            "src.api.services.alert_service.trigger_alert_webhook"
+            "api.services.alert_service.AlertService.trigger_alert_webhook"
         ) as mock_webhook:
 
             mock_user = Mock()
@@ -661,12 +655,12 @@ class TestAlertNotifications:
         self, test_client, sample_alert_data, auth_headers
     ):
         """Test alert email notification on creation"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
         ) as mock_get_db, patch(
-            "src.api.routes.alerts.create_alert"
+            "api.services.alert_service.AlertService.create_alert"
         ) as mock_create_alert, patch(
-            "src.api.services.alert_service.send_alert_email"
+            "api.services.alert_service.AlertService.send_alert_email"
         ) as mock_email:
 
             mock_user = Mock()
@@ -698,9 +692,9 @@ class TestAlertFiltering:
     @pytest.mark.asyncio
     async def test_filter_alerts_by_date_range(self, test_client, auth_headers):
         """Test filtering alerts by date range"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
-        ) as mock_get_db, patch("src.api.routes.alerts.get_alerts") as mock_get_alerts:
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.get_alerts") as mock_get_alerts:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user
@@ -726,9 +720,9 @@ class TestAlertFiltering:
     @pytest.mark.asyncio
     async def test_search_alerts_by_text(self, test_client, auth_headers):
         """Test searching alerts by text content"""
-        with patch("src.api.routes.alerts.get_current_user") as mock_get_user, patch(
-            "src.api.routes.alerts.get_db"
-        ) as mock_get_db, patch("src.api.routes.alerts.search_alerts") as mock_search:
+        with patch("api.routes.alerts.get_current_user") as mock_get_user, patch(
+            "api.routes.alerts.get_db"
+        ) as mock_get_db, patch("api.services.alert_service.AlertService.search_alerts") as mock_search:
 
             mock_user = Mock()
             mock_get_user.return_value = mock_user

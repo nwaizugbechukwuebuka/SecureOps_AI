@@ -93,6 +93,13 @@ class ScannerConfig:
     enable_dependency_scanning: bool = True
     enable_secret_scanning: bool = True
     enable_policy_checking: bool = True
+    
+    # Scanner API Keys and Configuration
+    safety_api_key: Optional[str] = None
+    bandit_config_file: Optional[str] = None
+    semgrep_rules_path: Optional[str] = None
+    trivy_cache_dir: Optional[str] = None
+    snyk_token: Optional[str] = None
 
 
 @dataclass
@@ -209,7 +216,15 @@ class Settings:
             timeout_seconds=int(os.getenv("SCANNER_TIMEOUT", "3600")),
             max_concurrent_scans=int(os.getenv("MAX_CONCURRENT_SCANS", "3")),
             temp_directory=os.getenv("SCANNER_TEMP_DIR", "/tmp/secureops_scans"),
+            safety_api_key=os.getenv("SAFETY_API_KEY"),
+            bandit_config_file=os.getenv("BANDIT_CONFIG_FILE"),
+            semgrep_rules_path=os.getenv("SEMGREP_RULES_PATH"),
+            trivy_cache_dir=os.getenv("TRIVY_CACHE_DIR"),
+            snyk_token=os.getenv("SNYK_TOKEN"),
         )
+
+        # Add scanner API key as direct attribute for backward compatibility
+        self.SAFETY_API_KEY = os.getenv("SAFETY_API_KEY")
 
         # Integration configuration
         self.integration = IntegrationConfig(

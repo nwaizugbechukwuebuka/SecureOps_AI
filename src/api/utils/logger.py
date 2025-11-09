@@ -16,13 +16,34 @@ def configure_logging():
         level=getattr(logging, settings.log_level.upper(), logging.INFO),
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[logging.StreamHandler(sys.stdout)],
-        force=True
+        force=True,
     )
 
 
 def get_logger(name: str) -> logging.Logger:
     """Get a configured logger instance."""
     return logging.getLogger(name)
+
+
+class AuditLogger:
+    """Simple audit logger for tracking security events."""
+    
+    def __init__(self):
+        self.logger = get_logger("audit")
+    
+    def info(self, *args, **kwargs):
+        self.logger.info(*args, **kwargs)
+    
+    def warning(self, *args, **kwargs):
+        self.logger.warning(*args, **kwargs)
+    
+    def login_attempt(self, username: str, success: bool, ip_address: Optional[str] = None, failure_reason: Optional[str] = None):
+        """Log a login attempt."""
+        result = "SUCCESS" if success else "FAILED"
+        message = f"Login attempt for {username}: {result} from {ip_address or 'unknown IP'}"
+        if not success and failure_reason:
+            message += f" - Reason: {failure_reason}"
+        self.logger.info(f"login_attempt: {message}")
 
 
 def setup_correlation_id_middleware(app):

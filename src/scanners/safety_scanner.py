@@ -1,7 +1,8 @@
 import subprocess
 import json
 from typing import List, Optional
-from src.scanners.common import ScanResult, Vulnerability
+from .common import ScanResult, Vulnerability
+
 
 class SafetyScanner:
     """Scanner for Python dependencies using the safety CLI tool."""
@@ -12,12 +13,21 @@ class SafetyScanner:
     async def scan_requirements(self, requirements_file: str) -> ScanResult:
         try:
             result = subprocess.run(
-                [self.safety_path, "check", "--full-report", "--json", "-r", requirements_file],
+                [
+                    self.safety_path,
+                    "check",
+                    "--full-report",
+                    "--json",
+                    "-r",
+                    requirements_file,
+                ],
                 capture_output=True,
                 text=True,
             )
             if result.returncode != 0 and not result.stdout:
-                return ScanResult(success=False, error=result.stderr or "Safety scan failed")
+                return ScanResult(
+                    success=False, error=result.stderr or "Safety scan failed"
+                )
             vulns = []
             try:
                 data = json.loads(result.stdout)
@@ -28,11 +38,13 @@ class SafetyScanner:
                             package=item.get("package", ""),
                             version=item.get("vulnerable", ""),
                             severity="HIGH",  # Safety does not provide severity, default to HIGH
-                            description=item.get("advisory", "")
+                            description=item.get("advisory", ""),
                         )
                     )
             except Exception as e:
-                return ScanResult(success=False, error=f"Failed to parse safety output: {e}")
+                return ScanResult(
+                    success=False, error=f"Failed to parse safety output: {e}"
+                )
             return ScanResult(success=True, vulnerabilities=vulns)
         except Exception as e:
             return ScanResult(success=False, error=str(e))

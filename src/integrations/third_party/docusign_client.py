@@ -1,7 +1,9 @@
 """
 Async DocuSign client for SecureOps (example stub).
 """
+
 from typing import Any, Dict
+
 
 class DocuSignClient:
     def __init__(self, api_key: str):

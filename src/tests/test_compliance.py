@@ -6,8 +6,8 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from src.api.main import app
-from src.api.models.user import User
+from main import app
+from api.models.user import User
 
 
 @pytest.fixture

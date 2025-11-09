@@ -1,18 +1,23 @@
 """
 Workflow executor for SecureOps tasks and pipelines.
 """
+
 from typing import Any, Dict, Callable, List
 import logging
 import asyncio
+
 
 class WorkflowExecutor:
     """
     Executes a sequence of tasks (sync or async) as a workflow pipeline.
     """
+
     def __init__(self):
         self.logger = logging.getLogger("WorkflowExecutor")
 
-    async def execute(self, tasks: List[Callable[..., Any]], *args, **kwargs) -> List[Any]:
+    async def execute(
+        self, tasks: List[Callable[..., Any]], *args, **kwargs
+    ) -> List[Any]:
         """
         Execute a list of tasks in sequence. Supports async and sync callables.
         """

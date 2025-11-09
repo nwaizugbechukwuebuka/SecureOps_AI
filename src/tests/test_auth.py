@@ -7,9 +7,9 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from src.api.main import app
-from src.api.models.user import User
-from src.api.utils.config import get_settings
+from main import app
+from api.models.user import User
+from api.utils.config import get_settings
 
 settings = get_settings()
 

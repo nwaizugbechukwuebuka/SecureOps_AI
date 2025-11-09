@@ -21,7 +21,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.database import AsyncSessionLocal
 from src.api.models.alert import Alert, AlertSeverity, AlertType
 from src.api.models.pipeline import Pipeline, PipelineRun, PipelineStatus, PlatformType
-from src.api.models.vulnerability import SeverityLevel, Vulnerability, VulnerabilityStatus
+from src.api.models.vulnerability import (
+    SeverityLevel,
+    Vulnerability,
+    VulnerabilityStatus,
+)
 from src.api.utils.config import get_settings
 from src.api.utils.logger import get_logger
 
@@ -731,7 +735,9 @@ class GitLabCIIntegration:
             # - Container scanning reports
             # - Dependency scanning reports
             # - DAST reports
-            raise NotImplementedError("Artifact parsing for common formats is not yet implemented.")
+            raise NotImplementedError(
+                "Artifact parsing for common formats is not yet implemented."
+            )
 
         except Exception as e:
             logger.error(f"Failed to process security artifacts: {e}")

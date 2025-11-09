@@ -1,16 +1,18 @@
-
 """
 Async AWS S3 client for SecureOps.
 """
+
 import aioboto3
 import aiofiles
 from config.settings import settings
 from typing import Any, Dict
 
+
 class S3Client:
     """
     Async S3 client for file upload and download.
     """
+
     def __init__(self):
         self.bucket = settings.s3_bucket
         self.region = settings.aws_region

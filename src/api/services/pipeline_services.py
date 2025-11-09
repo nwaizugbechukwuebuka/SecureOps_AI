@@ -298,7 +298,11 @@ class PipelineService:
             # Audit log: configuration change
             logger.info(
                 f"Pipeline config update: pipeline_id={pipeline_id}, changes={list(update_data.keys())}",
-                extra={"event_type": "audit.configuration_changed", "pipeline_id": pipeline_id, "fields_changed": list(update_data.keys())}
+                extra={
+                    "event_type": "audit.configuration_changed",
+                    "pipeline_id": pipeline_id,
+                    "fields_changed": list(update_data.keys()),
+                },
             )
 
             # Update pipeline
@@ -349,7 +353,10 @@ class PipelineService:
             # Audit log: pipeline deletion
             logger.info(
                 f"Pipeline deleted: pipeline_id={pipeline_id}",
-                extra={"event_type": "audit.pipeline_deleted", "pipeline_id": pipeline_id}
+                extra={
+                    "event_type": "audit.pipeline_deleted",
+                    "pipeline_id": pipeline_id,
+                },
             )
 
         except Exception as e:
@@ -488,13 +495,17 @@ class PipelineService:
                         "error_message": job.error_message,
                         "results_summary": {
                             **results_summary,
-                            "ai_threat_summary": {
-                                "count": ai_threat_count,
-                                "critical": ai_critical_count,
-                                "high": ai_high_count,
-                                "medium": ai_medium_count,
-                                "low": ai_low_count,
-                            } if ai_threat_count > 0 else {},
+                            "ai_threat_summary": (
+                                {
+                                    "count": ai_threat_count,
+                                    "critical": ai_critical_count,
+                                    "high": ai_high_count,
+                                    "medium": ai_medium_count,
+                                    "low": ai_low_count,
+                                }
+                                if ai_threat_count > 0
+                                else {}
+                            ),
                         },
                     }
                 )

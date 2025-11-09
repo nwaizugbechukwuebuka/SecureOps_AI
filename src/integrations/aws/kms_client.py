@@ -1,15 +1,17 @@
-
 """
 Async AWS KMS client for SecureOps.
 """
+
 import aiobotocore.session
 from config.settings import settings
 from typing import Any, Dict
+
 
 class KMSClient:
     """
     Async AWS KMS client for encryption and decryption.
     """
+
     def __init__(self):
         self.session = aiobotocore.session.get_session()
         self.region = settings.aws_region

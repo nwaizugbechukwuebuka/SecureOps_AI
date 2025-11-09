@@ -1,8 +1,8 @@
-
 """
 AI-powered threat detection logic for SecureOps.
 Upgraded for enterprise: supports ML model loading, anomaly detection, contextual risk scoring, and real-time alerting integration.
 """
+
 from typing import Any, Dict, List, Optional
 import logging
 import numpy as np
@@ -12,11 +12,13 @@ try:
 except ImportError:
     IForest = None  # PyOD not installed; fallback to dummy logic
 
+
 class ThreatDetectionEngine:
     """
     AI-based threat detection engine for analyzing security events and logs.
     Supports anomaly detection, contextual risk scoring, and real-time alerting.
     """
+
     def __init__(self, model: Optional[Any] = None):
         self.logger = logging.getLogger("ThreatDetectionEngine")
         if model is not None:
@@ -40,7 +42,9 @@ class ThreatDetectionEngine:
         ]
         return features
 
-    def contextual_risk_score(self, event: Dict[str, Any], anomaly_score: float) -> float:
+    def contextual_risk_score(
+        self, event: Dict[str, Any], anomaly_score: float
+    ) -> float:
         """
         Calculate contextual risk score based on event and anomaly score.
         """
@@ -51,7 +55,9 @@ class ThreatDetectionEngine:
             base += 1.5
         return min(base, 10.0)
 
-    async def analyze_events(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def analyze_events(
+        self, events: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
         Analyze a list of security events and return detected threats with risk scores.
         """
@@ -75,20 +81,27 @@ class ThreatDetectionEngine:
             outliers = self.model.predict(X_np)
         else:
             # Fallback: mark as anomaly if 'suspicious' in description
-            anomaly_scores = [1.0 if "suspicious" in e.get("description", "").lower() else 0.1 for e in events]
+            anomaly_scores = [
+                1.0 if "suspicious" in e.get("description", "").lower() else 0.1
+                for e in events
+            ]
             outliers = [int(score > 0.8) for score in anomaly_scores]
 
         # Build threat objects
         for idx, event in enumerate(events):
             if outliers[idx]:
                 risk = self.contextual_risk_score(event, anomaly_scores[idx])
-                threats.append({
-                    "event": event,
-                    "threat_level": "critical" if risk > 7 else "high" if risk > 4 else "medium",
-                    "risk_score": round(risk, 2),
-                    "anomaly_score": float(anomaly_scores[idx]),
-                    "details": "AI/ML anomaly detected. Contextual risk scoring applied."
-                })
+                threats.append(
+                    {
+                        "event": event,
+                        "threat_level": (
+                            "critical" if risk > 7 else "high" if risk > 4 else "medium"
+                        ),
+                        "risk_score": round(risk, 2),
+                        "anomaly_score": float(anomaly_scores[idx]),
+                        "details": "AI/ML anomaly detected. Contextual risk scoring applied.",
+                    }
+                )
         return threats
 
     def train_on_historical(self, historical_events: List[Dict[str, Any]]):

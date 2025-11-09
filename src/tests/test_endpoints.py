@@ -6,13 +6,8 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-<<<<<<< HEAD
-from secureops_ai.src.api.main import app
-from secureops_ai.src.api.models.user import User
-=======
-from src.api.main import app
-from src.api.models.user import User
->>>>>>> 7c10f27ecb7c8b1a33ad81e0ccc85bf68459bdc3
+from main import app
+from api.models.user import User
 
 
 @pytest.fixture

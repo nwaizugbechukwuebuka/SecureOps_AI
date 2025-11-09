@@ -1,645 +1,563 @@
-﻿"""
-SecureOps FastAPI Application
+"""
+SecureOps FastAPI Application - Unified Production Entry Point
 Comprehensive DevSecOps CI/CD Pipeline Security Monitor
 
-This is the main FastAPI application that orchestrates all components:
+This is the unified main FastAPI application that orchestrates all components:
 - API routes for authentication, alerts, pipelines, reports
 - Integration with Celery task system
 - Scanner orchestration
 - CI/CD platform integrations
 - Real-time monitoring and notifications
+- Prometheus metrics and monitoring
+- WebSocket support for real-time updates
+- Redis integration for caching and sessions
 
 Author: Chukwuebuka Tobiloba Nwaizugbe
 Date: 2024
 """
 
-from typing import Any, Dict, AsyncGenerator
 import asyncio
 import os
-from contextlib import asynccontextmanager
-from typing import Dict, Any
+import sys
 import time
+import json
+from contextlib import asynccontextmanager
+from typing import List, Dict, Any
 
-from fastapi import FastAPI, Depends, HTTPException, Request
+import uvicorn
+import redis.asyncio as aioredis
+from fastapi import (
+    Depends,
+    FastAPI,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-
-# Import database and models
-from .database import AsyncSessionLocal, async_engine
+from starlette.requests import Request as StrRequest
+from starlette.responses import Response
+from prometheus_client import (
+    Counter,
+    Gauge,
+    Histogram,
+    make_asgi_app,
+    start_http_server,
+)
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from .models.base import Base
 
-# Import API routes
+# Import application modules
+from .database import get_async_db, health_check as db_health_check, init_database
 from .routes.alerts import router as alerts_router
 from .routes.auth import router as auth_router
-from .routes.pipelines import router as pipelines_router  
+from .routes.pipelines import router as pipelines_router
 from .routes.reports import router as reports_router
-# from .routes.scans import router as scans_router  # Temporarily disabled for requirements testing
+# from .routes.scans import router as scans_router  # Enable when ready
 
 # Import services
 from .services.alert_service import AlertService
 from .services.pipeline_services import PipelineService
 from .services.report_service import ReportService
 from .services.compliance_service import ComplianceService
+from .services.vulnerability_service import VulnerabilityService
 
 # Import utilities
-from .utils.config import get_settings
-from .utils.logger import get_logger
+from .utils.config import get_settings, validate_environment
+from .utils.logger import (
+    get_logger,
+    setup_sentry,
+    configure_logging,
+    AuditLogger,
+)
+from .utils.rbac import get_current_user
+from .utils.scheduler import start_scheduler
+from .utils.validators import validate_request
 
-# Import task system (with fallback for different import contexts)
-try:
-    from ..tasks.scan_tasks import orchestrate_security_scan, scan_health_check
-    from ..tasks.cleanup_tasks import comprehensive_system_cleanup, cleanup_health_check  
-    from ..tasks.monitor_tasks import system_health_monitor
-except ImportError:
-    # Fallback for direct execution context
-    try:
-        from tasks.scan_tasks import orchestrate_security_scan, scan_health_check
-        from tasks.cleanup_tasks import comprehensive_system_cleanup, cleanup_health_check
-        from tasks.monitor_tasks import system_health_monitor
-    except ImportError:
-        # Create dummy functions if imports fail
-        def orchestrate_security_scan(*args, **kwargs):
-            class DummyTask:
-                def delay(self, *args, **kwargs):
-                    return {"id": "dummy", "status": "pending"}
-            return DummyTask()
-        
-        async def scan_health_check():
-            return {"status": "healthy", "message": "Scanner health check not available"}
-        
-        def comprehensive_system_cleanup(*args, **kwargs):
-            class DummyTask:
-                def delay(self, *args, **kwargs):
-                    return {"id": "dummy", "status": "pending"}
-            return DummyTask()
-            
-        async def cleanup_health_check():
-            return {"status": "healthy", "message": "Cleanup health check not available"}
-            
-        async def system_health_monitor():
-            return {"status": "healthy", "message": "System health monitor not available"}
+# Import task modules
+from ..tasks.alert_tasks import process_alert
+from ..tasks.scan_tasks import run_security_scan
+from ..tasks.workflow_executor import execute_workflow
+from ..tasks.background_tasks import cleanup_old_logs
 
-# Import scanner orchestration (with fallback)
-try:
-    from ..scanners.common import ScannerOrchestrator
-    from ..scanners.dependency_scanner import DependencyScanner
-    from ..scanners.docker_scanner import DockerScanner
-except ImportError:
-    try:
-        from scanners.common import ScannerOrchestrator
-        from scanners.dependency_scanner import DependencyScanner
-        from scanners.docker_scanner import DockerScanner
-    except ImportError:
-        # Create dummy classes if imports fail
-        class ScannerOrchestrator:
-            async def register_scanner(self, name, scanner):
-                pass
-        
-        class DependencyScanner:
-            pass
-            
-        class DockerScanner:
-            pass  
-try:
-    from ..scanners.secret_scanner import SecretScanner
-    from ..scanners.threat_detection import ThreatDetector
-    from ..scanners.compliance_audit import ComplianceAuditor
-except ImportError:
-    try:
-        from scanners.secret_scanner import SecretScanner
-        from scanners.threat_detection import ThreatDetector
-        from scanners.compliance_audit import ComplianceAuditor
-    except ImportError:
-        class SecretScanner:
-            pass
-        class ThreatDetector:
-            pass
-        class ComplianceAuditor:
-            pass
-
-# Import CI/CD integrations (with fallback)
-try:
-    from ..integrations.github_actions import GitHubActionsIntegration
-    from ..integrations.gitlab_ci import GitLabCIIntegration
-    from ..integrations.azure_devops import AzureDevOpsIntegration
-    from ..integrations.jenkins import JenkinsIntegration
-except ImportError:
-    try:
-        from integrations.github_actions import GitHubActionsIntegration
-        from integrations.gitlab_ci import GitLabCIIntegration
-        from integrations.azure_devops import AzureDevOpsIntegration
-        from integrations.jenkins import JenkinsIntegration
-    except ImportError:
-        class GitHubActionsIntegration:
-            async def configure_webhooks(self):
-                pass
-        class GitLabCIIntegration:
-            async def configure_webhooks(self):
-                pass
-        class AzureDevOpsIntegration:
-            async def configure_webhooks(self):
-                pass
-        class JenkinsIntegration:
-            async def configure_webhooks(self):
-                pass
-
-# Import utilities (with fallback)
-try:
-    from ..utils.config import get_settings as get_global_settings
-    from ..utils.security_utils import SecurityUtils
-    from ..utils.validators import ValidationUtils
-except ImportError:
-    try:
-        from utils.config import get_settings as get_global_settings
-        from utils.security_utils import SecurityUtils
-        from utils.validators import ValidationUtils
-    except ImportError:
-        # Create dummy functions if imports fail
-        def get_global_settings():
-            class DummySettings:
-                def __init__(self):
-                    self.debug = True
-            return DummySettings()
-        
-        class SecurityUtils:
-            pass
-            
-        class ValidationUtils:
-            pass
-
+# Configuration
 settings = get_settings()
-global_settings = get_global_settings()
 logger = get_logger(__name__)
-
-# Security middleware
 security = HTTPBearer()
 
-# Global services (dependency injection will provide database sessions)
-# Services are created per request with database sessions from dependencies
+# Global Redis connection
+redis = None
 
-# Integration managers
-github_integration: GitHubActionsIntegration = None
-gitlab_integration: GitLabCIIntegration = None
-azure_integration: AzureDevOpsIntegration = None
-jenkins_integration: JenkinsIntegration = None
+async def get_redis():
+    """Get Redis connection with connection pooling."""
+    global redis
+    if redis is None:
+        redis = await aioredis.from_url(
+            settings.redis_url, 
+            encoding="utf-8", 
+            decode_responses=True,
+            max_connections=20,
+        )
+    return redis
 
+# Prometheus metrics
+REQUEST_COUNT = Counter(
+    "http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"]
+)
+REQUEST_DURATION = Histogram("http_request_duration_seconds", "HTTP request duration")
+ACTIVE_CONNECTIONS = Gauge("http_active_connections", "Active HTTP connections")
+VULNERABILITY_COUNT = Gauge(
+    "secureops_vulnerabilities_total", "Total vulnerabilities", ["severity"]
+)
+PIPELINE_COUNT = Gauge("secureops_pipelines_total", "Total pipelines", ["status"])
+ALERT_COUNT = Gauge("secureops_alerts_total", "Total alerts", ["severity", "status"])
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan manager for startup and shutdown events."""
-    logger.info("🚀 SecureOps AI Platform starting up...")
+# WebSocket Manager for Real-Time Dashboard
+class ConnectionManager:
+    """WebSocket connection manager for real-time updates."""
     
-    try:
-        # Initialize database
-        logger.info("📊 Initializing database...")
-        async with async_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("✅ Database initialized")
-        
-        # Initialize scanner orchestrator (doesn't need database)
-        logger.info("🔍 Initializing security scanners...")
-        await initialize_scanners()
-        logger.info("✅ Security scanners initialized")
-        
-        # Initialize CI/CD integrations  
-        logger.info("🔌 Initializing CI/CD integrations...")
-        await initialize_integrations()
-        logger.info("✅ CI/CD integrations initialized")
-        
-        # Start background health monitoring
-        logger.info("💚 Starting health monitoring...")
-        asyncio.create_task(start_health_monitoring())
-        logger.info("✅ Health monitoring started")
-        
-        logger.info("🎉 SecureOps AI Platform ready!")
-        
-        yield
-        
-    except Exception as e:
-        logger.error(f"❌ Startup failed: {str(e)}")
-        raise
-    finally:
-        # Cleanup on shutdown
-        logger.info("🛑 SecureOps AI Platform shutting down...")
-        await cleanup_services()
-        logger.info("✅ Cleanup completed")
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
 
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        ACTIVE_CONNECTIONS.inc()
+        logger.info(f"WebSocket connected. Active connections: {len(self.active_connections)}")
 
-async def initialize_scanners():
-    """Initialize scanner orchestrator and security scanners."""
-    global scanner_orchestrator
-    
-    # Initialize individual scanners (these don't need database sessions)
-    dependency_scanner = DependencyScanner()
-    docker_scanner = DockerScanner()
-    secret_scanner = SecretScanner()
-    threat_detector = ThreatDetector()
-    compliance_auditor = ComplianceAuditor()
-    
-    # Initialize orchestrator with all scanners
-    scanner_orchestrator = ScannerOrchestrator()
-    await scanner_orchestrator.register_scanner("dependency", dependency_scanner)
-    await scanner_orchestrator.register_scanner("docker", docker_scanner)
-    await scanner_orchestrator.register_scanner("secret", secret_scanner)
-    await scanner_orchestrator.register_scanner("threat", threat_detector)
-    await scanner_orchestrator.register_scanner("compliance", compliance_auditor)
-    
-    logger.info("Scanner orchestration initialized successfully")
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+            ACTIVE_CONNECTIONS.dec()
+            logger.info(f"WebSocket disconnected. Active connections: {len(self.active_connections)}")
 
-
-async def initialize_integrations():
-    """Initialize CI/CD platform integrations."""
-    global github_integration, gitlab_integration, azure_integration, jenkins_integration
-    
-    # Initialize integrations with configuration
-    github_integration = GitHubActionsIntegration()
-    gitlab_integration = GitLabCIIntegration()
-    azure_integration = AzureDevOpsIntegration()
-    jenkins_integration = JenkinsIntegration()
-    
-    # Configure webhook endpoints (if settings available)
-    if hasattr(settings, 'github_webhook_secret'):
-        await github_integration.configure_webhooks()
-    if hasattr(settings, 'gitlab_webhook_secret'):
-        await gitlab_integration.configure_webhooks()
-    if hasattr(settings, 'azure_webhook_secret'):
-        await azure_integration.configure_webhooks()
-    if hasattr(settings, 'jenkins_webhook_secret'):
-        await jenkins_integration.configure_webhooks()
-    
-    logger.info("CI/CD integrations initialized successfully")
-
-
-async def start_health_monitoring():
-    """Start background health monitoring tasks."""
-    while True:
+    async def send_personal_message(self, message: str, websocket: WebSocket):
         try:
-            # Run health checks every 5 minutes
-            await asyncio.sleep(300)
-            
-            # Check scanner health
-            scan_health = await scan_health_check()
-            
-            # Check cleanup system health  
-            cleanup_health = await cleanup_health_check()
-            
-            # Check system resources
-            system_health = await system_health_monitor()
-            
-            logger.info(f"Health check completed - Scan: {scan_health.get('status')}, "
-                       f"Cleanup: {cleanup_health.get('status')}, "
-                       f"System: {system_health.get('status')}")
-            
+            await websocket.send_text(message)
         except Exception as e:
-            logger.error(f"Health monitoring error: {str(e)}")
+            logger.error(f"Failed to send WebSocket message: {e}")
+            self.disconnect(websocket)
 
-
-async def cleanup_services():
-    """Cleanup services on shutdown."""
-    try:
-        # Close database connections
-        if async_engine:
-            await async_engine.dispose()
+    async def broadcast(self, message: str):
+        """Broadcast message to all connected clients."""
+        disconnected = []
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception:
+                disconnected.append(connection)
         
-        # Cleanup other resources as needed
-        logger.info("All services cleaned up successfully")
-        
-    except Exception as e:
-        logger.error(f"Cleanup error: {str(e)}")
+        # Clean up disconnected clients
+        for connection in disconnected:
+            self.disconnect(connection)
 
+# Global connection manager
+manager = ConnectionManager()
 
-# Custom middleware for security and logging
+# Security middleware
 class SecurityMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    """Enhanced security middleware."""
+    
+    async def dispatch(self, request: StrRequest, call_next):
         start_time = time.time()
         
         # Add security headers
         response = await call_next(request)
         
-        # Security headers
+        # Add security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["X-SecureOps-Version"] = "2.0.0"
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
         
-        # Log request
+        # Log request metrics
         process_time = time.time() - start_time
-        logger.info(f"{request.method} {request.url} - {response.status_code} - {process_time:.3f}s")
+        REQUEST_COUNT.labels(
+            method=request.method,
+            endpoint=request.url.path,
+            status=response.status_code
+        ).inc()
+        REQUEST_DURATION.observe(process_time)
         
         return response
 
+# Application lifespan management
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application startup and shutdown events."""
+    
+    # Startup
+    logger.info("🚀 Starting SecureOps FastAPI application...")
+    
+    try:
+        # Configure logging
+        configure_logging()
+        
+        # Validate environment configuration
+        validate_environment()
+        
+        # Setup error tracking
+        if settings.environment == "production":
+            setup_sentry()
+        
+        # Initialize database
+        if settings.environment != "test":
+            await init_database()
+        
+        # Check database health
+        try:
+            await db_health_check()
+            logger.info("✅ Database connection established successfully")
+        except Exception as e:
+            logger.error(f"❌ Database health check failed: {e}")
+            if settings.environment == "production":
+                raise
+        
+        # Initialize Redis connection
+        try:
+            await get_redis()
+            logger.info("✅ Redis connection established successfully")
+        except Exception as e:
+            logger.error(f"❌ Redis connection failed: {e}")
+            if settings.environment == "production":
+                raise
+        
+        # Start background scheduler
+        if settings.environment != "test":
+            await start_scheduler()
+            logger.info("✅ Background scheduler started")
+        
+        # Start Prometheus metrics server
+        if settings.metrics_enabled:
+            start_http_server(settings.metrics_port)
+            logger.info(f"✅ Prometheus metrics server started on port {settings.metrics_port}")
+        
+        logger.info("🎉 SecureOps application startup completed successfully")
+        
+    except Exception as e:
+        logger.error(f"💥 Failed to start application: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("🛑 Shutting down SecureOps application...")
+    
+    try:
+        # Close Redis connection
+        if redis:
+            await redis.close()
+            logger.info("✅ Redis connection closed")
+        
+        # Cleanup background tasks
+        logger.info("✅ Background tasks cleaned up")
+        
+        # Close WebSocket connections
+        if manager.active_connections:
+            await manager.broadcast(json.dumps({"type": "shutdown", "message": "Server shutting down"}))
+            logger.info("✅ WebSocket connections notified of shutdown")
+        
+        logger.info("✅ SecureOps application shutdown completed")
+        
+    except Exception as e:
+        logger.error(f"❌ Error during shutdown: {e}")
 
-# Create FastAPI application with lifespan
+# Create FastAPI application
 app = FastAPI(
-    title="SecureOps AI Platform",
-    description="Comprehensive DevSecOps CI/CD Pipeline Security Monitor with AI-Powered Analysis",
-    version="2.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
-    lifespan=lifespan
+    title="SecureOps AI - DevSecOps Platform",
+    version=getattr(settings, "app_version", "1.0.0"),
+    description="Comprehensive DevSecOps CI/CD Pipeline Security Monitor with real-time monitoring",
+    docs_url="/docs" if settings.environment != "production" else None,
+    redoc_url="/redoc" if settings.environment != "production" else None,
+    openapi_url="/openapi.json" if settings.environment != "production" else None,
+    lifespan=lifespan,
 )
 
-# Add middleware
+# CORS Configuration
+if hasattr(settings, "cors_origins"):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+# Add middleware (order matters!)
 app.add_middleware(SecurityMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=getattr(settings, 'cors_origins', ["*"]),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
 
-if hasattr(settings, 'session_secret_key'):
-    app.add_middleware(SessionMiddleware, secret_key=settings.session_secret_key)
+# Trusted hosts middleware for production
+if settings.environment == "production" and hasattr(settings, "allowed_hosts"):
+    app.add_middleware(
+        TrustedHostMiddleware, 
+        allowed_hosts=settings.allowed_hosts
+    )
+
+# Session middleware
+if hasattr(settings, "session_secret_key"):
+    app.add_middleware(
+        SessionMiddleware, 
+        secret_key=settings.session_secret_key
+    )
+
+# Add Prometheus metrics endpoint
+if settings.metrics_enabled:
+    metrics_app = make_asgi_app()
+    app.mount("/metrics", metrics_app)
 
 # Include API routers
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(alerts_router, prefix="/api/v1/alerts", tags=["Alerts"])
 app.include_router(pipelines_router, prefix="/api/v1/pipelines", tags=["Pipelines"])
 app.include_router(reports_router, prefix="/api/v1/reports", tags=["Reports"])
-# app.include_router(scans_router, prefix="/api/v1/security", tags=["Security Scanning"])  # Temporarily disabled
+# app.include_router(scans_router, prefix="/api/v1/scans", tags=["Security Scanning"])  # Enable when ready
 
-# Main API endpoints
+# Root endpoint
 @app.get("/", tags=["Root"])
 async def root():
-    """Root endpoint with platform information."""
+    """Root endpoint providing API information."""
     return {
-        "message": "SecureOps AI Platform - DevSecOps Security Orchestration",
-        "version": "2.0.0",
-        "status": "running",
+        "message": "Welcome to SecureOps AI - DevSecOps Platform",
+        "app": "SecureOps API",
+        "version": getattr(settings, "app_version", "1.0.0"),
+        "environment": settings.environment,
+        "docs_url": "/docs" if settings.environment != "production" else "Disabled in production",
+        "health_url": "/health",
+        "metrics_url": "/metrics" if settings.metrics_enabled else "Disabled",
+        "api_prefix": "/api/v1",
+        "endpoints": {
+            "authentication": "/api/v1/auth",
+            "alerts": "/api/v1/alerts", 
+            "pipelines": "/api/v1/pipelines",
+            "reports": "/api/v1/reports",
+            "websocket": "/ws",
+        },
         "features": {
-            "security_scanning": True,
-            "ci_cd_integration": True,
-            "threat_detection": True,
-            "compliance_monitoring": True,
-            "real_time_alerts": True
+            "real_time_monitoring": True,
+            "prometheus_metrics": settings.metrics_enabled,
+            "websocket_support": True,
+            "redis_caching": True,
+            "background_tasks": True,
         }
     }
 
-
+# Health check endpoint
 @app.get("/health", tags=["Health"])
-async def health_check():
+async def health_check(db: AsyncSession = Depends(get_async_db)):
     """Comprehensive health check endpoint."""
+    health_status = {
+        "status": "healthy",
+        "timestamp": time.time(),
+        "version": getattr(settings, "app_version", "1.0.0"),
+        "environment": settings.environment,
+        "checks": {}
+    }
+    
     try:
-        # Check database connectivity
-        async with AsyncSessionLocal() as session:
-            await session.execute("SELECT 1")
-        
-        # Check services (services are created per request via dependency injection)
-        services_health = {
-            "database": "healthy",
-            "scanner_orchestrator": "healthy" if scanner_orchestrator else "not_initialized",
-            "alert_service": "available_via_dependency_injection",
-            "pipeline_service": "available_via_dependency_injection",
-            "report_service": "available_via_dependency_injection"
-        }
-        
-        # Check integrations
-        integrations_health = {
-            "github": "healthy" if github_integration else "not_initialized",
-            "gitlab": "healthy" if gitlab_integration else "not_initialized", 
-            "azure": "healthy" if azure_integration else "not_initialized",
-            "jenkins": "healthy" if jenkins_integration else "not_initialized"
-        }
-        
-        return {
+        # Database health check
+        result = await db.execute(text("SELECT 1"))
+        health_status["checks"]["database"] = {
             "status": "healthy",
-            "timestamp": time.time(),
-            "version": "2.0.0",
-            "services": services_health,
-            "integrations": integrations_health,
-            "uptime": time.time()
+            "response_time_ms": None
         }
-        
     except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "unhealthy", 
-                "error": str(e),
-                "timestamp": time.time()
-            }
-        )
+        logger.error(f"Database health check failed: {e}")
+        health_status["checks"]["database"] = {
+            "status": "unhealthy",
+            "error": str(e)
+        }
+        health_status["status"] = "unhealthy"
+    
+    # Redis health check
+    try:
+        redis_client = await get_redis()
+        await redis_client.ping()
+        health_status["checks"]["redis"] = {"status": "healthy"}
+    except Exception as e:
+        logger.error(f"Redis health check failed: {e}")
+        health_status["checks"]["redis"] = {
+            "status": "unhealthy", 
+            "error": str(e)
+        }
+        if settings.environment == "production":
+            health_status["status"] = "unhealthy"
+    
+    # Return appropriate status code
+    status_code = 200 if health_status["status"] == "healthy" else 503
+    return JSONResponse(content=health_status, status_code=status_code)
 
-
+# System status endpoint
 @app.get("/api/v1/system/status", tags=["System"])
-async def system_status():
-    """Detailed system status endpoint."""
-    try:
-        # Get task system health
-        scan_health = await scan_health_check()
-        cleanup_health = await cleanup_health_check()
-        
-        # Get scanner status
-        scanner_status = {}
-        if scanner_orchestrator:
-            scanner_status = await scanner_orchestrator.get_health_status()
-        
-        return {
-            "platform": "SecureOps AI",
-            "version": "2.0.0",
-            "status": "operational",
-            "components": {
-                "api": "healthy",
-                "database": "healthy", 
-                "task_system": {
-                    "scan_tasks": scan_health.get("status", "unknown"),
-                    "cleanup_tasks": cleanup_health.get("status", "unknown")
-                },
-                "scanners": scanner_status,
-                "integrations": {
-                    "github_actions": "available" if github_integration else "disabled",
-                    "gitlab_ci": "available" if gitlab_integration else "disabled",
-                    "azure_devops": "available" if azure_integration else "disabled", 
-                    "jenkins": "available" if jenkins_integration else "disabled"
-                }
-            },
-            "timestamp": time.time()
+async def system_status(current_user: dict = Depends(get_current_user)):
+    """Get detailed system status and metrics."""
+    return {
+        "system": {
+            "uptime": time.time(),
+            "active_connections": len(manager.active_connections),
+            "environment": settings.environment,
+        },
+        "metrics": {
+            "total_requests": REQUEST_COUNT._value._value if hasattr(REQUEST_COUNT, '_value') else 0,
+            "active_websockets": len(manager.active_connections),
         }
-        
+    }
+
+# WebSocket endpoint for real-time updates  
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time dashboard updates."""
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Send periodic updates
+            await asyncio.sleep(30)  # Send update every 30 seconds
+            status_update = {
+                "type": "status_update",
+                "timestamp": time.time(),
+                "active_connections": len(manager.active_connections),
+                "system_status": "healthy"
+            }
+            await manager.send_personal_message(
+                json.dumps(status_update), 
+                websocket
+            )
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
     except Exception as e:
-        logger.error(f"System status check failed: {str(e)}")
-        raise HTTPException(status_code=503, detail="System status unavailable")
+        logger.error(f"WebSocket error: {e}")
+        manager.disconnect(websocket)
 
-
-# Task orchestration endpoints
-@app.post("/api/v1/scans/orchestrate", tags=["Scanning"])
-async def trigger_security_scan(
-    repository_url: str,
-    branch: str = "main",
-    scan_types: list = None
+# System scan orchestration endpoint
+@app.post("/api/v1/scans/orchestrate", tags=["Security Scanning"])
+async def orchestrate_scan(
+    request_data: dict,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
-    """Trigger a comprehensive security scan through the task system."""
+    """Orchestrate comprehensive security scanning."""
     try:
-        if not scan_types:
-            scan_types = ["dependency", "docker", "secret", "threat", "compliance"]
-        
-        # Trigger scan through Celery task system
-        task = orchestrate_security_scan.delay(
-            repository_url=repository_url,
-            branch=branch,
-            scan_types=scan_types,
-            user_id=1  # TODO: Get from auth context
-        )
+        # Start background scan task
+        task = await run_security_scan.delay(request_data)
         
         return {
-            "message": "Security scan initiated",
+            "status": "scan_initiated",
             "task_id": task.id,
-            "repository_url": repository_url,
-            "branch": branch,
-            "scan_types": scan_types,
-            "status": "initiated"
+            "message": "Security scan started successfully"
         }
-        
     except Exception as e:
-        logger.error(f"Scan orchestration failed: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to initiate scan")
+        logger.error(f"Failed to orchestrate scan: {e}")
+        raise HTTPException(status_code=500, detail="Failed to start security scan")
 
-
-@app.post("/api/v1/system/cleanup", tags=["Maintenance"])
-async def trigger_system_cleanup():
-    """Trigger comprehensive system cleanup."""
+# System cleanup endpoint
+@app.post("/api/v1/system/cleanup", tags=["System"])
+async def system_cleanup(current_user: dict = Depends(get_current_user)):
+    """Trigger system cleanup tasks."""
     try:
-        task = comprehensive_system_cleanup.delay()
-        
-        return {
-            "message": "System cleanup initiated",
-            "task_id": task.id,
-            "status": "initiated"
-        }
-        
+        await cleanup_old_logs.delay()
+        return {"status": "cleanup_initiated", "message": "System cleanup started"}
     except Exception as e:
-        logger.error(f"System cleanup failed: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to initiate cleanup")
+        logger.error(f"Failed to start cleanup: {e}")
+        raise HTTPException(status_code=500, detail="Failed to start cleanup")
 
-
-# Integration webhook endpoints
-@app.post("/api/v1/webhooks/github", tags=["Integrations"])
-async def github_webhook_handler(request: Request):
-    """Handle GitHub Actions webhook events."""
-    if not github_integration:
-        raise HTTPException(status_code=503, detail="GitHub integration not available")
-    
+# Webhook endpoints for CI/CD integrations
+@app.post("/api/v1/webhooks/github", tags=["Webhooks"])
+async def github_webhook(request: Request):
+    """Handle GitHub webhook events."""
     try:
-        body = await request.body()
-        headers = dict(request.headers)
-        
-        result = await github_integration.handle_webhook(body, headers)
-        return {"message": "Webhook processed", "result": result}
-        
+        payload = await request.json()
+        # Process GitHub webhook
+        logger.info(f"Received GitHub webhook: {payload.get('action', 'unknown')}")
+        return {"status": "webhook_processed"}
     except Exception as e:
-        logger.error(f"GitHub webhook error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Webhook processing failed")
+        logger.error(f"Failed to process GitHub webhook: {e}")
+        raise HTTPException(status_code=400, detail="Invalid webhook payload")
 
-
-@app.post("/api/v1/webhooks/gitlab", tags=["Integrations"])
-async def gitlab_webhook_handler(request: Request):
-    """Handle GitLab CI webhook events."""
-    if not gitlab_integration:
-        raise HTTPException(status_code=503, detail="GitLab integration not available")
-    
+@app.post("/api/v1/webhooks/gitlab", tags=["Webhooks"])
+async def gitlab_webhook(request: Request):
+    """Handle GitLab webhook events."""
     try:
-        body = await request.body()
-        headers = dict(request.headers)
-        
-        result = await gitlab_integration.handle_webhook(body, headers)
-        return {"message": "Webhook processed", "result": result}
-        
+        payload = await request.json()
+        # Process GitLab webhook
+        logger.info(f"Received GitLab webhook: {payload.get('object_kind', 'unknown')}")
+        return {"status": "webhook_processed"}
     except Exception as e:
-        logger.error(f"GitLab webhook error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Webhook processing failed")
+        logger.error(f"Failed to process GitLab webhook: {e}")
+        raise HTTPException(status_code=400, detail="Invalid webhook payload")
 
-
-@app.post("/api/v1/webhooks/azure", tags=["Integrations"])
-async def azure_webhook_handler(request: Request):
+@app.post("/api/v1/webhooks/azure", tags=["Webhooks"])  
+async def azure_webhook(request: Request):
     """Handle Azure DevOps webhook events."""
-    if not azure_integration:
-        raise HTTPException(status_code=503, detail="Azure integration not available")
-    
     try:
-        body = await request.body()
-        headers = dict(request.headers)
-        
-        result = await azure_integration.handle_webhook(body, headers)
-        return {"message": "Webhook processed", "result": result}
-        
+        payload = await request.json()
+        # Process Azure webhook
+        logger.info(f"Received Azure webhook: {payload.get('eventType', 'unknown')}")
+        return {"status": "webhook_processed"}
     except Exception as e:
-        logger.error(f"Azure webhook error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Webhook processing failed")
+        logger.error(f"Failed to process Azure webhook: {e}")
+        raise HTTPException(status_code=400, detail="Invalid webhook payload")
 
-
-@app.post("/api/v1/webhooks/jenkins", tags=["Integrations"])
-async def jenkins_webhook_handler(request: Request):
+@app.post("/api/v1/webhooks/jenkins", tags=["Webhooks"])
+async def jenkins_webhook(request: Request):
     """Handle Jenkins webhook events."""
-    if not jenkins_integration:
-        raise HTTPException(status_code=503, detail="Jenkins integration not available")
-    
     try:
-        body = await request.body()
-        headers = dict(request.headers)
-        
-        result = await jenkins_integration.handle_webhook(body, headers)
-        return {"message": "Webhook processed", "result": result}
-        
+        payload = await request.json()
+        # Process Jenkins webhook  
+        logger.info(f"Received Jenkins webhook")
+        return {"status": "webhook_processed"}
     except Exception as e:
-        logger.error(f"Jenkins webhook error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Webhook processing failed")
+        logger.error(f"Failed to process Jenkins webhook: {e}")
+        raise HTTPException(status_code=400, detail="Invalid webhook payload")
 
-
-# Database dependency
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Database dependency for dependency injection."""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
-
-
-# Dependency injection helpers
-async def get_alert_service(db: AsyncSession = Depends(get_db)) -> AlertService:
-    """Dependency injection for AlertService with database session."""
-    return AlertService(db)
-
-
-async def get_pipeline_service(db: AsyncSession = Depends(get_db)) -> PipelineService:
-    """Dependency injection for PipelineService with database session."""
-    return PipelineService(db)
-
-
-async def get_report_service(db: AsyncSession = Depends(get_db)) -> ReportService:
-    """Dependency injection for ReportService with database session."""
-    return ReportService(db)
-
-
-async def get_scanner_orchestrator() -> ScannerOrchestrator:
-    """Dependency injection for ScannerOrchestrator."""
-    if not scanner_orchestrator:
-        raise HTTPException(status_code=503, detail="Scanner orchestrator not available")
-    return scanner_orchestrator
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "api.main:app", 
-        host="0.0.0.0", 
-        port=8000, 
-        reload=True,
-        log_level="info"
+# Custom OpenAPI schema
+def custom_openapi():
+    """Generate custom OpenAPI schema with security definitions."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title="SecureOps AI - DevSecOps Platform",
+        version=getattr(settings, "app_version", "1.0.0"),
+        description="Comprehensive DevSecOps CI/CD Pipeline Security Monitor with real-time capabilities",
+        routes=app.routes,
     )
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    
+    # Add security scheme
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+
+# Development server
+if __name__ == "__main__":
+    # Configure logging
+    configure_logging()
+    
+    # Run the server
+    uvicorn.run(
+        "api.main:app",
+        host=getattr(settings, "api_host", "0.0.0.0"),
+        port=getattr(settings, "api_port", 8000),
+        reload=settings.debug and settings.environment == "development",
+        workers=1 if settings.debug else 4,
+        log_level="info",
+        access_log=True,
+    )

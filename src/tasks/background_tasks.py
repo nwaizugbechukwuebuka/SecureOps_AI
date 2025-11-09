@@ -1,14 +1,17 @@
 """
 Background task utilities for SecureOps (FastAPI/Celery compatible).
 """
+
 from typing import Callable, Any
 import logging
 import asyncio
+
 
 class BackgroundTaskManager:
     """
     Manages background tasks for FastAPI or Celery integration.
     """
+
     def __init__(self, app=None):
         self.logger = logging.getLogger("BackgroundTaskManager")
         self.app = app
@@ -23,6 +26,7 @@ class BackgroundTaskManager:
         else:
             loop = asyncio.get_event_loop()
             loop.run_in_executor(None, func, *args, **kwargs)
+
 
 # Example for FastAPI integration:
 # from fastapi import BackgroundTasks

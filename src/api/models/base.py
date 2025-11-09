@@ -7,8 +7,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime, Integer, String, func
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import declarative_mixin
+from sqlalchemy.orm import declarative_base, declarative_mixin
 
 Base = declarative_base()
 
