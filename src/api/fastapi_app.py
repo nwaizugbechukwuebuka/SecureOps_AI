@@ -4,23 +4,23 @@ Features added:
 - Optional Sentry initialization via SENTRY_DSN env var
 - Prometheus metrics middleware and /metrics endpoint when available
 """
+
 from __future__ import annotations
 
 import logging
 import os
 import time
-from typing import Callable, Any
+from typing import Any, Callable
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from ai_engine.model_loader import load_or_train_model
 from ai_engine.llm_security_agent import LLMSecurityAgent
-from security.secrets_manager import SecretsManager
-
+from ai_engine.model_loader import load_or_train_model
+from api.routes.ai_routes import router as ai_router
 from api.routes.healthcheck import router as health_router
 from api.routes.scan_routes import router as scan_router
-from api.routes.ai_routes import router as ai_router
+from security.secrets_manager import SecretsManager
 
 LOG = logging.getLogger("secureops.api")
 
@@ -45,9 +45,9 @@ def _init_sentry(dsn: str | None) -> None:
 def _prometheus_middleware_factory(app: FastAPI) -> Callable[..., Any]:
     try:
         from prometheus_client import (
+            CONTENT_TYPE_LATEST,
             Counter,
             Histogram,
-            CONTENT_TYPE_LATEST,
             generate_latest,
         )
     except Exception:  # pragma: no cover - optional dependency
@@ -142,4 +142,3 @@ def create_app() -> FastAPI:
 
 
 __all__ = ["create_app"]
-

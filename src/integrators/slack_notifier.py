@@ -1,4 +1,6 @@
 """Slack notification stub."""
+
+
 class SlackNotifier:
     def __init__(self, dry_run: bool = True):
         self.dry_run = dry_run
@@ -10,16 +12,16 @@ class SlackNotifier:
             # Integrate with Slack API here
             pass
 
+
 __all__ = ["SlackNotifier"]
 """Dry-run capable Slack notifier (mocked).
 
 In dry-run mode it logs messages instead of sending them.
 """
 
-import logging
 import asyncio
+import logging
 from typing import Optional
-
 
 LOG = logging.getLogger("secureops.integrators.slack")
 
@@ -39,4 +41,3 @@ class SlackNotifier:
 
 
 __all__ = ["SlackNotifier"]
-

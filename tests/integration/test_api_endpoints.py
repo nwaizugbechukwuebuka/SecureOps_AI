@@ -4,7 +4,7 @@ from pathlib import Path
 # Ensure src is importable when running tests from repository root
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from security.crypto import generate_hmac_token
+from src.security.crypto import generate_hmac_token
 
 
 def test_health_endpoint(client):
@@ -58,9 +58,9 @@ def test_scan_run_endpoint_client_side(monkeypatch, client):
             out.append({"id": d.get("record", {}).get("id", "local"), "score": 0.1})
         return out
 
-    import pipelines.ingest_pipeline as ingest
-    import pipelines.detection_pipeline as detection
-    import pipelines.response_pipeline as response
+    from src.pipelines import ingest_pipeline as ingest
+    from src.pipelines import detection_pipeline as detection
+    from src.pipelines import response_pipeline as response
 
     monkeypatch.setattr(ingest, "run_ingest", fake_ingest)
     monkeypatch.setattr(detection, "run_detection", fake_detection)

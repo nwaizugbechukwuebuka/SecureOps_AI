@@ -1,8 +1,11 @@
 """Detection pipeline: embeddings -> anomaly detection -> threat classification."""
+
 from typing import AsyncIterator, Dict, Iterable
-from ai_engine.log_embeddings import embed_text
+
 from ai_engine.anomaly_detection import detect_anomaly
+from ai_engine.log_embeddings import embed_text
 from ai_engine.threat_classifier import ThreatClassifier
+
 
 async def run_detection(records: Iterable[Dict], classifier: ThreatClassifier = None) -> AsyncIterator[Dict]:
     classifier = classifier or ThreatClassifier()
@@ -21,13 +24,15 @@ async def run_detection(records: Iterable[Dict], classifier: ThreatClassifier = 
 """
 Detection pipeline: embeddings -> anomaly detection -> threat classification.
 """
-from typing import AsyncIterator, Dict, Iterable
-from ai_engine.log_embeddings import embed_text
-from ai_engine.anomaly_detection import detect_anomaly
-from ai_engine.threat_classifier import ThreatClassifier
 import logging
+from typing import AsyncIterator, Dict, Iterable
+
+from ai_engine.anomaly_detection import detect_anomaly
+from ai_engine.log_embeddings import embed_text
+from ai_engine.threat_classifier import ThreatClassifier
 
 LOG = logging.getLogger("secureops.pipelines.detection")
+
 
 async def run_detection(records: Iterable[Dict], classifier: ThreatClassifier = None) -> AsyncIterator[Dict]:
     classifier = classifier or ThreatClassifier()
@@ -45,4 +50,3 @@ async def run_detection(records: Iterable[Dict], classifier: ThreatClassifier = 
 
 
 __all__ = ["run_detection"]
-

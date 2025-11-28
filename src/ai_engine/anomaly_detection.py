@@ -1,29 +1,11 @@
 from __future__ import annotations
-"""Simple anomaly detection using z-score."""
-from typing import List
-from collections import namedtuple
 
-AnomalyResult = namedtuple("AnomalyResult", ["score", "is_anomaly"])
-
-def zscore_anomaly_score(values: List[float]) -> float:
-    mean = sum(values) / len(values)
-    std = (sum((x - mean) ** 2 for x in values) / len(values)) ** 0.5
-    return max(abs(x - mean) / std if std else 0.0 for x in values)
-
-def detect_anomaly(values: List[float], threshold: float = 2.0) -> AnomalyResult:
-    score = zscore_anomaly_score(values)
-    return AnomalyResult(score=score, is_anomaly=score > threshold)
-
-__all__ = ["zscore_anomaly_score", "detect_anomaly", "AnomalyResult"]
-"""Explainable z-score based anomaly detection for numeric vectors.
-"""
-
+"""Explainable z-score based anomaly detection for numeric vectors."""
 import logging
 from dataclasses import dataclass
-from typing import Dict, Any, Sequence
+from typing import Any, Dict, Sequence
 
 import numpy as np
-
 
 LOG = logging.getLogger("secureops.ai.anomaly")
 
@@ -35,7 +17,7 @@ class AnomalyResult:
     explanation: Dict[str, float]
 
 
-def zscore_anomaly_score(values: Sequence[Any][float]) -> float:
+def zscore_anomaly_score(values: Sequence[Any]) -> float:
     arr = np.asarray(values, dtype=float)
     if arr.size == 0:
         return 0.0
@@ -45,9 +27,7 @@ def zscore_anomaly_score(values: Sequence[Any][float]) -> float:
     return float(z.mean())
 
 
-def detect_anomaly(
-    feature_vector: Sequence[Any], threshold: float = 1.5
-) -> AnomalyResult:
+def detect_anomaly(feature_vector: Sequence[Any], threshold: float = 1.5) -> AnomalyResult:
     arr = np.asarray(feature_vector, dtype=float)
     score = zscore_anomaly_score(arr)
     explanations: Dict[str, float] = {}
@@ -62,4 +42,3 @@ def detect_anomaly(
 
 
 __all__ = ["AnomalyResult", "detect_anomaly", "zscore_anomaly_score"]
-
