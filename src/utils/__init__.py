@@ -1,1 +1,4 @@
-"""Utility modules for common functionality"""
+"""Utils package init."""
+
+__all__ = []
+

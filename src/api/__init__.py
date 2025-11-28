@@ -1,1 +1,4 @@
-"""API modules for SecureOps FastAPI application"""
+"""API package init."""
+
+__all__ = []
+

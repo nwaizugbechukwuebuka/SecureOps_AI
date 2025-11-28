@@ -1,0 +1,23 @@
+name: Security Scans
+
+on:
+  schedule:
+    - cron: '0 2 * * 0' # weekly
+  push:
+    branches: [ main ]
+
+jobs:
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: python
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+  # Dependency review step removed due to action availability variances.
+  # Add an official dependency-review action or Dependabot integration in your org.

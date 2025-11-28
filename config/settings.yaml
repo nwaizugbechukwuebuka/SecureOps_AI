@@ -1,0 +1,17 @@
+app:
+  name: SecureOps_AI
+  host: 127.0.0.1
+  port: 8000
+  debug: false
+
+model:
+  path: model_local.pkl
+  random_state: 42
+
+integrations:
+  siem_enabled: true
+  slack_enabled: false
+
+security:
+  secret_env_var: SECUREOPS_SECRET
+  token_header: X-API-Token

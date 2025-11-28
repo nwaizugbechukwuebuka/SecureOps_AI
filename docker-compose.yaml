@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  secureops:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PROMETHEUS_ENABLED=true
+      - SENTRY_DSN=
+    volumes:
+      - .:/app
