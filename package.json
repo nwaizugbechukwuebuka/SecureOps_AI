@@ -1,0 +1,31 @@
+{
+  "name": "secureops_ai",
+  "version": "1.0.0",
+  "description": "**Production-Grade Security Automation & ML-Powered Threat Detection**",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nwaizugbechukwuebuka/SecureOps_AI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nwaizugbechukwuebuka/SecureOps_AI/issues"
+  },
+  "homepage": "https://github.com/nwaizugbechukwuebuka/SecureOps_AI#readme",
+  "dependencies": {
+    "cypress": "^15.7.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.10.0"
+  }
+}
