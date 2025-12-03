@@ -44,10 +44,13 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
+    # only run this job for pull_request events (prevents failure on push/schedule)
+    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       pull-requests: read
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/dependency-review-action@v4
 
   secret-scanning:
