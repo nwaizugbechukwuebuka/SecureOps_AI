@@ -1,4 +1,3 @@
-"""Pipelines package init."""
+﻿"""Pipelines package init."""
 
 __all__ = []
-

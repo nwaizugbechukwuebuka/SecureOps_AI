@@ -1,41 +1,65 @@
+# tests/integration/test_api_endpoints.py
+
 import sys
 from pathlib import Path
 
-# Ensure src is importable when running tests from repository root
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+# -----------------------------
+# Ensure 'src' is importable
+# -----------------------------
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+import pytest
+from fastapi.testclient import TestClient
+
+from src.api.fastapi_app import create_app
 from src.security.crypto import generate_hmac_token
 
 
+# -----------------------------
+# TestClient fixture
+# -----------------------------
+@pytest.fixture(scope="module")
+def client():
+    app = create_app()
+    with TestClient(app) as c:
+        yield c
+
+
+# -----------------------------
+# Health endpoint
+# -----------------------------
 def test_health_endpoint(client):
     r = client.get("/health/")
     assert r.status_code == 200
     assert r.json().get("status") == "ok"
 
 
+# -----------------------------
+# AI analyze endpoint protection
+# -----------------------------
 def test_ai_analyze_protection(client):
     # Missing token -> 401
     r = client.post("/ai/analyze", json={"prompt": "hello"})
     assert r.status_code == 401
 
     # Invalid token -> 403
-    r = client.post(
-        "/ai/analyze",
-        json={"prompt": "hello"},
-        headers={"X-API-Token": "bad"},
-    )
+    r = client.post("/ai/analyze", json={"prompt": "hello"}, headers={"X-API-Token": "bad"})
     assert r.status_code == 403
 
     # Valid token -> 200
     token = generate_hmac_token("test-secret", "secureops-client")
-    r = client.post(
-        "/ai/analyze",
-        json={"prompt": "hello"},
-        headers={"X-API-Token": token},
-    )
+    r = client.post("/ai/analyze", json={"prompt": "hello"}, headers={"X-API-Token": token})
     assert r.status_code == 200
     data = r.json()
     assert "suggestion" in data
+
+
+# -----------------------------
+# Scan run endpoint protection
+# -----------------------------
+def test_scan_run_requires_token(client):
+    r = client.post("/scan/run")
+    assert r.status_code == 401
 
 
 def test_scan_run_endpoint_client_side(monkeypatch, client):
@@ -72,3 +96,10 @@ def test_scan_run_endpoint_client_side(monkeypatch, client):
     assert r.status_code == 200
     data = r.json()
     assert "processed" in data and "detections" in data
+
+
+# -----------------------------
+# Simple smoke test
+# -----------------------------
+def test_smoke():
+    assert True

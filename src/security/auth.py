@@ -1,6 +1,4 @@
-"""Token-based authentication dependency for FastAPI.
-"""
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 import os
@@ -10,6 +8,8 @@ from fastapi import HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
 
 from security.crypto import verify_hmac_token
+
+"""Token-based authentication dependency for FastAPI."""
 
 
 LOG = logging.getLogger("secureops.security.auth")
@@ -33,4 +33,3 @@ async def require_token(api_key: Optional[str] = Security(api_key_header)) -> st
 
 
 __all__ = ["require_token", "api_key_header"]
-

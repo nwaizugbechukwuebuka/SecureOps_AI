@@ -1,10 +1,12 @@
+﻿from __future__ import annotations
+
+from typing import Any, Sequence
+
 """Validators used across the project (pydantic-compatible helpers)."""
-from __future__ import annotations
-
-from typing import Any, Sequence[Any]
 
 
-def ensure_list(x) -> Sequence[Any]:
+def ensure_list(x: Any) -> Sequence[Any]:
+    """Ensure the input is returned as a list."""
     if x is None:
         return []
     if isinstance(x, (list, tuple)):
@@ -13,6 +15,7 @@ def ensure_list(x) -> Sequence[Any]:
 
 
 def ensure_non_empty_str(value: Any) -> str:
+    """Ensure the input is a non-empty string."""
     if value is None:
         raise ValueError("value cannot be None")
     s = str(value).strip()
@@ -22,4 +25,3 @@ def ensure_non_empty_str(value: Any) -> str:
 
 
 __all__ = ["ensure_list", "ensure_non_empty_str"]
-

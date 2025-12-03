@@ -1,3 +1,12 @@
+import React from "react";
+
+const Navbar: React.FC = () => (
+  <nav className="w-full bg-gray-200 py-4 px-6 mb-4">
+    <span>Navbar Placeholder</span>
+  </nav>
+);
+
+export default Navbar;
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../ui/Button';
@@ -11,7 +20,7 @@ const navLinks = [
   { name: 'Settings', path: '/settings' },
 ];
 
-export const Navbar: React.FC = () => (
+const Navbar: React.FC = () => (
   <nav className="flex items-center justify-between px-6 py-3 bg-white shadow">
     <Link to="/" className="flex items-center gap-2">
       <img src={secureopsLogo} alt="SecureOps Logo" className="h-8" />
@@ -27,3 +36,5 @@ export const Navbar: React.FC = () => (
     <Button variant="accent">Sign Out</Button>
   </nav>
 );
+
+export default Navbar;

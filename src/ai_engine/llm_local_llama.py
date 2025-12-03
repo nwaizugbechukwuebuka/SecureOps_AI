@@ -1,12 +1,17 @@
+﻿        import hashlib
+
+from __future__ import annotations
+
+import logging
+from typing import Any, Dict
+
 """Placeholder for a local LLM connector (e.g., llama.cpp/ggml runners).
 
 This module is intentionally a lightweight stub. Replace the implementation
 with your local LLM runner/adapter when available.
 """
-from __future__ import annotations
 
-import logging
-from typing import dict[str, Any][str, Any]
+
 
 LOG = logging.getLogger("secureops.ai.llm_local")
 
@@ -15,16 +20,14 @@ class LocalLLM:
     def __init__(self, model_path: str | None = None) -> None:
         self.model_path = model_path
 
-    async def analyze(self, prompt: str) -> dict[str, Any][str, Any][str, str]:
-        # Minimal deterministic fallback: echo behavior with a short suggestion
+    async def analyze(self, prompt: str) -> Dict[str, Any]:
+        """
+        Minimal deterministic fallback: echo behavior with a short suggestion.
+        Returns a dictionary with id, persona, prompt snippet, and suggestion.
+        """
         LOG.debug("LocalLLM.analyze called (model_path=%s)", self.model_path)
-        suggestion = (
-            "Investigate host; isolate"
-            if "alert" in prompt.lower()
-            else "No action: monitor"
-        )
+        suggestion = "Investigate host; isolate" if "alert" in prompt.lower() else "No action: monitor"
 
-        import hashlib
 
         h = hashlib.blake2b(prompt.encode("utf8"), digest_size=6).hexdigest()
         return {
@@ -36,4 +39,3 @@ class LocalLLM:
 
 
 __all__ = ["LocalLLM"]
-

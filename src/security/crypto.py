@@ -1,11 +1,11 @@
-"""Cryptographic utilities: HMAC token generation and verification.
-"""
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import base64
 import hashlib
 import hmac
 import os
+
+"""Cryptographic utilities: HMAC token generation and verification."""
 
 
 def generate_hmac_token(secret: str, payload: str) -> str:
@@ -24,4 +24,3 @@ def random_base64(nbytes: int = 24) -> str:
 
 
 __all__ = ["generate_hmac_token", "verify_hmac_token", "random_base64"]
-

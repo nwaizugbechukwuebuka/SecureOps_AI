@@ -1,26 +1,14 @@
-
-from __future__ import annotations
-"""SIEM connector stub."""
-from typing import List, Dict
-
-class SiemConnector:
-    async def fetch(self) -> List[Dict]:
-        return [
-            {"id": "siem-1", "source": "siem", "message": "Failed login"},
-            {"id": "siem-2", "source": "siem", "message": "Malware detected"},
-        ]
-
-__all__ = ["SiemConnector"]
-"""Mocked SIEM connector that returns example log events.
-"""
-
-import asyncio
-from typing import List, Dict, Any, Sequence
+﻿import asyncio
+from typing import Any, Dict, List
 
 
 class SiemConnector:
-    async def fetch(self) -> List[dict[str, Any][str, Any]]:
-        await asyncio.sleep(0)
+    """
+    Mock SIEM connector that asynchronously returns example log events.
+    """
+
+    async def fetch(self) -> List[Dict[str, Any]]:
+        await asyncio.sleep(0)  # ensures this is a real async coroutine
         return [
             {
                 "id": "siem-1",
@@ -36,4 +24,3 @@ class SiemConnector:
 
 
 __all__ = ["SiemConnector"]
-

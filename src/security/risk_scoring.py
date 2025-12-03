@@ -1,11 +1,12 @@
+﻿from __future__ import annotations
+
+from typing import Mapping, Tuple
+
 """Aggregate and combine detection signals into risk scores.
 
 This module provides small, well documented utilities used by the
 pipelines to compute a 0..1 normalized risk score.
 """
-from __future__ import annotations
-
-from typing import Mapping, Tuple
 
 
 def score_risk(
@@ -38,4 +39,3 @@ def aggregate_risk_score(threat_prob: float, anomaly_score: float) -> float:
 
 
 __all__ = ["score_risk", "aggregate_risk_score"]
-

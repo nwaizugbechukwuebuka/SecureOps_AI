@@ -1,11 +1,13 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-"""Explainable z-score based anomaly detection for numeric vectors."""
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Sequence
 
 import numpy as np
+
+"""Explainable z-score based anomaly detection for numeric vectors."""
+
 
 LOG = logging.getLogger("secureops.ai.anomaly")
 

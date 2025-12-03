@@ -1,15 +1,21 @@
-"""UVicorn-ready entry point for SecureOps_AI.
+﻿from __future__ import annotations
+
+from api.fastapi_app import create_app  # noqa: E402
+import uvicorn  # noqa: E402
+
+import asyncio
+import logging
+import sys
+from pathlib import Path
+
+"""
+UVicorn-ready entry point for SecureOps_AI.
 
 Usage:
     python -m src.main
     uvicorn api.fastapi_app:create_app --factory
 """
-from __future__ import annotations
 
-import logging
-import asyncio
-import sys
-from pathlib import Path
 
 
 def _ensure_src_on_path() -> None:
@@ -29,16 +35,15 @@ def main() -> None:
     _ensure_src_on_path()
     _setup_logging()
     logging.getLogger("secureops").info("Starting SecureOps_AI...")
+
     try:
-        from api.fastapi_app import create_app  # type: ignore
-        import uvicorn
+        # Lazy imports (intentional) â€” prevent startup failure if deps missing
+
 
         app = create_app()
         uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
     except Exception:
-        logging.getLogger("secureops").exception(
-            "Failed to start uvicorn — falling back to run loop"
-        )
+        logging.getLogger("secureops").exception("Failed to start uvicorn â€” falling back to run loop")
         loop = asyncio.get_event_loop()
         try:
             loop.run_forever()
@@ -48,4 +53,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

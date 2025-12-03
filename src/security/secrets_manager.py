@@ -1,8 +1,4 @@
-"""Lightweight secrets manager that reads a safe template and overlays env vars.
-
-This should not store or expose real secrets in the repository.
-"""
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 import os
@@ -11,6 +7,11 @@ from pathlib import Path
 from typing import Any, Dict
 
 import yaml
+
+"""Lightweight secrets manager that reads a safe template and overlays env vars.
+
+This should not store or expose real secrets in the repository.
+"""
 
 
 LOG = logging.getLogger("secureops.security.secrets")
@@ -41,4 +42,3 @@ class SecretsManager:
 
 
 __all__ = ["SecretsManager"]
-

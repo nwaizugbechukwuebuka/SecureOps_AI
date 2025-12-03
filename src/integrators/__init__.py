@@ -1,4 +1,3 @@
-"""Integrators package init."""
+﻿"""Integrators package init."""
 
 __all__ = []
-

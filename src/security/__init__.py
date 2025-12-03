@@ -1,4 +1,3 @@
-"""Security package init."""
+﻿"""Security package init."""
 
 __all__ = []
-

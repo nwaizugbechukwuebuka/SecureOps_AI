@@ -1,11 +1,13 @@
-import logging
-from typing import Any
+﻿import logging
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from security.auth import require_token
+
+from src.ai_engine.llm_security_agent import LLMSecurityAgent
+from src.security.auth import require_token
 
 LOG = logging.getLogger("secureops.api.ai")
 router = APIRouter()
+
 
 class AnalyzeRequest(BaseModel):
     prompt: str
@@ -17,11 +19,15 @@ class AnalyzeResponse(BaseModel):
     prompt_snippet: str
     suggestion: str
 
-@router.post("/analyze", response_model=AnalyzeResponse, dependencies=[Depends(require_token)])
-async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
-    """Run the LLM security agent against the provided prompt."""
-    from ai_engine.llm_security_agent import LLMSecurityAgent
-    agent = LLMSecurityAgent()
-    resp = await agent.analyze(request.prompt)
-    return resp
 
+@router.post(
+    "/analyze",
+    response_model=AnalyzeResponse,
+    dependencies=[Depends(require_token)]
+)
+async def analyze(payload: AnalyzeRequest) -> AnalyzeResponse:
+    """Run the LLM security agent against the provided prompt."""
+
+    agent = LLMSecurityAgent()
+    resp = await agent.analyze(payload.prompt)
+    return resp

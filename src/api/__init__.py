@@ -1,4 +1,3 @@
-"""API package init."""
+﻿"""API package init."""
 
 __all__ = []
-

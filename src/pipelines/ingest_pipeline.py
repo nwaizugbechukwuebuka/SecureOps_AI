@@ -1,30 +1,28 @@
-"""Ingest pipeline: fetch logs from cloud/SIEM sources."""
-from typing import AsyncIterator, List, Dict, Any
+﻿import asyncio
+import logging
+from typing import Any, AsyncIterator, Dict, List
 
-async def run_ingest(connectors: List[Any] = None) -> AsyncIterator[Dict[str, Any]]:
-    connectors = connectors or []
-    for connector in connectors:
-        async for event in connector.fetch():
-            yield event
+from integrators.azure_logs import AzureLogs
+from integrators.cloudtrail_parser import CloudTrailParser
+from integrators.siem_connector import SiemConnector
 
-__all__ = ["run_ingest"]
-
-
-"""Ingest pipeline: collect logs/events from integrators and yield normalized records.
+"""
+Ingest pipeline: collect logs/events from integrators and yield normalized records.
 """
 
-import asyncio
-import logging
-from typing import AsyncIterator, Dict, Any, List
-
-from integrators.siem_connector import SiemConnector
-from integrators.cloudtrail_parser import CloudTrailParser
-from integrators.azure_logs import AzureLogs
 
 LOG = logging.getLogger("secureops.pipelines.ingest")
 
-async def run_ingest(connectors: List[object] | None = None) -> AsyncIterator[Dict[str, Any]]:
+
+async def run_ingest(
+    connectors: List[object] | None = None,
+) -> AsyncIterator[Dict[str, Any]]:
+    """
+    Ingest records from all configured connectors.
+    Each connector must implement `.fetch()` returning a list of events.
+    """
     connectors = connectors or [SiemConnector(), CloudTrailParser(), AzureLogs()]
+
     for c in connectors:
         try:
             items = await c.fetch()
@@ -33,7 +31,8 @@ async def run_ingest(connectors: List[object] | None = None) -> AsyncIterator[Di
                 yield it
         except Exception:
             LOG.exception("Connector failed: %s", c)
-        await asyncio.sleep(0)
+
+        await asyncio.sleep(0)  # allow cooperative async scheduling
+
 
 __all__ = ["run_ingest"]
-
