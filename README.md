@@ -351,7 +351,7 @@ MIT License - see [LICENSE](LICENSE)
 
 *Demonstrating advanced security engineering, full-stack development, and production-ready architecture.*
 
-[![GitHub](https://img.shields.io/badge/GitHub-nwaizugbechukwuebuka-181717.svg?style=flat&logo=github)](https://github.com/nwaizugbechukwuebuka)
+[![GitHub](https://img.shields.io/badge/GitHub-nwaizugbechukwuebuka-181717.svg?style=flat&logo=github)](https://github.com/nwaizugbechukwuebuka/SecureOps_AI)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077b5.svg?style=flat&logo=linkedin)](https://www.linkedin.com/in/chukwuebuka-tobiloba-nwaizugbe/)
 
 **🛡️ SecureOps_AI: Where Security Meets Innovation**
