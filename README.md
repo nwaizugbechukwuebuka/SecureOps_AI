@@ -322,7 +322,7 @@ MIT License - see [LICENSE](LICENSE)
 ## 👨‍💻 **About the Developer**
 
 ### **Chukwuebuka Tobiloba Nwaizugbe**
-*Senior Security Engineer & Full-Stack Developer*
+*Security Engineer*
 
 **🎯 Core Expertise:**
 - ☁️ Security architecture, compliance automation
