@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/nwaizugbechukwuebuka/SecureOps_AI#readme",
   "dependencies": {
-    "cypress": "^15.7.1",
+    "cypress": "^15.10.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.10.0"
